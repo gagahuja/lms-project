@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<div class="container mt-4">
+    <h2>🎓 Student Dashboard</h2>
+
+    <!-- Available Courses -->
+    <div class="card p-3 mt-3">
+        <h4>Available Courses</h4>
+        <ul class="list-group">
+            {% for course in courses %}
+            <li class="list-group-item d-flex justify-content-between">
+                {{ course.title }}
+                <a href="/enroll/{{ course.id }}/" class="btn btn-sm btn-success">Enroll</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Enrolled Courses -->
+    <div class="card p-3 mt-3">
+        <h4>Your Courses</h4>
+        <ul class="list-group">
+            {% for course in enrolled_courses %}
+            <li class="list-group-item">{{ course.title }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Live Classes -->
+    <div class="card p-3 mt-3">
+        <h4>Live Classes</h4>
+        <ul class="list-group">
+            {% for lc in live_classes %}
+            <li class="list-group-item d-flex justify-content-between">
+                {{ lc.title }}
+                <a href="/join/{{ lc.id }}/" class="btn btn-primary btn-sm">Join</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <a href="/logout/" class="btn btn-danger mt-3">Logout</a>
+</div>
+
+</body>
+</html>
