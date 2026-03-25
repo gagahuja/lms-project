@@ -220,8 +220,11 @@ def submit_assignment(request, assignment_id):
     assignment = get_object_or_404(Assignment, id=assignment_id)
 
     if request.method == 'POST':
-        file = request.FILES['file']
+        file = request.FILES.get('file')
 
+        if not file:
+            return redirect('dashboard')
+        
         Submission.objects.create(
             assignment=assignment,
             student=request.user,
