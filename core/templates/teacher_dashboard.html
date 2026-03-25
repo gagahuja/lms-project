@@ -33,4 +33,24 @@
     {% endfor %}
 </ul>
 
+<h5 class="mt-4">Modules & Lessons</h5>
+
+{% for course in courses %}
+<div class="card p-3 mb-3">
+    <h5>{{ course.title }}</h5>
+
+    {% for module in course.module_set.all %}
+        <div>
+            <strong>{{ module.title }}</strong>
+
+            <ul>
+                {% for lesson in module.lesson_set.all %}
+                <li>{{ lesson.title }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endfor %}
+</div>
+{% endfor %}
+
 {% endblock %}
