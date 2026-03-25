@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h3>Submissions</h3>
+
+<ul class="list-group">
+{% for s in submissions %}
+<li class="list-group-item d-flex justify-content-between">
+    {{ s.student.username }}
+    <a href="{{ s.file.url }}" class="btn btn-sm btn-primary">Download</a>
+</li>
+{% endfor %}
+</ul>
+
+{% endblock %}

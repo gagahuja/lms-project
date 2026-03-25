@@ -7,6 +7,8 @@ from .models import Enrollment
 from .models import LiveClass
 from .models import Attendance
 from .models import Module
+from .models import Assignment
+from .models import Submission
 from django.contrib.auth import get_user_model
 from django.db.models import Count
 
@@ -209,4 +211,31 @@ def course_detail(request, course_id):
     return render(request, 'course_detail.html', {
         'course': course,
         'modules': modules
+    })
+
+
+from django.shortcuts import get_object_or_404
+
+def submit_assignment(request, assignment_id):
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+
+    if request.method == 'POST':
+        file = request.FILES['file']
+
+        Submission.objects.create(
+            assignment=assignment,
+            student=request.user,
+            file=file
+        )
+
+        return redirect('dashboard')
+
+    return render(request, 'submit_assignment.html', {'assignment': assignment})
+
+
+def view_submissions(request, assignment_id):
+    submissions = Submission.objects.filter(assignment_id=assignment_id)
+
+    return render(request, 'view_submissions.html', {
+        'submissions': submissions
     })

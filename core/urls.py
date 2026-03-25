@@ -16,6 +16,8 @@ urlpatterns = [
     path('buy/<int:course_id>/', views.buy_course, name='buy_course'),
     path('payment-success/<int:course_id>/', views.payment_success),
     path('course/<int:course_id>/', views.course_detail, name='course_detail'),
+    path('submit/<int:assignment_id>/', views.submit_assignment, name='submit_assignment'),
+    path('submissions/<int:assignment_id>/', views.view_submissions),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

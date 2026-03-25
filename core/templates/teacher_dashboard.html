@@ -53,4 +53,17 @@
 </div>
 {% endfor %}
 
+<h5 class="mt-4">Assignments</h5>
+
+{% for course in courses %}
+    {% for assignment in course.assignment_set.all %}
+    <div class="card p-2 mb-2">
+        {{ assignment.title }}
+        <a href="/submissions/{{ assignment.id }}/" class="btn btn-sm btn-info">
+            View Submissions
+        </a>
+    </div>
+    {% endfor %}
+{% endfor %}
+
 {% endblock %}

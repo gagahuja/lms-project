@@ -78,3 +78,9 @@ class Submission(models.Model):
     student = models.ForeignKey(User, on_delete=models.CASCADE)
     file = models.FileField(upload_to='submissions/')
     submitted_at = models.DateTimeField(auto_now_add=True)
+
+
+class Progress(models.Model):
+    student = models.ForeignKey(User, on_delete=models.CASCADE)
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
+    completed = models.BooleanField(default=False)
