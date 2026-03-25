@@ -46,3 +46,21 @@ class Attendance(models.Model):
 
     def __str__(self):
         return f"{self.student.username} - {self.live_class.title}"
+    
+
+class Module(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    title = models.CharField(max_length=200)
+
+    def __str__(self):
+        return self.title
+    
+
+class Lesson(models.Model):
+    module = models.ForeignKey(Module, on_delete=models.CASCADE)
+    title = models.CharField(max_length=200)
+    video_url = models.URLField(blank=True, null=True)
+    notes = models.FileField(upload_to='notes/', blank=True, null=True)
+
+    def __str__(self):
+        return self.title
