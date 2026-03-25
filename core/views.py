@@ -114,3 +114,48 @@ def signup_view(request):
             return redirect('login')
 
     return render(request, 'signup.html', {'error': error})
+
+
+def create_course(request):
+    if not request.user.is_authenticated or request.user.user_type != 'teacher':
+        return redirect('login')
+
+    if request.method == 'POST':
+        title = request.POST['title']
+        description = request.POST['description']
+
+        Course.objects.create(
+            title=title,
+            description=description,
+            teacher=request.user
+        )
+
+        return redirect('dashboard')
+
+    return render(request, 'create_course.html')
+
+
+def create_live_class(request):
+    if not request.user.is_authenticated or request.user.user_type != 'teacher':
+        return redirect('login')
+
+    courses = Course.objects.filter(teacher=request.user)
+
+    if request.method == 'POST':
+        course_id = request.POST['course']
+        title = request.POST['title']
+        meet_link = request.POST['meet_link']
+        whiteboard_link = request.POST['whiteboard_link']
+        date = request.POST['date']
+
+        LiveClass.objects.create(
+            course_id=course_id,
+            title=title,
+            meet_link=meet_link,
+            whiteboard_link=whiteboard_link,
+            date=date
+        )
+
+        return redirect('dashboard')
+
+    return render(request, 'create_live_class.html', {'courses': courses})

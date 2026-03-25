@@ -9,4 +9,6 @@ urlpatterns = [
     path('join/<int:class_id>/', views.join_class, name='join_class'),
     path('create-admin/', views.create_admin),
     path('signup/', views.signup_view, name='signup'),
+    path('create-course/', views.create_course, name='create_course'),
+    path('create-live-class/', views.create_live_class, name='create_live_class'),
 ]
