@@ -1,10 +1,12 @@
 from django.shortcuts import render, redirect
+from django.http import HttpResponse
 from django.contrib.auth import authenticate, login, logout
 from .models import User
 from .models import Course
 from .models import Enrollment
 from .models import LiveClass
 from .models import Attendance
+from django.contrib.auth import get_user_model
 
 
 def login_view(request):
@@ -81,3 +83,11 @@ def join_class(request, class_id):
     )
 
     return render(request, 'join_class.html', {'class': live_class})
+
+
+
+def create_admin(request):
+    User = get_user_model()
+    if not User.objects.filter(username='admin').exists():
+        User.objects.create_superuser('admin', 'admin@gmail.com', 'Admin@123')
+    return HttpResponse("Admin created")
