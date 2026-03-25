@@ -91,3 +91,26 @@ def create_admin(request):
     if not User.objects.filter(username='admin').exists():
         User.objects.create_superuser('admin', 'admin@gmail.com', 'Admin@123')
     return HttpResponse("Admin created")
+
+
+
+def signup_view(request):
+    error = None
+
+    if request.method == 'POST':
+        username = request.POST['username']
+        password = request.POST['password']
+
+        User = get_user_model()
+
+        if User.objects.filter(username=username).exists():
+            error = "Username already exists"
+        else:
+            user = User.objects.create_user(
+                username=username,
+                password=password,
+                user_type='student'
+            )
+            return redirect('login')
+
+    return render(request, 'signup.html', {'error': error})
