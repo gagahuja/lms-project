@@ -4,6 +4,7 @@ from .models import User
 from .models import Course
 from .models import Enrollment
 from .models import LiveClass, Attendance
+from .models import Module, Lesson, Assignment, Submission
 
 class CustomUserAdmin(UserAdmin):
     model = User
@@ -17,8 +18,12 @@ class CustomUserAdmin(UserAdmin):
         (None, {'fields': ('user_type',)}),
     )
 
-admin.site.register(User, CustomUserAdmin)
+admin.site.register(User)
 admin.site.register(Course)
 admin.site.register(Enrollment)
 admin.site.register(LiveClass)
 admin.site.register(Attendance)
+admin.site.register(Module)
+admin.site.register(Lesson)
+admin.site.register(Assignment)
+admin.site.register(Submission)
