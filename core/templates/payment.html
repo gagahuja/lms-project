@@ -1,0 +1,24 @@
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<button id="pay-btn">Pay Now</button>
+
+<script>
+var options = {
+    "key": "{{ key }}",
+    "amount": "{{ payment.amount }}",
+    "currency": "INR",
+    "name": "ScoreSkill",
+    "order_id": "{{ payment.id }}",
+
+    "handler": function (response){
+        window.location.href = "/payment-success/{{ course.id }}/";
+    }
+};
+
+var rzp = new Razorpay(options);
+
+document.getElementById('pay-btn').onclick = function(e){
+    rzp.open();
+    e.preventDefault();
+}
+</script>

@@ -167,3 +167,35 @@ def create_live_class(request):
         return redirect('dashboard')
 
     return render(request, 'create_live_class.html', {'courses': courses})
+
+
+import razorpay
+from django.conf import settings
+
+def buy_course(request, course_id):
+    course = Course.objects.get(id=course_id)
+
+    client = razorpay.Client(auth=("rzp_test_SVTMhk0hvNVHGy", "STlXAEpa9EWmM4ddaxBO2sUF"))
+
+    payment = client.order.create({
+        "amount": course.price * 100,
+        "currency": "INR",
+        "payment_capture": "1"
+    })
+
+    return render(request, "payment.html", {
+        "course": course,
+        "payment": payment,
+        "key": "rzp_test_SVTMhk0hvNVHGy"
+    })
+
+
+def payment_success(request, course_id):
+    course = Course.objects.get(id=course_id)
+
+    Enrollment.objects.get_or_create(
+        student=request.user,
+        course=course
+    )
+
+    return redirect('dashboard')

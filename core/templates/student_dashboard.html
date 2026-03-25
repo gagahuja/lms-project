@@ -11,7 +11,14 @@
     <div class="col-md-4">
         <div class="card p-3 mb-3 shadow">
             <h5>{{ course.title }}</h5>
-            <a href="/enroll/{{ course.id }}/" class="btn btn-success btn-sm">Enroll</a>
+
+            {% if course.price > 0 %}
+            <p>₹{{ course.price }}</p>
+            <a href="/buy/{{ course.id }}/" class="btn btn-primary">Buy Now</a>
+            {% else %}
+            <a href="/enroll/{{ course.id }}/" class="btn btn-success">Enroll</a>
+            {% endif %}
+            
         </div>
     </div>
     {% endfor %}
