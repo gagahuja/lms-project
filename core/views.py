@@ -7,6 +7,7 @@ from .models import Enrollment
 from .models import LiveClass
 from .models import Attendance
 from django.contrib.auth import get_user_model
+from django.db.models import Count
 
 
 def login_view(request):
@@ -39,7 +40,14 @@ def dashboard(request):
 
     if request.user.user_type == 'teacher':
         courses = Course.objects.filter(teacher=request.user)
-        return render(request, 'teacher_dashboard.html', {'courses': courses})
+        total_students = Enrollment.objects.filter(course__in=courses).count()
+        total_classes = LiveClass.objects.filter(course__in=courses).count()
+
+        return render(request, 'teacher_dashboard.html', {
+            'courses': courses,
+            'total_students': total_students,
+            'total_classes': total_classes
+        })
     else:
         enrolled = Enrollment.objects.filter(student=request.user)
         enrolled_courses = [e.course for e in enrolled]
@@ -86,11 +94,11 @@ def join_class(request, class_id):
 
 
 
-def create_admin(request):
-    User = get_user_model()
-    if not User.objects.filter(username='admin').exists():
-        User.objects.create_superuser('admin', 'admin@gmail.com', 'Admin@123')
-    return HttpResponse("Admin created")
+#def create_admin(request):
+#    User = get_user_model()
+#    if not User.objects.filter(username='admin').exists():
+#        User.objects.create_superuser('admin', 'admin@gmail.com', 'Admin@123')
+#   return HttpResponse("Admin created")
 
 
 
