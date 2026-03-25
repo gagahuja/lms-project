@@ -1,5 +1,7 @@
 from django.urls import path
 from . import views
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('', views.login_view, name='login'),
@@ -13,4 +15,7 @@ urlpatterns = [
     path('create-live-class/', views.create_live_class, name='create_live_class'),
     path('buy/<int:course_id>/', views.buy_course, name='buy_course'),
     path('payment-success/<int:course_id>/', views.payment_success),
+    path('course/<int:course_id>/', views.course_detail, name='course_detail'),
 ]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

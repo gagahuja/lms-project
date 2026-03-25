@@ -10,7 +10,7 @@
     {% for course in courses %}
     <div class="col-md-4">
         <div class="card p-3 mb-3 shadow">
-            <h5>{{ course.title }}</h5>
+            <a href="/course/{{ course.id }}/">{{ course.title }}</a>
 
             {% if course.price > 0 %}
             <p>₹{{ course.price }}</p>

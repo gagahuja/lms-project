@@ -6,6 +6,7 @@ from .models import Course
 from .models import Enrollment
 from .models import LiveClass
 from .models import Attendance
+from .models import Module
 from django.contrib.auth import get_user_model
 from django.db.models import Count
 
@@ -199,3 +200,13 @@ def payment_success(request, course_id):
     )
 
     return redirect('dashboard')
+
+
+def course_detail(request, course_id):
+    course = Course.objects.get(id=course_id)
+    modules = Module.objects.filter(course=course)
+
+    return render(request, 'course_detail.html', {
+        'course': course,
+        'modules': modules
+    })

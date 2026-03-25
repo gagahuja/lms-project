@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2>{{ course.title }}</h2>
+
+{% for module in modules %}
+<div class="card p-3 mb-3">
+    <h5>{{ module.title }}</h5>
+
+    <ul>
+        {% for lesson in module.lesson_set.all %}
+        <li>
+            {{ lesson.title }}
+
+            {% if lesson.video_url %}
+            <a href="{{ lesson.video_url }}" target="_blank">▶ Watch</a>
+            {% endif %}
+
+            {% if lesson.notes %}
+            <a href="{{ lesson.notes.url }}">📄 Notes</a>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endfor %}
+
+{% endblock %}
