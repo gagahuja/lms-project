@@ -18,6 +18,7 @@ urlpatterns = [
     path('course/<int:course_id>/', views.course_detail, name='course_detail'),
     path('submit/<int:assignment_id>/', views.submit_assignment, name='submit_assignment'),
     path('submissions/<int:assignment_id>/', views.view_submissions),
+    path('webhook/', views.razorpay_webhook),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

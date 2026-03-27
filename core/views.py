@@ -11,6 +11,9 @@ from .models import Assignment
 from .models import Submission
 from django.contrib.auth import get_user_model
 from django.db.models import Count
+import json
+from django.views.decorators.csrf import csrf_exempt
+
 
 
 def login_view(request):
@@ -192,6 +195,10 @@ def buy_course(request, course_id):
         "key": "rzp_test_SVTMhk0hvNVHGy"
     })
 
+    "notes": {
+        "course_id": str(course.id),
+        "user_id": str(request.user.id)
+    }
 
 def payment_success(request, course_id):
     course = Course.objects.get(id=course_id)
@@ -242,3 +249,23 @@ def view_submissions(request, assignment_id):
     return render(request, 'view_submissions.html', {
         'submissions': submissions
     })
+
+
+@csrf_exempt
+def razorpay_webhook(request):
+    data = json.loads(request.body)
+
+    if data['event'] == 'payment.captured':
+        payment = data['payload']['payment']['entity']
+        course_id = payment['notes']['course_id']
+        user_id = payment['notes']['user_id']
+
+        user = User.objects.get(id=user_id)
+        course = Course.objects.get(id=course_id)
+
+        Enrollment.objects.get_or_create(
+            student=user,
+            course=course
+        )
+
+    return HttpResponse("OK")
