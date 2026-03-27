@@ -19,8 +19,6 @@ class CustomUserAdmin(UserAdmin):
     )
 
 admin.site.register(User, CustomUserAdmin)
-
-admin.site.register(User)
 admin.site.register(Course)
 admin.site.register(Enrollment)
 admin.site.register(LiveClass)
