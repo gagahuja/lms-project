@@ -186,7 +186,11 @@ def buy_course(request, course_id):
     payment = client.order.create({
         "amount": course.price * 100,
         "currency": "INR",
-        "payment_capture": "1"
+        "payment_capture": "1",
+        "notes": {
+            "course_id": str(course.id),
+            "user_id": str(request.user.id)
+        }
     })
 
     return render(request, "payment.html", {
@@ -195,10 +199,7 @@ def buy_course(request, course_id):
         "key": "rzp_test_SVTMhk0hvNVHGy"
     })
 
-    "notes": {
-        "course_id": str(course.id),
-        "user_id": str(request.user.id)
-    }
+    
 
 def payment_success(request, course_id):
     course = Course.objects.get(id=course_id)
