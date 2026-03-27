@@ -276,11 +276,26 @@ def razorpay_webhook(request):
 
 
 
+from django.conf import settings
+
 def ai_notes(request):
     notes = ""
 
     if request.method == "POST":
         topic = request.POST['topic']
-        notes = f"AI Notes for {topic}: \n\nThis is a basic explanation..."
+
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": f"Explain {topic} simply"}]
+            )
+
+            notes = response.choices[0].message.content
+
+        except Exception as e:
+            notes = "Error generating notes"
 
     return render(request, 'ai_notes.html', {'notes': notes})
