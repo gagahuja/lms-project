@@ -18,6 +18,8 @@ class CustomUserAdmin(UserAdmin):
         (None, {'fields': ('user_type',)}),
     )
 
+admin.site.register(User, CustomUserAdmin)
+
 admin.site.register(User)
 admin.site.register(Course)
 admin.site.register(Enrollment)
