@@ -19,6 +19,8 @@ urlpatterns = [
     path('submit/<int:assignment_id>/', views.submit_assignment, name='submit_assignment'),
     path('submissions/<int:assignment_id>/', views.view_submissions),
     path('webhook/', views.razorpay_webhook),
+    path('', views.home, name='home'),
+    path('ai-notes/', views.ai_notes),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

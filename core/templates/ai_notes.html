@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h3>AI Notes Generator</h3>
+
+<form method="POST">
+    {% csrf_token %}
+    <input type="text" name="topic" class="form-control mb-3" placeholder="Enter topic">
+    <button class="btn btn-primary">Generate</button>
+</form>
+
+<pre>{{ notes }}</pre>
+
+{% endblock %}

@@ -39,6 +39,9 @@ def logout_view(request):
     return redirect('login')
 
 
+def home(request):
+    return render(request, 'home.html')
+
 
 def dashboard(request):
     if not request.user.is_authenticated:
@@ -270,3 +273,14 @@ def razorpay_webhook(request):
         )
 
     return HttpResponse("OK")
+
+
+
+def ai_notes(request):
+    notes = ""
+
+    if request.method == "POST":
+        topic = request.POST['topic']
+        notes = f"AI Notes for {topic}: \n\nThis is a basic explanation..."
+
+    return render(request, 'ai_notes.html', {'notes': notes})

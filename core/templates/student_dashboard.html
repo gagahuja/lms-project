@@ -8,13 +8,13 @@
 
 <div class="row">
     {% for course in courses %}
-    <div class="col-md-4">
+    <div class="col-12 col-md-4">
         <div class="card p-3 mb-3 shadow">
             <a href="/course/{{ course.id }}/">{{ course.title }}</a>
 
             {% if course.price > 0 %}
             <p>₹{{ course.price }}</p>
-            <a href="/buy/{{ course.id }}/" class="btn btn-primary">Buy Now</a>
+            <a href="/buy/{{ course.id }}/" class="btn btn-primary w-100">Buy Now</a>
             {% else %}
             <a href="/enroll/{{ course.id }}/" class="btn btn-success">Enroll</a>
             {% endif %}
@@ -64,7 +64,7 @@
     {% for lc in live_classes %}
     <li class="list-group-item d-flex justify-content-between">
         {{ lc.title }}
-        <a href="/join/{{ lc.id }}/" class="btn btn-primary btn-sm">Join</a>
+        <a href="/join/{{ lc.id }}/" class="btn btn-primary w-100 btn-sm">Join</a>
     </li>
     {% endfor %}
 </ul>
