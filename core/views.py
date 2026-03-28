@@ -310,14 +310,16 @@ def create_admin(request):
 
     User = get_user_model()
 
-    # DELETE old admin if exists
-    User.objects.filter(username="admin1").delete()
+    try:
+        user, created = User.objects.get_or_create(username="admin1")
 
-    # CREATE fresh with user_type
-    User.objects.create_superuser(
-        username="admin1",
-        password="Admin@123",
-        user_type="teacher"
-    )
+        user.set_password("Admin@123")
+        user.user_type = "teacher"
+        user.is_staff = True
+        user.is_superuser = True
+        user.save()
 
-    return HttpResponse("Admin reset done")
+        return HttpResponse("Admin created")
+
+    except Exception as e:
+        return HttpResponse(f"Error: {str(e)}")
