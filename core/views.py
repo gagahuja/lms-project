@@ -299,3 +299,18 @@ def ai_notes(request):
             notes = "Error generating notes"
 
     return render(request, 'ai_notes.html', {'notes': notes})
+
+
+from django.contrib.auth import get_user_model
+from django.http import HttpResponse
+
+def create_admin(request):
+    User = get_user_model()
+
+    if not User.objects.filter(username="admin1").exists():
+        User.objects.create_superuser(
+            username="admin1",
+            password="Admin@123"
+        )
+
+    return HttpResponse("Admin created")
