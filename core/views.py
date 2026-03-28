@@ -47,7 +47,7 @@ def dashboard(request):
     if not request.user.is_authenticated:
         return redirect('login')
 
-    if request.user.user_type == 'teacher':
+    if getattr(request.user, 'user_type', None) == 'teacher':
         courses = Course.objects.filter(teacher=request.user)
         total_students = Enrollment.objects.filter(course__in=courses).count()
         total_classes = LiveClass.objects.filter(course__in=courses).count()
@@ -305,13 +305,19 @@ from django.contrib.auth import get_user_model
 from django.http import HttpResponse
 
 def create_admin(request):
+    from django.contrib.auth import get_user_model
+    from django.http import HttpResponse
+
     User = get_user_model()
 
-    if not User.objects.filter(username="admin1").exists():
-        User.objects.create_superuser(
-            username="admin1",
-            password="Admin@123",
-            user_type="teacher"
-        )
+    # DELETE old admin if exists
+    User.objects.filter(username="admin1").delete()
 
-    return HttpResponse("Admin created")
+    # CREATE fresh with user_type
+    User.objects.create_superuser(
+        username="admin1",
+        password="Admin@123",
+        user_type="teacher"
+    )
+
+    return HttpResponse("Admin reset done")
