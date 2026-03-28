@@ -310,7 +310,8 @@ def create_admin(request):
     if not User.objects.filter(username="admin1").exists():
         User.objects.create_superuser(
             username="admin1",
-            password="Admin@123"
+            password="Admin@123",
+            user_type="teacher"
         )
 
     return HttpResponse("Admin created")

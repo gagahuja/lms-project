@@ -7,7 +7,11 @@ class User(AbstractUser):
         ('student', 'Student'),
     )
 
-    user_type = models.CharField(max_length=10, choices=USER_TYPE_CHOICES)
+    user_type = models.CharField(
+        max_length=10,
+        choices=USER_TYPE_CHOICES,
+        default='student'
+    )
 
 
 class Course(models.Model):
