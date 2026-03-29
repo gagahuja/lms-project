@@ -9,39 +9,48 @@
     <h5>{{ module.title }}</h5>
 
     <ul>
-        
-        <div class="card p-2 mb-2">
-            <strong>{{ lesson.title }}</strong>
 
-            <br>
+        {% for lesson in module.lesson_set.all %}
 
-            <!-- AI NOTES BUTTON -->
-            <a href="/ai-notes/{{ lesson.id }}/" class="btn btn-warning btn-sm mt-2">
-                Generate AI Notes
-            </a>
+        <li>
+            <div class="card p-2 mb-2">
+                <strong>{{ lesson.title }}</strong>
 
-            <!-- SHOW SAVED NOTES -->
-            {% if lesson.ai_notes %}
-                <div class="mt-2 p-2 bg-light">
-                    <strong>AI Notes:</strong>
-                    <p>{{ lesson.ai_notes }}</p>
-                </div>
-            {% endif %}
+                <br>
 
-        </div>
+                <!-- VIDEO -->
+                {% if lesson.video_url %}
+                <iframe width="100%" height="300"
+                    src="{{ lesson.video_url }}"
+                    frameborder="0" allowfullscreen>
+                </iframe>
+                {% endif %}
 
-{% endfor %}
-            {% if lesson.video_url %}
-            <iframe width="100%" height="300"
-            src="{{ lesson.video_url }}"
-            frameborder="0" allowfullscreen></iframe>
-            {% endif %}
+                <!-- FILE NOTES -->
+                {% if lesson.notes %}
+                <a href="{{ lesson.notes.url }}">📄 Notes</a>
+                {% endif %}
 
-            {% if lesson.notes %}
-            <a href="{{ lesson.notes.url }}">📄 Notes</a>
-            {% endif %}
+                <br>
+
+                <!-- AI NOTES BUTTON -->
+                <a href="/ai-notes/{{ lesson.id }}/" class="btn btn-warning btn-sm mt-2">
+                    Generate AI Notes
+                </a>
+
+                <!-- AI NOTES DISPLAY -->
+                {% if lesson.ai_notes %}
+                    <div class="mt-2 p-2 bg-light">
+                        <strong>AI Notes:</strong>
+                        <p>{{ lesson.ai_notes }}</p>
+                    </div>
+                {% endif %}
+
+            </div>
         </li>
+
         {% endfor %}
+
     </ul>
 </div>
 {% endfor %}
