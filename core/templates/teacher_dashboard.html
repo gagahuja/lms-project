@@ -2,25 +2,31 @@
 
 {% block content %}
 
-<h3>📊 Teacher Dashboard</h3>
+<h2 class="mb-4">👨‍🏫 Teacher Dashboard</h2>
 
-<div class="row mb-4">
-    
+<div class="row g-4 mb-4">
 
     <div class="col-md-4">
-        <div class="card p-3 shadow text-center">
-            <h3>{{ total_students }}</h3>
+        <div class="card shadow p-3 text-center">
+            <h2>{{ total_students }}</h2>
             <p>Total Students</p>
         </div>
     </div>
 
     <div class="col-md-4">
-        <div class="card p-3 shadow text-center">
-            <h3>{{ total_classes }}</h3>
+        <div class="card shadow p-3 text-center">
+            <h2>{{ total_classes }}</h2>
             <p>Total Classes</p>
         </div>
     </div>
-    
+
+    <div class="col-md-4">
+        <div class="card shadow p-3 text-center bg-dark text-white">
+            <h2>₹{{ total_revenue }}</h2>
+            <p>Total Revenue</p>
+        </div>
+    </div>
+
 </div>
 
 <h4 class="mt-4">📊 Student Analytics</h4>
@@ -57,7 +63,7 @@
         </div>
 {% endfor %}
 
-<a href="/create-course/" class="btn btn-success rounded-pill mb-3">+ Create Course</a>
+<a href="/create-course/" class="btn btn-success rounded-pill px-4 mb-3">+ Create Course</a>
 <a href="/create-live-class/" class="btn btn-warning mb-3">+ Create Live Class</a>
 
 
@@ -72,12 +78,13 @@
 <h5 class="mt-4">Modules & Lessons</h5>
 
 {% for course in courses %}
-<div class="card p-3 mb-3">
+<div class="card shadow p-3 mb-3">
     <h5>{{ course.title }}</h5>
 
-    <a href="/ai-quiz/{{ course.id }}/" class="btn btn-dark mt-2">
-        Generate AI Quiz
+    <a href="/ai-quiz/{{ course.id }}/" class="btn btn-dark rounded-pill mt-2">
+        🤖 Generate AI Quiz
     </a>
+</div>
 
     {% for module in course.module_set.all %}
         <div>
