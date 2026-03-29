@@ -64,13 +64,32 @@ def dashboard(request):
             count = Enrollment.objects.filter(course=course).count()
             student_counts.append(count)
 
+        # 💰 REVENUE DATA
+        total_revenue = 0
+        course_revenue = []
+
+        for course in courses:
+            enrollments = Enrollment.objects.filter(course=course).count()
+            revenue = enrollments * course.price
+
+            total_revenue += revenue
+
+            course_revenue.append({
+                'course': course.title,
+                'revenue': revenue
+            })
+
         return render(request, 'teacher_dashboard.html', {
             'courses': courses,
             'total_students': total_students,
             'total_classes': total_classes,
             'course_names': json.dumps(course_names),
-            'student_counts': json.dumps(student_counts)
+            'student_counts': json.dumps(student_counts),
+            'total_revenue': total_revenue,
+            'course_revenue': course_revenue,
         })
+    
+        
     else:
         enrolled = Enrollment.objects.filter(student=request.user)
         enrolled_courses = [e.course for e in enrolled]

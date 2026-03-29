@@ -45,6 +45,18 @@
     });
 </script>
 
+<h4 class="mt-4">💰 Revenue Dashboard</h4>
+
+    <div class="card p-3 mb-3">
+        <h3>Total Revenue: ₹{{ total_revenue }}</h3>
+    </div>
+
+    {% for item in course_revenue %}
+        <div class="card p-2 mb-2">
+            {{ item.course }} — ₹{{ item.revenue }}
+        </div>
+{% endfor %}
+
 <a href="/create-course/" class="btn btn-success rounded-pill mb-3">+ Create Course</a>
 <a href="/create-live-class/" class="btn btn-warning mb-3">+ Create Live Class</a>
 
