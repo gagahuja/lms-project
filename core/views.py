@@ -51,13 +51,25 @@ def dashboard(request):
 
     if getattr(request.user, 'user_type', None) == 'teacher':
         courses = Course.objects.filter(teacher=request.user)
+
         total_students = Enrollment.objects.filter(course__in=courses).count()
         total_classes = LiveClass.objects.filter(course__in=courses).count()
+
+        # 📊 GRAPH DATA
+        course_names = []
+        student_counts = []
+
+        for course in courses:
+            course_names.append(course.title)
+            count = Enrollment.objects.filter(course=course).count()
+            student_counts.append(count)
 
         return render(request, 'teacher_dashboard.html', {
             'courses': courses,
             'total_students': total_students,
-            'total_classes': total_classes
+            'total_classes': total_classes,
+            'course_names': json.dumps(course_names),
+            'student_counts': json.dumps(student_counts)
         })
     else:
         enrolled = Enrollment.objects.filter(student=request.user)

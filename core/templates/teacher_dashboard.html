@@ -5,6 +5,7 @@
 <h3>📊 Teacher Dashboard</h3>
 
 <div class="row mb-4">
+    
 
     <div class="col-md-4">
         <div class="card p-3 shadow text-center">
@@ -19,8 +20,30 @@
             <p>Total Classes</p>
         </div>
     </div>
-
+    
 </div>
+
+<h4 class="mt-4">📊 Student Analytics</h4>
+
+<canvas id="myChart"></canvas>
+
+<script>
+    const labels = JSON.parse('{{ course_names|escapejs }}');
+    const dataValues = JSON.parse('{{ student_counts|escapejs }}');
+
+    const ctx = document.getElementById('myChart');
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Students per Course',
+                data: dataValues
+            }]
+        }
+    });
+</script>
 
 <a href="/create-course/" class="btn btn-success rounded-pill mb-3">+ Create Course</a>
 <a href="/create-live-class/" class="btn btn-warning mb-3">+ Create Live Class</a>
