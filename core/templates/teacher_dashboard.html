@@ -24,9 +24,7 @@
 
 <a href="/create-course/" class="btn btn-success mb-3">+ Create Course</a>
 <a href="/create-live-class/" class="btn btn-warning mb-3">+ Create Live Class</a>
-<a href="/ai-quiz/{{ course.id }}/" class="btn btn-dark mt-2">
-    Generate AI Quiz
-</a>
+
 
 <h5>Your Courses</h5>
 
@@ -42,6 +40,10 @@
 <div class="card p-3 mb-3">
     <h5>{{ course.title }}</h5>
 
+    <a href="/ai-quiz/{{ course.id }}/" class="btn btn-dark mt-2">
+        Generate AI Quiz
+    </a>
+    
     {% for module in course.module_set.all %}
         <div>
             <strong>{{ module.title }}</strong>
