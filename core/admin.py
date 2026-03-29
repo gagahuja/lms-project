@@ -6,6 +6,7 @@ from .models import Enrollment
 from .models import LiveClass, Attendance
 from .models import Module, Lesson, Assignment, Submission
 from .models import Quiz, Question, StudentAnswer
+from .models import QuizResult
 
 class CustomUserAdmin(UserAdmin):
     model = User
@@ -31,3 +32,4 @@ admin.site.register(Submission)
 admin.site.register(Quiz)
 admin.site.register(Question)
 admin.site.register(StudentAnswer)
+admin.site.register(QuizResult)

@@ -87,4 +87,14 @@
     {% endfor %}
 </ul>
 
+<h5 class="mt-4">Your Quiz Results</h5>
+
+{% for result in request.user.quizresult_set.all %}
+    <div class="card p-2 mb-2">
+        {{ result.quiz.title }} — {{ result.score }}/{{ result.total }}
+    </div>
+{% empty %}
+    <p>No quiz attempted yet</p>
+{% endfor %}
+
 {% endblock %}

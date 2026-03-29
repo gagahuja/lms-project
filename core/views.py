@@ -15,6 +15,7 @@ import json
 from django.views.decorators.csrf import csrf_exempt
 from .models import Quiz, Question, StudentAnswer
 from .models import Lesson
+from .models import QuizResult
 
 
 def login_view(request):
@@ -344,6 +345,32 @@ def attempt_quiz(request, quiz_id):
                 question=q,
                 selected_answer=selected
             )
+
+            from .models import QuizResult
+
+    if request.method == 'POST':
+        score = 0
+
+        for q in questions:
+            selected = request.POST.get(str(q.id))
+
+            if selected == q.correct_answer:
+                score += 1
+
+            StudentAnswer.objects.create(
+                student=request.user,
+                question=q,
+                selected_answer=selected
+            )
+
+            # SAVE RESULT
+            QuizResult.objects.create(
+                student=request.user,
+                quiz=quiz,
+                score=score,
+                total=questions.count()
+            )
+
 
         return HttpResponse(f"Your Score: {score}/{questions.count()}")
 
