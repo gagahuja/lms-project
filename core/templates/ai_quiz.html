@@ -1,0 +1,7 @@
+<h3>Generate AI Quiz</h3>
+
+<form method="POST">
+    {% csrf_token %}
+    <input type="text" name="topic" placeholder="Enter topic">
+    <button type="submit" class="btn btn-success">Generate Quiz</button>
+</form>
