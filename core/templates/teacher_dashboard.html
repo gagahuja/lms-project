@@ -2,27 +2,27 @@
 
 {% block content %}
 
-<h3>👨‍🏫 Teacher Dashboard</h3>
+<h3>📊 Teacher Dashboard</h3>
 
 <div class="row mb-4">
 
     <div class="col-md-4">
-        <div class="card p-3 text-center shadow">
-            <h4>{{ total_students }}</h4>
+        <div class="card p-3 shadow text-center">
+            <h3>{{ total_students }}</h3>
             <p>Total Students</p>
         </div>
     </div>
 
     <div class="col-md-4">
-        <div class="card p-3 text-center shadow">
-            <h4>{{ total_classes }}</h4>
+        <div class="card p-3 shadow text-center">
+            <h3>{{ total_classes }}</h3>
             <p>Total Classes</p>
         </div>
     </div>
 
 </div>
 
-<a href="/create-course/" class="btn btn-success mb-3">+ Create Course</a>
+<a href="/create-course/" class="btn btn-success rounded-pill mb-3">+ Create Course</a>
 <a href="/create-live-class/" class="btn btn-warning mb-3">+ Create Live Class</a>
 
 
@@ -43,7 +43,7 @@
     <a href="/ai-quiz/{{ course.id }}/" class="btn btn-dark mt-2">
         Generate AI Quiz
     </a>
-    
+
     {% for module in course.module_set.all %}
         <div>
             <strong>{{ module.title }}</strong>
