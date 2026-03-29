@@ -70,4 +70,23 @@
     <p>No quiz attempted yet</p>
 {% endfor %}
 
+<h4 class="mt-4">📈 Your Progress</h4>
+
+{% for course in enrolled_courses %}
+
+    {% with total=course.module_set.all|length %}
+    
+    <div class="card p-3 mb-2">
+        <strong>{{ course.title }}</strong>
+
+        <p>
+            Completed Lessons:
+            {{ request.user.progress_set.filter(lesson__module__course=course, completed=True).count }}
+        </p>
+    </div>
+
+{% endwith %}
+
+{% endfor %}
+
 {% endblock %}

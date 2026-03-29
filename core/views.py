@@ -16,6 +16,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import Quiz, Question, StudentAnswer
 from .models import Lesson
 from .models import QuizResult
+from .models import Progress
 
 
 def login_view(request):
@@ -511,3 +512,13 @@ def leaderboard(request):
     return render(request, 'leaderboard.html', {
         'results': results
     })
+
+
+def mark_complete(request, lesson_id):
+    Progress.objects.get_or_create(
+        student=request.user,
+        lesson_id=lesson_id,
+        completed=True
+    )
+
+    return redirect('dashboard')
