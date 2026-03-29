@@ -2,96 +2,65 @@
 
 {% block content %}
 
-<h3>🎓 Student Dashboard</h3>
+<h2 class="mb-4">🎓 Student Dashboard</h2>
 
-<a href="/quiz/1/" class="btn btn-primary mb-3">
-    Attempt Quiz
-</a>
-
-<a href="/leaderboard/" class="btn btn-warning mb-3">
-    View Leaderboard
-</a>
-
-<h5 class="mt-4">Available Courses</h5>
+<!-- ENROLLED COURSES -->
+<h4>Your Courses</h4>
 
 <div class="row">
-    {% for course in courses %}
-    <div class="col-12 col-md-4">
-        <div class="card p-3 mb-3 shadow">
-            <a href="/course/{{ course.id }}/">{{ course.title }}</a>
+{% for course in enrolled_courses %}
+    <div class="col-md-4">
+        <div class="card shadow p-3 mb-3">
+            <h5>{{ course.title }}</h5>
 
-            {% if course.price > 0 %}
-            <p>₹{{ course.price }}</p>
-            <a href="/buy/{{ course.id }}/" class="btn btn-primary w-100">Buy Now</a>
-            {% else %}
-            <a href="/enroll/{{ course.id }}/" class="btn btn-success">Enroll</a>
-            {% endif %}
-            
+            <a href="/course/{{ course.id }}/" class="btn btn-primary rounded-pill mt-2">
+                View Course
+            </a>
         </div>
     </div>
-    {% endfor %}
+{% endfor %}
 </div>
 
-<h5 class="mt-4">Your Courses</h5>
+---
 
-{% for course in enrolled_courses %}
-<div class="card p-3 mb-3 shadow">
-    <h5>
-        <a href="/course/{{ course.id }}/">{{ course.title }}</a>
-    </h5>
+<!-- AVAILABLE COURSES -->
+<h4 class="mt-4">Explore Courses</h4>
 
-    <!-- Modules -->
-    {% for module in course.module_set.all %}
-        <div class="mt-2">
-            <strong>📚 {{ module.title }}</strong>
+<div class="row">
+{% for course in courses %}
+    <div class="col-md-4">
+        <div class="card shadow p-3 mb-3">
+            <h5>{{ course.title }}</h5>
 
-            <ul>
-                {% for lesson in module.lesson_set.all %}
-                <li>
-                    {{ lesson.title }}
-
-                    {% if lesson.video_url %}
-                    <a href="{{ lesson.video_url }}" target="_blank">▶ Watch</a>
-                    {% endif %}
-
-                    {% if lesson.notes %}
-                    <a href="{{ lesson.notes.url }}">📄 Notes</a>
-                    {% endif %}
-                </li>
-                {% endfor %}
-            </ul>
+            <a href="/enroll/{{ course.id }}/" class="btn btn-success rounded-pill mt-2">
+                Enroll
+            </a>
         </div>
-    {% endfor %}
-
+    </div>
+{% endfor %}
 </div>
+
+---
+
+<!-- LIVE CLASSES -->
+<h4 class="mt-4">Live Classes</h4>
+
+{% for class in live_classes %}
+    <div class="card p-3 mb-2">
+        <strong>{{ class.title }}</strong>
+
+        <a href="{{ class.meet_link }}" target="_blank" class="btn btn-danger rounded-pill mt-2">
+            Join Class
+        </a>
+    </div>
+{% empty %}
+    <p>No live classes</p>
 {% endfor %}
 
-<h5 class="mt-4">Live Classes</h5>
+---
 
-<ul class="list-group">
-    {% for lc in live_classes %}
-    <li class="list-group-item d-flex justify-content-between">
-        {{ lc.title }}
-        <a href="/join/{{ lc.id }}/" class="btn btn-primary w-100 btn-sm">Join</a>
-    </li>
-    {% endfor %}
-</ul>
-
-<h5 class="mt-4">Assignments</h5>
-
-<ul class="list-group">
-    {% for course in enrolled_courses %}
-        {% for assignment in course.assignment_set.all %}
-        <li class="list-group-item">
-            {{ assignment.title }}
-            <a href="{{ assignment.file.url }}" target="_blank">📥 Download</a>
-            <a href="/submit/{{ assignment.id }}/" class="btn btn-sm btn-primary">Submit</a>
-        </li>
-        {% endfor %}
-    {% endfor %}
-</ul>
-
-<h5 class="mt-4">Your Quiz Results</h5>
+<!-- QUIZ RESULTS -->
+<h4 class="mt-4">Your Quiz Results</h4>
 
 {% for result in request.user.quizresult_set.all %}
     <div class="card p-2 mb-2">

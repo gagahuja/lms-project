@@ -45,6 +45,24 @@
         .card {
             border-radius: 12px;
         }
+
+        .dark-mode {
+            background-color: #0f172a !important;
+            color: white !important;
+        }
+
+        .dark-mode .card {
+            background-color: #1e293b;
+            color: white;
+        }
+
+        .dark-mode .sidebar {
+            background: #020617;
+        }
+
+        .dark-mode a {
+            color: #94a3b8 !important;
+        }
     </style>
 </head>
 
@@ -54,7 +72,9 @@
 <div class="sidebar">
     <h4>🚀 LMS</h4>
     <hr>
-
+    <button onclick="toggleDarkMode()" class="btn btn-sm btn-light mb-3">
+        🌙 Toggle Mode
+    </button>
     <a href="/"><i class="bi bi-speedometer2"></i> Dashboard</a>
     <a href="/leaderboard/"><i class="bi bi-trophy"></i> Leaderboard</a>
     <a href="/create-course/"><i class="bi bi-plus-circle"></i> Create Course</a>
@@ -67,5 +87,21 @@
     {% endblock %}
 </div>
 
+<script>
+function toggleDarkMode() {
+    document.body.classList.toggle("dark-mode");
+
+    if (document.body.classList.contains("dark-mode")) {
+        localStorage.setItem("theme", "dark");
+    } else {
+        localStorage.setItem("theme", "light");
+    }
+}
+
+// Load saved mode
+if (localStorage.getItem("theme") === "dark") {
+    document.body.classList.add("dark-mode");
+}
+</script>
 </body>
 </html>
