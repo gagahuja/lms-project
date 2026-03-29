@@ -393,27 +393,35 @@ def attempt_quiz(request, quiz_id):
 
 
 def generate_ai_notes(request, lesson_id):
+    from django.http import HttpResponse
+    from django.conf import settings
+    from openai import OpenAI
+
     lesson = Lesson.objects.get(id=lesson_id)
     notes = ""
 
     if request.method == "POST":
         topic = request.POST.get("topic")
 
-        from openai import OpenAI
-        from django.conf import settings
+        try:
+            client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
-        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{
+                    "role": "user",
+                    "content": f"Explain {topic} simply"
+                }]
+            )
 
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": f"Explain {topic} simply"}]
-        )
+            notes = response.choices[0].message.content
 
-        notes = response.choices[0].message.content
+            # SAVE
+            lesson.ai_notes = notes
+            lesson.save()
 
-        # SAVE TO DATABASE
-        lesson.ai_notes = notes
-        lesson.save()
+        except Exception as e:
+            return HttpResponse(f"ERROR: {str(e)}")
 
     return render(request, "ai_notes.html", {
         "lesson": lesson,
