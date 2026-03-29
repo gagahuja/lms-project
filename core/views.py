@@ -411,6 +411,7 @@ def generate_ai_notes(request, lesson_id):
 
 def generate_ai_quiz(request, course_id):
     from django.shortcuts import get_object_or_404, redirect
+    from django.http import HttpResponse
     from django.conf import settings
     from openai import OpenAI
 
@@ -419,39 +420,47 @@ def generate_ai_quiz(request, course_id):
     if request.method == "POST":
         topic = request.POST.get("topic")
 
-        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        try:
+            client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{
-                "role": "user",
-                "content": f"Create 5 MCQs on {topic}. Format:\nQuestion|A|B|C|D|Correct"
-            }]
-        )
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{
+                    "role": "user",
+                    "content": f"Create 5 MCQs on {topic} in this format:\nQuestion|A|B|C|D|Correct"
+                }]
+            )
 
-        data = response.choices[0].message.content.split("\n")
+            content = response.choices[0].message.content
 
-        # CREATE QUIZ
-        quiz = Quiz.objects.create(
-            course=course,
-            title=f"AI Quiz - {topic}"
-        )
+            # DEBUG (important)
+            print("AI RESPONSE:", content)
 
-        # CREATE QUESTIONS
-        for line in data:
-            parts = line.split("|")
+            lines = content.strip().split("\n")
 
-            if len(parts) == 6:
-                Question.objects.create(
-                    quiz=quiz,
-                    question=parts[0],
-                    option1=parts[1],
-                    option2=parts[2],
-                    option3=parts[3],
-                    option4=parts[4],
-                    correct_answer=parts[5]
-                )
+            # CREATE QUIZ
+            quiz = Quiz.objects.create(
+                course=course,
+                title=f"AI Quiz - {topic}"
+            )
 
-        return redirect(f"/quiz/{quiz.id}/")
+            for line in lines:
+                parts = line.split("|")
+
+                if len(parts) == 6:
+                    Question.objects.create(
+                        quiz=quiz,
+                        question=parts[0],
+                        option1=parts[1],
+                        option2=parts[2],
+                        option3=parts[3],
+                        option4=parts[4],
+                        correct_answer=parts[5]
+                    )
+
+            return redirect(f"/quiz/{quiz.id}/")
+
+        except Exception as e:
+            return HttpResponse(f"ERROR: {str(e)}")
 
     return render(request, "ai_quiz.html", {"course": course})
