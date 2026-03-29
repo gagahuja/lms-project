@@ -476,3 +476,11 @@ def generate_ai_quiz(request, course_id):
             return HttpResponse(f"ERROR: {str(e)}")
 
     return render(request, "ai_quiz.html", {"course": course})
+
+
+def leaderboard(request):
+    results = QuizResult.objects.all().order_by('-score')[:10]
+
+    return render(request, 'leaderboard.html', {
+        'results': results
+    })

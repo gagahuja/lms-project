@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h3>🏆 Leaderboard</h3>
+
+{% for r in results %}
+    <div class="card p-2 mb-2">
+        <strong>{{ forloop.counter }}.</strong>
+        {{ r.student.username }} — {{ r.score }}/{{ r.total }}
+    </div>
+{% endfor %}
+
+{% endblock %}
