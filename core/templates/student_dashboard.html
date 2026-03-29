@@ -72,21 +72,28 @@
 
 <h4 class="mt-4">📈 Your Progress</h4>
 
-{% for course in enrolled_courses %}
-
-    {% with total=course.module_set.all|length %}
-    
+{% for item in progress_data %}
     <div class="card p-3 mb-2">
-        <strong>{{ course.title }}</strong>
+        <strong>{{ item.course.title }}</strong>
 
-        <p>
-            Completed Lessons:
-            {{ request.user.progress_set.filter(lesson__module__course=course, completed=True).count }}
-        </p>
+        <p>{{ item.completed }}/{{ item.total }} lessons completed</p>
+
+        <div class="progress">
+            <div class="progress-bar" role="progressbar"
+                data-percent="{{ item.percent|default:0 }}"
+                aria-valuemin="0"
+                aria-valuemax="100">
+                {{ item.percent|default:0 }}%
+            </div>
+        </div>
     </div>
-
-{% endwith %}
-
 {% endfor %}
+
+<script>
+document.querySelectorAll('.progress-bar').forEach(function(bar) {
+    let percent = bar.getAttribute('data-percent');
+    bar.style.width = percent + "%";
+});
+</script>
 
 {% endblock %}

@@ -146,3 +146,15 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+
+
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+
+# VERY IMPORTANT FOR RENDER
+CSRF_TRUSTED_ORIGINS = [
+    "https://lms-project-luio.onrender.com"
+]

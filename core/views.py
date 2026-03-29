@@ -96,13 +96,36 @@ def dashboard(request):
         enrolled_courses = [e.course for e in enrolled]
 
         courses = Course.objects.exclude(id__in=[c.id for c in enrolled_courses])
-
         live_classes = LiveClass.objects.filter(course__in=enrolled_courses)
+
+        # 📈 PROGRESS FIX (IMPORTANT)
+        progress_data = []
+
+        for course in enrolled_courses:
+            total_lessons = Lesson.objects.filter(module__course=course).count()
+
+            completed = Progress.objects.filter(
+                student=request.user,
+                lesson__module__course=course,
+                completed=True
+            ).count()
+
+            percent = 0
+            if total_lessons > 0:
+                percent = int((completed / total_lessons) * 100)
+
+            progress_data.append({
+                'course': course,
+                'completed': completed,
+                'total': total_lessons,
+                'percent': percent
+            })
 
         return render(request, 'student_dashboard.html', {
             'courses': courses,
             'enrolled_courses': enrolled_courses,
-            'live_classes': live_classes
+            'live_classes': live_classes,
+            'progress_data': progress_data
         })
     
 
