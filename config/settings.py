@@ -144,3 +144,5 @@ AUTH_USER_MODEL = 'core.User'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
