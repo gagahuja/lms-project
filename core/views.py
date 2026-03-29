@@ -13,7 +13,8 @@ from django.contrib.auth import get_user_model
 from django.db.models import Count
 import json
 from django.views.decorators.csrf import csrf_exempt
-
+from .models import Quiz, Question, StudentAnswer
+from .models import Lesson
 
 
 def login_view(request):
@@ -323,3 +324,59 @@ def create_admin(request):
 
     except Exception as e:
         return HttpResponse(f"Error: {str(e)}")
+    
+
+def attempt_quiz(request, quiz_id):
+    quiz = Quiz.objects.get(id=quiz_id)
+    questions = Question.objects.filter(quiz=quiz)
+
+    if request.method == 'POST':
+        score = 0
+
+        for q in questions:
+            selected = request.POST.get(str(q.id))
+
+            if selected == q.correct_answer:
+                score += 1
+
+            StudentAnswer.objects.create(
+                student=request.user,
+                question=q,
+                selected_answer=selected
+            )
+
+        return HttpResponse(f"Your Score: {score}/{questions.count()}")
+
+    return render(request, 'attempt_quiz.html', {
+        'quiz': quiz,
+        'questions': questions
+    })
+
+
+def generate_ai_notes(request, lesson_id):
+    lesson = Lesson.objects.get(id=lesson_id)
+    notes = ""
+
+    if request.method == "POST":
+        topic = request.POST.get("topic")
+
+        from openai import OpenAI
+        from django.conf import settings
+
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": f"Explain {topic} simply"}]
+        )
+
+        notes = response.choices[0].message.content
+
+        # SAVE TO DATABASE
+        lesson.ai_notes = notes
+        lesson.save()
+
+    return render(request, "ai_notes.html", {
+        "lesson": lesson,
+        "notes": notes
+    })

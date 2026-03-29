@@ -9,10 +9,28 @@
     <h5>{{ module.title }}</h5>
 
     <ul>
-        {% for lesson in module.lesson_set.all %}
-        <li>
-            {{ lesson.title }}
+        
+        <div class="card p-2 mb-2">
+            <strong>{{ lesson.title }}</strong>
 
+            <br>
+
+            <!-- AI NOTES BUTTON -->
+            <a href="/ai-notes/{{ lesson.id }}/" class="btn btn-warning btn-sm mt-2">
+                Generate AI Notes
+            </a>
+
+            <!-- SHOW SAVED NOTES -->
+            {% if lesson.ai_notes %}
+                <div class="mt-2 p-2 bg-light">
+                    <strong>AI Notes:</strong>
+                    <p>{{ lesson.ai_notes }}</p>
+                </div>
+            {% endif %}
+
+        </div>
+
+{% endfor %}
             {% if lesson.video_url %}
             <iframe width="100%" height="300"
             src="{{ lesson.video_url }}"

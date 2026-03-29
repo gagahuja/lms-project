@@ -13,3 +13,16 @@
 <pre>{{ notes }}</pre>
 
 {% endblock %}
+
+<h3>Generate AI Notes</h3>
+
+<form method="POST">
+    {% csrf_token %}
+    <input type="text" name="topic" placeholder="Enter topic">
+    <button type="submit">Generate</button>
+</form>
+
+{% if notes %}
+    <h4>Generated Notes:</h4>
+    <p>{{ notes }}</p>
+{% endif %}
