@@ -105,6 +105,19 @@ def dashboard(request):
             lesson__module__course__in=enrolled_courses
         )
 
+        assignment_data = []
+
+        for assignment in assignments:
+            submitted = Submission.objects.filter(
+                assignment=assignment,
+                student=request.user
+            ).exists()
+
+            assignment_data.append({
+                'assignment': assignment,
+                'submitted': submitted
+            })
+
         # 🧠 QUIZ RESULTS
         quiz_results = QuizResult.objects.filter(student=request.user)
 
@@ -113,7 +126,7 @@ def dashboard(request):
             'enrolled_courses': enrolled_courses,
             'live_classes': live_classes,
             'progress_data': progress_data,
-            'assignments': assignments,
+            'assignments': assignment_data,
             'quiz_results': quiz_results
         })
     
