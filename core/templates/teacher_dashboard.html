@@ -30,7 +30,7 @@
 
     <div class="col-md-3">
         <div class="card p-3 text-center">
-            <h3>{{ total_assignments }}</h3>
+            <h3>{{ total_assignments|default:0 }}</h3>
             <p>Assignments</p>
         </div>
     </div>
@@ -42,6 +42,41 @@
     <h5>📊 Performance Overview</h5>
     <canvas id="myChart"></canvas>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const students = Number("{{ total_students|default:'0' }}");
+    const classes = Number("{{ total_classes|default:'0' }}");
+    const assignments = Number("{{ total_assignments|default:'0' }}");
+
+    const ctx = document.getElementById('myChart');
+
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Students', 'Classes', 'Assignments'],
+                datasets: [{
+                    label: 'Platform Stats',
+                    data: [students, classes, assignments]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: true
+                    }
+                }
+            }
+        });
+    }
+
+});
+</script>
 
 <!-- COURSES + MODULES -->
 <h4>Your Courses & Content</h4>
@@ -87,25 +122,6 @@
 {% endfor %}
 
 <!-- CHART SCRIPT -->
-<script>
-const students = {{ total_students|default:0 }};
-const classes = {{ total_classes|default:0 }};
-const assignments = {{ total_assignments|default:0 }};
-</script>
 
-<script>
-const ctx = document.getElementById('myChart');
-
-new Chart(ctx, {
-    type: 'bar',
-    data: {
-        labels: ['Students', 'Classes', 'Assignments'],
-        datasets: [{
-            label: 'Platform Stats',
-            data: [students, classes, assignments]
-        }]
-    }
-});
-</script>
 
 {% endblock %}

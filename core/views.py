@@ -56,10 +56,8 @@ def dashboard(request):
         total_students = Enrollment.objects.filter(course__in=courses).count()
         total_classes = LiveClass.objects.filter(course__in=courses).count()
 
-        # 💰 Revenue
         total_revenue = sum(course.price for course in courses)
 
-        # 📊 Assignments count
         total_assignments = Assignment.objects.filter(course__in=courses).count()
 
         return render(request, 'teacher_dashboard.html', {
