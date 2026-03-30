@@ -158,3 +158,5 @@ CSRF_COOKIE_SECURE = False
 CSRF_TRUSTED_ORIGINS = [
     "https://lms-project-luio.onrender.com"
 ]
+
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]

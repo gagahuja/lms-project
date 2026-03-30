@@ -20,6 +20,10 @@ class CustomUserAdmin(UserAdmin):
         (None, {'fields': ('user_type',)}),
     )
 
+class AssignmentAdmin(admin.ModelAdmin):
+    list_display = ['title', 'lesson', 'due_date']
+
+admin.site.register(Assignment, AssignmentAdmin)
 admin.site.register(User, CustomUserAdmin)
 admin.site.register(Course)
 admin.site.register(Enrollment)

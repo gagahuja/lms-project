@@ -49,7 +49,19 @@
                         <p>{{ lesson.ai_notes }}</p>
                     </div>
                 {% endif %}
+                
+                <h6>Assignments:</h6>
 
+                {% for assignment in lesson.assignment_set.all %}
+                    <div>
+                        {{ assignment.title }}
+                        <a href="/submit/{{ assignment.id }}/" class="btn btn-sm btn-primary">
+                            Submit
+                        </a>
+                    </div>
+                {% empty %}
+                    <p>No assignments</p>
+                {% endfor %}
             </div>
         </li>
 

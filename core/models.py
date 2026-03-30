@@ -72,7 +72,7 @@ class Lesson(models.Model):
 
 
 class Assignment(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
     file = models.FileField(upload_to='assignments/')
     due_date = models.DateTimeField()
