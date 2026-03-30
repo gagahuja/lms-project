@@ -72,11 +72,13 @@ class Lesson(models.Model):
 
 
 class Assignment(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
     file = models.FileField(upload_to='assignments/')
     due_date = models.DateTimeField()
 
+    def __str__(self):
+        return self.title
 
 class Submission(models.Model):
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)

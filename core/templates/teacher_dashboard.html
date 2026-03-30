@@ -91,19 +91,31 @@ document.addEventListener("DOMContentLoaded", function () {
         🤖 Generate AI Quiz
     </a>
 
-    {% if course.module_set.all %}
-        {% for module in course.module_set.all %}
-            <div class="mt-2">
-                <strong>📦 {{ module.title }}</strong>
+    {% for module in course.module_set.all %}
+        <div class="mt-2">
+            <strong>📦 {{ module.title }}</strong>
 
-                <ul>
-                    {% for lesson in module.lesson_set.all %}
-                        <li>🎥 {{ lesson.title }}</li>
+            <ul>
+            {% for lesson in module.lesson_set.all %}
+                <li>
+                    🎥 {{ lesson.title }}
+
+                    <!-- ASSIGNMENTS -->
+                    {% for assignment in lesson.assignment_set.all %}
+                        <div class="card p-2 mt-2">
+                            📄 {{ assignment.title }}
+
+                            <a href="/submissions/{{ assignment.id }}/" class="btn btn-sm btn-info">
+                            View Submissions
+                            </a>
+                        </div>
                     {% endfor %}
-                </ul>
-            </div>
-        {% endfor %}
-    {% endif %}
+
+                </li>
+            {% endfor %}
+            </ul>
+        </div>
+    {% endfor %}
 
 </div>
 {% endfor %}
@@ -113,7 +125,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 {% for course in courses %}
     {% if course.assignment_set.all %}
-        {% for assignment in course.assignment_set.all %}
+        
         <div class="card p-2 mb-2">
             {{ assignment.title }}
 
@@ -121,7 +133,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 View Submissions
             </a>
         </div>
-        {% endfor %}
+        
     {% endif %}
 {% endfor %}
 
