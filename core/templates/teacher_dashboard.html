@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<div class="container-fluid">
+
 
 <h2 class="mb-4">👨‍🏫 Teacher Dashboard</h2>
 
@@ -63,7 +63,7 @@
         <div class="card p-2 mb-2">
             {{ item.course }} — ₹{{ item.revenue }}
         </div>
-{% endfor %}
+    {% endfor %}
 
 <a href="/create-course/" class="btn btn-success rounded-pill px-4 mb-3">+ Create Course</a>
 <a href="/create-live-class/" class="btn btn-warning mb-3">+ Create Live Class</a>
@@ -103,7 +103,7 @@
             </ul>
         </div>
     {% endfor %}
-</div>
+
 {% endfor %}
 
 <h5 class="mt-4">Assignments</h5>

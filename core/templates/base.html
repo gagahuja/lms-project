@@ -18,15 +18,12 @@
         body {
             background-color: #f5f7fb;
             color: #1e293b;
+            margin: 0;
         }
 
         .sidebar {
             width: 240px;
-            height: 100vh;
             position: fixed;
-            background: #111827;
-            color: white;
-            padding: 20px;
         }
 
         .sidebar a {
@@ -43,11 +40,16 @@
         .main {
             margin-left: 260px;
             padding: 30px;
+            min-height: 100vh;
+            width: calc(100% - 260px);
+            box-sizing: border-box;
         }
 
         @media (max-width: 768px) {
             .main {
                 margin-left: 0;
+                width: 100%;
+                padding: 15px;
             }
         }
 
@@ -139,10 +141,11 @@
 
 <!-- MAIN CONTENT -->
 <div class="main">
-    {% block content %}
-    {% endblock %}
+    <div class="container-fluid">
+        {% block content %}
+        {% endblock %}
+    </div>
 </div>
-
 <script>
 function toggleDarkMode() {
     document.body.classList.toggle("dark-mode");
