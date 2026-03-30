@@ -91,17 +91,19 @@ document.addEventListener("DOMContentLoaded", function () {
         🤖 Generate AI Quiz
     </a>
 
-    {% for module in course.module_set.all %}
-        <div class="mt-2">
-            <strong>📦 {{ module.title }}</strong>
+    {% if course.module_set.all %}
+        {% for module in course.module_set.all %}
+            <div class="mt-2">
+                <strong>📦 {{ module.title }}</strong>
 
-            <ul>
-                {% for lesson in module.lesson_set.all %}
-                    <li>🎥 {{ lesson.title }}</li>
-                {% endfor %}
-            </ul>
-        </div>
-    {% endfor %}
+                <ul>
+                    {% for lesson in module.lesson_set.all %}
+                        <li>🎥 {{ lesson.title }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endfor %}
+    {% endif %}
 
 </div>
 {% endfor %}
@@ -110,15 +112,17 @@ document.addEventListener("DOMContentLoaded", function () {
 <h4 class="mt-4">📝 Assignments</h4>
 
 {% for course in courses %}
-    {% for assignment in course.assignment_set.all %}
-    <div class="card p-2 mb-2">
-        {{ assignment.title }}
+    {% if course.assignment_set.all %}
+        {% for assignment in course.assignment_set.all %}
+        <div class="card p-2 mb-2">
+            {{ assignment.title }}
 
-        <a href="/submissions/{{ assignment.id }}/" class="btn btn-sm btn-info">
-            View Submissions
-        </a>
-    </div>
-    {% endfor %}
+            <a href="/submissions/{{ assignment.id }}/" class="btn btn-sm btn-info">
+                View Submissions
+            </a>
+        </div>
+        {% endfor %}
+    {% endif %}
 {% endfor %}
 
 <!-- CHART SCRIPT -->
