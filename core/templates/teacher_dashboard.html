@@ -4,41 +4,108 @@
 
 <h2 class="mb-4">👨‍🏫 Teacher Dashboard</h2>
 
+<!-- STATS -->
 <div class="row g-4 mb-4">
 
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card p-3 text-center">
-            <h2>{{ total_students }}</h2>
+            <h3>{{ total_students }}</h3>
             <p>Total Students</p>
         </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card p-3 text-center">
-            <h2>{{ total_classes }}</h2>
-            <p>Total Classes</p>
+            <h3>{{ total_classes }}</h3>
+            <p>Live Classes</p>
         </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card p-3 text-center">
-            <h2>₹{{ total_revenue }}</h2>
-            <p>Total Revenue</p>
+            <h3>₹{{ total_revenue }}</h3>
+            <p>Revenue</p>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card p-3 text-center">
+            <h3>{{ total_assignments }}</h3>
+            <p>Assignments</p>
         </div>
     </div>
 
 </div>
 
-<h4>Your Courses</h4>
+<!-- 📊 CHART -->
+<div class="card p-4 mb-4">
+    <h5>📊 Performance Overview</h5>
+    <canvas id="myChart"></canvas>
+</div>
 
-<div class="row">
+<!-- COURSES + MODULES -->
+<h4>Your Courses & Content</h4>
+
 {% for course in courses %}
-    <div class="col-md-4">
-        <div class="card p-3 mb-3">
-            <h5>{{ course.title }}</h5>
+<div class="card p-3 mb-3">
+
+    <h5>{{ course.title }}</h5>
+
+    <!-- AI QUIZ BUTTON -->
+    <a href="/ai-quiz/{{ course.id }}/" class="btn btn-sm btn-primary mb-2">
+        🤖 Generate AI Quiz
+    </a>
+
+    {% for module in course.module_set.all %}
+        <div class="mt-2">
+            <strong>📦 {{ module.title }}</strong>
+
+            <ul>
+                {% for lesson in module.lesson_set.all %}
+                    <li>🎥 {{ lesson.title }}</li>
+                {% endfor %}
+            </ul>
         </div>
-    </div>
-{% endfor %}
+    {% endfor %}
+
 </div>
+{% endfor %}
+
+<!-- ASSIGNMENTS -->
+<h4 class="mt-4">📝 Assignments</h4>
+
+{% for course in courses %}
+    {% for assignment in course.assignment_set.all %}
+    <div class="card p-2 mb-2">
+        {{ assignment.title }}
+
+        <a href="/submissions/{{ assignment.id }}/" class="btn btn-sm btn-info">
+            View Submissions
+        </a>
+    </div>
+    {% endfor %}
+{% endfor %}
+
+<!-- CHART SCRIPT -->
+<script>
+const students = {{ total_students|default:0 }};
+const classes = {{ total_classes|default:0 }};
+const assignments = {{ total_assignments|default:0 }};
+</script>
+
+<script>
+const ctx = document.getElementById('myChart');
+
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: ['Students', 'Classes', 'Assignments'],
+        datasets: [{
+            label: 'Platform Stats',
+            data: [students, classes, assignments]
+        }]
+    }
+});
+</script>
 
 {% endblock %}
