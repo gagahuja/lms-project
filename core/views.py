@@ -51,10 +51,7 @@ def dashboard(request):
         return redirect('login')
 
     if getattr(request.user, 'user_type', None) == 'teacher':
-        courses = Course.objects.filter(teacher=request.user).prefetch_related(
-            'module_set',
-            'assignment_set'
-        )
+        courses = Course.objects.filter(teacher=request.user)
 
         total_students = Enrollment.objects.filter(course__in=courses).count()
         total_classes = LiveClass.objects.filter(course__in=courses).count()
