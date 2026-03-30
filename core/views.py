@@ -100,11 +100,21 @@ def dashboard(request):
                 'percent': percent
             })
 
+        # 📄 ASSIGNMENTS (based on enrolled courses)
+        assignments = Assignment.objects.filter(
+            lesson__module__course__in=enrolled_courses
+        )
+
+        # 🧠 QUIZ RESULTS
+        quiz_results = QuizResult.objects.filter(student=request.user)
+
         return render(request, 'student_dashboard.html', {
             'courses': courses,
             'enrolled_courses': enrolled_courses,
             'live_classes': live_classes,
-            'progress_data': progress_data
+            'progress_data': progress_data,
+            'assignments': assignments,
+            'quiz_results': quiz_results
         })
     
 

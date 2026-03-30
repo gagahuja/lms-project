@@ -52,6 +52,34 @@
 </div>
 {% endfor %}
 
+<h4 class="mt-4">📄 Assignments</h4>
+
+{% for assignment in assignments %}
+<div class="card p-2 mb-2">
+    <strong>{{ assignment.title }}</strong>
+
+    <a href="/submit/{{ assignment.id }}/" class="btn btn-warning btn-sm">
+        Submit
+    </a>
+</div>
+{% empty %}
+<p>No assignments available</p>
+{% endfor %}
+
+<h4 class="mt-4">🧠 Quiz Results</h4>
+
+{% for result in quiz_results %}
+<div class="card p-2 mb-2">
+    {{ result.quiz.title }}
+
+    <span class="badge bg-success">
+        {{ result.score }}/{{ result.total }}
+    </span>
+</div>
+{% empty %}
+<p>No quiz attempts yet</p>
+{% endfor %}
+
 <!-- 🌐 EXPLORE COURSES -->
 <h4 class="mt-4">Explore More Courses</h4>
 
