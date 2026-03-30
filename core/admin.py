@@ -21,7 +21,7 @@ class CustomUserAdmin(UserAdmin):
     )
 
 class AssignmentAdmin(admin.ModelAdmin):
-    list_display = ['title', 'lesson', 'due_date']
+    list_display = ['title', 'course']
 
 admin.site.register(Assignment, AssignmentAdmin)
 admin.site.register(User, CustomUserAdmin)
