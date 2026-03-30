@@ -17,6 +17,7 @@
     <style>
         body {
             background-color: #f5f7fb;
+            color: #1e293b;
         }
 
         .sidebar {
@@ -41,6 +42,7 @@
 
         .main {
             margin-left: 260px;
+            padding: 30px;
         }
 
         @media (max-width: 768px) {
@@ -51,21 +53,38 @@
 
         .card {
             border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         }
 
         .dark-mode {
-            background-color: #0f172a !important;
-            color: white !important;
+            background-color: #0f172a;
         }
 
+        /* Fix text */
+        .dark-mode .main {
+            color: #e2e8f0;
+        }
+
+        /* Fix cards */
         .dark-mode .card {
             background-color: #1e293b;
+            color: #e2e8f0;
+        }
+
+        /* Fix headings */
+        .dark-mode h1,
+        .dark-mode h2,
+        .dark-mode h3,
+        .dark-mode h4,
+        .dark-mode h5 {
             color: white;
         }
 
+        /* Sidebar */
         .dark-mode .sidebar {
             background: #020617;
         }
+
 
         .dark-mode a {
             color: #94a3b8 !important;
