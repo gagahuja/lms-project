@@ -94,15 +94,29 @@
         <img src="/static/logo.png" width="30">
         ScoreSkill
     </h4>
+    {% if request.user.is_authenticated %}
+        <p class="mt-2">Hi, {{ request.user.username }}</p>
+    {% endif %}
     <hr>
     <button onclick="toggleDarkMode()" class="btn btn-sm btn-light mb-3">
         🌙 Toggle Mode
     </button>
-    <a href="/dashboard/"><i class="bi bi-speedometer2"></i> Dashboard</a>
-    <a href="/leaderboard/"><i class="bi bi-trophy"></i> Leaderboard</a>
-    <a href="/create-course/"><i class="bi bi-plus-circle"></i> Create Course</a>
-    <a href="/logout/"><i class="bi bi-box-arrow-right"></i> Logout</a>
-</div>
+    {% if request.user.is_authenticated %}
+
+        <a href="/dashboard/"><i class="bi bi-speedometer2"></i> Dashboard</a>
+
+        {% if request.user.user_type == 'teacher' %}
+            <a href="/create-course/"><i class="bi bi-plus-circle"></i> Create Course</a>
+            <a href="/create-live-class/"><i class="bi bi-camera-video"></i> Live Classes</a>
+        {% endif %}
+
+        {% if request.user.user_type == 'student' %}
+            <a href="/leaderboard/"><i class="bi bi-trophy"></i> Leaderboard</a>
+        {% endif %}
+
+        <a href="/logout/"><i class="bi bi-box-arrow-right"></i> Logout</a>
+
+    {% endif %}
 
 <!-- MAIN CONTENT -->
 <div class="main">
