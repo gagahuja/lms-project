@@ -2,26 +2,28 @@
 
 {% block content %}
 
+<div class="container-fluid">
+
 <h2 class="mb-4">👨‍🏫 Teacher Dashboard</h2>
 
 <div class="row g-4 mb-4">
 
     <div class="col-md-4">
-        <div class="card shadow p-3 text-center">
+        <div class="card p-3 text-center">
             <h2>{{ total_students }}</h2>
             <p>Total Students</p>
         </div>
     </div>
 
     <div class="col-md-4">
-        <div class="card shadow p-3 text-center">
+        <div class="card p-3 text-center">
             <h2>{{ total_classes }}</h2>
             <p>Total Classes</p>
         </div>
     </div>
 
     <div class="col-md-4">
-        <div class="card shadow p-3 text-center bg-dark text-white">
+        <div class="card p-3 text-center">
             <h2>₹{{ total_revenue }}</h2>
             <p>Total Revenue</p>
         </div>
@@ -67,13 +69,17 @@
 <a href="/create-live-class/" class="btn btn-warning mb-3">+ Create Live Class</a>
 
 
-<h5>Your Courses</h5>
+<h4>Your Courses</h4>
 
-<ul class="list-group">
-    {% for course in courses %}
-    <li class="list-group-item">{{ course.title }}</li>
-    {% endfor %}
-</ul>
+<div class="row">
+{% for course in courses %}
+    <div class="col-md-4">
+        <div class="card p-3 mb-3">
+            <h5>{{ course.title }}</h5>
+        </div>
+    </div>
+{% endfor %}
+</div>
 
 <h5 class="mt-4">Modules & Lessons</h5>
 

@@ -2,6 +2,8 @@
 
 {% block content %}
 
+<div class="container-fluid">
+
 <h2 class="mb-4">🎓 Student Dashboard</h2>
 
 <!-- ENROLLED COURSES -->
@@ -10,10 +12,10 @@
 <div class="row">
 {% for course in enrolled_courses %}
     <div class="col-md-4">
-        <div class="card shadow p-3 mb-3">
+        <div class="card p-3 mb-3">
             <h5>{{ course.title }}</h5>
 
-            <a href="/course/{{ course.id }}/" class="btn btn-primary rounded-pill mt-2">
+            <a href="/course/{{ course.id }}/" class="btn btn-primary mt-2">
                 View Course
             </a>
         </div>
@@ -21,18 +23,16 @@
 {% endfor %}
 </div>
 
----
-
 <!-- AVAILABLE COURSES -->
 <h4 class="mt-4">Explore Courses</h4>
 
 <div class="row">
 {% for course in courses %}
     <div class="col-md-4">
-        <div class="card shadow p-3 mb-3">
+        <div class="card p-3 mb-3">
             <h5>{{ course.title }}</h5>
 
-            <a href="/enroll/{{ course.id }}/" class="btn btn-success rounded-pill mt-2">
+            <a href="/enroll/{{ course.id }}/" class="btn btn-success mt-2">
                 Enroll
             </a>
         </div>
@@ -40,36 +40,7 @@
 {% endfor %}
 </div>
 
----
-
-<!-- LIVE CLASSES -->
-<h4 class="mt-4">Live Classes</h4>
-
-{% for class in live_classes %}
-    <div class="card p-3 mb-2">
-        <strong>{{ class.title }}</strong>
-
-        <a href="{{ class.meet_link }}" target="_blank" class="btn btn-danger rounded-pill mt-2">
-            Join Class
-        </a>
-    </div>
-{% empty %}
-    <p>No live classes</p>
-{% endfor %}
-
----
-
-<!-- QUIZ RESULTS -->
-<h4 class="mt-4">Your Quiz Results</h4>
-
-{% for result in request.user.quizresult_set.all %}
-    <div class="card p-2 mb-2">
-        {{ result.quiz.title }} — {{ result.score }}/{{ result.total }}
-    </div>
-{% empty %}
-    <p>No quiz attempted yet</p>
-{% endfor %}
-
+<!-- PROGRESS -->
 <h4 class="mt-4">📈 Your Progress</h4>
 
 {% for item in progress_data %}
@@ -79,21 +50,15 @@
         <p>{{ item.completed }}/{{ item.total }} lessons completed</p>
 
         <div class="progress">
-            <div class="progress-bar" role="progressbar"
-                data-percent="{{ item.percent|default:0 }}"
-                aria-valuemin="0"
-                aria-valuemax="100">
-                {{ item.percent|default:0 }}%
+            <div class="progress-bar"
+                 data-percent="{{ item.percent }}"
+                 role="progressbar">
+                {{ item.percent }}%
             </div>
         </div>
     </div>
 {% endfor %}
 
-<script>
-document.querySelectorAll('.progress-bar').forEach(function(bar) {
-    let percent = bar.getAttribute('data-percent');
-    bar.style.width = percent + "%";
-});
-</script>
+</div>
 
 {% endblock %}
