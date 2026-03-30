@@ -58,7 +58,9 @@ def dashboard(request):
 
         total_revenue = sum(course.price for course in courses)
 
-        total_assignments = Assignment.objects.filter(course__in=courses).count()
+        total_assignments = Assignment.objects.filter(
+            lesson__module__course__in=courses
+        ).count()
 
         return render(request, 'teacher_dashboard.html', {
             'courses': courses,
