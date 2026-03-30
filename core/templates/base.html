@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>LMS</title>
+    <title>ScoreSkill</title>
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -11,19 +11,20 @@
     <!-- Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <style>
         body {
+            margin: 0;
             background-color: #f5f7fb;
             color: #1e293b;
-            margin: 0;
         }
 
         .sidebar {
             width: 240px;
+            height: 100vh;
             position: fixed;
+            background: #111827;
+            color: white;
+            padding: 20px;
         }
 
         .sidebar a {
@@ -38,19 +39,10 @@
         }
 
         .main {
-            margin-left: 260px;
+            margin-left: 240px;
             padding: 30px;
+            width: calc(100% - 240px);
             min-height: 100vh;
-            width: calc(100% - 260px);
-            box-sizing: border-box;
-        }
-
-        @media (max-width: 768px) {
-            .main {
-                margin-left: 0;
-                width: 100%;
-                padding: 15px;
-            }
         }
 
         .card {
@@ -58,40 +50,23 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         }
 
+        /* Dark Mode */
         .dark-mode {
             background-color: #0f172a;
         }
 
-        /* Fix text */
         .dark-mode .main {
             color: #e2e8f0;
         }
 
-        /* Fix cards */
         .dark-mode .card {
             background-color: #1e293b;
-            color: #e2e8f0;
-        }
-
-        /* Fix headings */
-        .dark-mode h1,
-        .dark-mode h2,
-        .dark-mode h3,
-        .dark-mode h4,
-        .dark-mode h5 {
             color: white;
         }
 
-        /* Sidebar */
         .dark-mode .sidebar {
             background: #020617;
         }
-
-
-        .dark-mode a {
-            color: #94a3b8 !important;
-        }
-
 
         @media (max-width: 768px) {
             .sidebar {
@@ -102,6 +77,8 @@
 
             .main {
                 margin-left: 0;
+                width: 100%;
+                padding: 15px;
             }
         }
     </style>
@@ -111,17 +88,22 @@
 
 <!-- SIDEBAR -->
 <div class="sidebar">
+
     <h4>
         <img src="/static/logo.png" width="30">
         ScoreSkill
     </h4>
+
     {% if request.user.is_authenticated %}
         <p class="mt-2">Hi, {{ request.user.username }}</p>
     {% endif %}
+
     <hr>
+
     <button onclick="toggleDarkMode()" class="btn btn-sm btn-light mb-3">
         🌙 Toggle Mode
     </button>
+
     {% if request.user.is_authenticated %}
 
         <a href="/dashboard/"><i class="bi bi-speedometer2"></i> Dashboard</a>
@@ -139,35 +121,21 @@
 
     {% endif %}
 
-<!-- MAIN CONTENT -->
+</div>
+
+<!-- MAIN -->
 <div class="main">
     <div class="container-fluid">
         {% block content %}
         {% endblock %}
     </div>
 </div>
+
 <script>
 function toggleDarkMode() {
     document.body.classList.toggle("dark-mode");
-
-    if (document.body.classList.contains("dark-mode")) {
-        localStorage.setItem("theme", "dark");
-    } else {
-        localStorage.setItem("theme", "light");
-    }
-}
-
-// Load saved mode
-if (localStorage.getItem("theme") === "dark") {
-    document.body.classList.add("dark-mode");
 }
 </script>
 
-<script>
-document.querySelectorAll('.progress-bar').forEach(function(bar) {
-    let percent = bar.getAttribute('data-percent');
-    bar.style.width = percent + "%";
-});
-</script>
 </body>
 </html>
