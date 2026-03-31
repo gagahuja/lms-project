@@ -85,6 +85,8 @@ class Submission(models.Model):
     student = models.ForeignKey(User, on_delete=models.CASCADE)
     file = models.FileField(upload_to='submissions/')
     submitted_at = models.DateTimeField(auto_now_add=True)
+    grade = models.IntegerField(null=True, blank=True)
+    feedback = models.TextField(blank=True, null=True)
 
 
 class Progress(models.Model):
@@ -129,3 +131,8 @@ class QuizResult(models.Model):
 
     def __str__(self):
         return f"{self.student.username} - {self.quiz.title} ({self.score}/{self.total})"
+    
+
+class Points(models.Model):
+    student = models.ForeignKey(User, on_delete=models.CASCADE)
+    points = models.IntegerField(default=0)

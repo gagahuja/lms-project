@@ -24,8 +24,9 @@ urlpatterns = [
     path('quiz/<int:quiz_id>/', views.attempt_quiz),
     path('ai-notes/<int:lesson_id>/', views.generate_ai_notes),
     path('ai-quiz/<int:course_id>/', views.generate_ai_quiz),
-    path('leaderboard/', views.leaderboard),
+    path('leaderboard/', views.leaderboard, name='leaderboard'),
     path('complete/<int:lesson_id>/', views.mark_complete),
+    path('ai-insights/', views.ai_insights, name='ai_insights'),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

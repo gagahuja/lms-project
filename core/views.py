@@ -17,6 +17,7 @@ from .models import Quiz, Question, StudentAnswer
 from .models import Lesson
 from .models import QuizResult
 from .models import Progress
+from .models import Points
 
 
 def login_view(request):
@@ -301,6 +302,11 @@ def submit_assignment(request, assignment_id):
             file=file
         )
 
+        # ADD POINTS
+        points_obj, created = Points.objects.get_or_create(student=request.user)
+        points_obj.points += 10
+        points_obj.save()
+
         return redirect('dashboard')
 
     return render(request, 'submit_assignment.html', {'assignment': assignment})
@@ -547,3 +553,39 @@ def mark_complete(request, lesson_id):
     )
 
     return redirect('dashboard')
+
+
+def leaderboard(request):
+    top_students = Points.objects.select_related('student').order_by('-points')[:10]
+
+    return render(request, 'leaderboard.html', {
+        'students': top_students
+    })
+
+
+def ai_insights(request):
+    from openai import OpenAI
+    from django.conf import settings
+
+    submissions = Submission.objects.filter(student=request.user)
+    quizzes = QuizResult.objects.filter(student=request.user)
+
+    summary = f"""
+    Student performance:
+    Assignments submitted: {submissions.count()}
+    Quiz attempts: {quizzes.count()}
+    """
+
+    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{
+            "role": "user",
+            "content": f"Analyze this student performance and give improvement tips:\n{summary}"
+        }]
+    )
+
+    insights = response.choices[0].message.content
+
+    return render(request, "ai_insights.html", {"insights": insights})

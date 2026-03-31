@@ -4,6 +4,10 @@
 
 <h2 class="mb-4">🎓 Student Dashboard</h2>
 
+<a href="/ai-insights/" class="btn btn-info mb-3">
+    🤖 View AI Insights
+</a>
+
 <!-- 📈 PROGRESS -->
 <h4>📈 Your Progress</h4>
 
@@ -92,6 +96,14 @@
 {% empty %}
 <p>No quiz attempts yet</p>
 {% endfor %}
+
+{% if item.assignment.submission.grade %}
+    <span class="badge bg-info">
+        Grade: {{ item.assignment.submission.grade }}
+    </span>
+{% endif %}
+
+
 
 <!-- 🌐 EXPLORE COURSES -->
 <h4 class="mt-4">Explore More Courses</h4>
