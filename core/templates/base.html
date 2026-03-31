@@ -13,54 +13,72 @@
 
     <style>
         body {
-            background: linear-gradient(135deg, #0f172a, #1e293b);
-            color: #e2e8f0;
+            margin: 0;
+            background-color: #f5f7fb;
+            color: #1e293b;
         }
 
-        /* Sidebar */
         .sidebar {
-            background: rgba(2, 6, 23, 0.9);
-            backdrop-filter: blur(10px);
-        }
-
-        /* Cards */
-        .card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(12px);
-            border-radius: 16px;
-            border: 1px solid rgba(255,255,255,0.08);
-            transition: all 0.3s ease;
-        }
-
-        /* Hover effect */
-        .card:hover {
-            transform: translateY(-5px);
-        }
-
-        /* Buttons */
-        .btn {
-            border-radius: 10px;
-        }
-
-        /* Smooth fade animation */
-        .card {
-            animation: fadeIn 0.5s ease-in;
-        }
-
-        @keyframes fadeIn {
-            from {opacity: 0; transform: translateY(8px);}
-            to {opacity: 1;}
-        }
-
-        .main {
-            margin-left: 260px;
+            width: 240px;
+            height: 100vh;
+            position: fixed;
+            background: #111827;
+            color: white;
             padding: 20px;
         }
 
+        .sidebar a {
+            color: #cbd5e1;
+            display: block;
+            margin: 12px 0;
+            text-decoration: none;
+        }
+
+        .sidebar a:hover {
+            color: white;
+        }
+
+        .main {
+            margin-left: 240px;
+            padding: 30px;
+            width: calc(100% - 240px);
+            min-height: 100vh;
+        }
+
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        /* Dark Mode */
+        .dark-mode {
+            background-color: #0f172a;
+        }
+
+        .dark-mode .main {
+            color: #e2e8f0;
+        }
+
+        .dark-mode .card {
+            background-color: #1e293b;
+            color: white;
+        }
+
+        .dark-mode .sidebar {
+            background: #020617;
+        }
+
         @media (max-width: 768px) {
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+            }
+
             .main {
                 margin-left: 0;
-                padding: 10px;
+                width: 100%;
+                padding: 15px;
             }
         }
     </style>
