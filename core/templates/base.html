@@ -27,7 +27,7 @@
             position: fixed;
             top: 0;
             left: 0;
-            padding: 10px 12px;
+            padding: 20px;
             z-index: 1000;
             border-radius: 8px;
             display: flex;
@@ -39,14 +39,21 @@
             flex-direction: column;
         }
 
+        .sidebar .collapsed {
+            width: 70px;
+        }
+
         .sidebar a {
-            display: block;           /* ensures each item is on new line */
+            display: flex;           /* ensures each item is on new line */
             width: 100%;
             padding: 10px 12px;
-            margin: 5px 0;
-            border-radius: 8px;
+            margin: 6px 0;
+            border-radius: 10px;
             text-decoration: none;
             color: #475569;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s ease;
         }
 
         .sidebar button {
@@ -55,13 +62,25 @@
         }
 
         .sidebar a:hover {
-            background: rgba(0,0,0,0.05);
+            background: #f1f5f9;
             transform: translateX(5px);
         }
 
         .sidebar a.active {
             background: #2563eb;
             color: white !important;
+        }
+
+        .sidebar i {
+            font-size: 18px;
+        }
+
+        .sidebar .collapsed a span {
+            display: none;
+        }
+
+        .sidebar .collapsed h4 span {
+            display: none;
         }
 
         .sidebar hr {
@@ -73,6 +92,11 @@
             padding: 20px;
             width: calc(100% - 240px);
             min-height: 100vh;
+            transition: 0.3s;
+        }
+
+        .sidebar .collapsed + .main {
+            margin-left: 70px;
         }
 
         .card {
@@ -191,7 +215,7 @@
 <body>
 
 <!-- SIDEBAR -->
-<div class="sidebar">
+<div class="sidebar" id="sidebar">
 
     <h4>
         <img src="/static/logo.png" width="30">
@@ -205,24 +229,40 @@
 
     <hr>
 
-    <button onclick="toggleDarkMode()" class="btn btn-sm btn-outline-light mb-3">
-        🌙 Toggle Mode
+    <button onclick="toggleSidebar()" class="btn btn-sm btn-outline-secondary mb-3">
+        ☰
     </button>
 
     {% if request.user.is_authenticated %}
 
-        <a href="/dashboard/"><i class="bi bi-speedometer2"></i> Dashboard</a>
+        <a href="/dashboard/" class="active">
+            <i class="bi bi-speedometer2"></i>
+            <span>Dashboard</span>
+        </a>
 
         {% if request.user.user_type == 'teacher' %}
-            <a href="/create-course/"><i class="bi bi-plus-circle"></i> Create Course</a>
-            <a href="/create-live-class/"><i class="bi bi-camera-video"></i> Live Classes</a>
+            <a href="/create-course/">
+                <i class="bi bi-plus-circle"></i>
+                <span>Create Course</span>
+            </a>
+
+            <a href="/create-live-class/">
+                <i class="bi bi-camera-video"></i>
+                <span>Live Classes</span>
+            </a>
         {% endif %}
 
         {% if request.user.user_type == 'student' %}
-            <a href="/leaderboard/"><i class="bi bi-trophy"></i> Leaderboard</a>
+            <a href="/leaderboard/">
+                <i class="bi bi-trophy"></i>
+                <span>Leaderboard</span>
+            </a>
         {% endif %}
 
-        <a href="/logout/"><i class="bi bi-box-arrow-right"></i> Logout</a>
+        <a href="/logout/">
+            <i class="bi bi-box-arrow-right"></i>
+            <span>Logout</span>
+        </a>
 
     {% endif %}
 
@@ -251,6 +291,21 @@ function toggleDarkMode() {
 if (localStorage.getItem("theme") === "dark") {
     document.body.classList.add("dark-mode");
 }
+</script>
+
+<script>
+function toggleSidebar() {
+    document.getElementById("sidebar").classList.toggle("collapsed");
+}
+</script>
+
+<script>
+let links = document.querySelectorAll(".sidebar a");
+links.forEach(link => {
+    if (link.href === window.location.href) {
+        link.classList.add("active");
+    }
+});
 </script>
 
 </body>
