@@ -36,10 +36,22 @@
             margin: 6px 0;
             text-decoration: none;
             transition: 0.3s;
+            flex-direction: column;
         }
 
         .sidebar a {
+            display: block;           /* ensures each item is on new line */
+            width: 100%;
+            padding: 10px 12px;
+            margin: 5px 0;
+            border-radius: 8px;
+            text-decoration: none;
             color: #475569;
+        }
+
+        .sidebar button {
+            width: 100%;
+            margin-bottom: 10px;
         }
 
         .sidebar a:hover {
