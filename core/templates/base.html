@@ -17,9 +17,11 @@
             color: #0f172a;
         }
 
+        /* LIGHT */
         .sidebar {
-            background: rgba(2,6,23,0.9);
-            color: white;
+            background: #ffffff;
+            color: #0f172a;
+            border-right: 1px solid #e2e8f0;
         }
 
         .sidebar a {
@@ -40,7 +42,7 @@
         }
 
         .card {
-            background: white;
+            background: #ffffff;
             color: #0f172a;
         }
 
@@ -52,6 +54,10 @@
         /* Buttons */
         .btn {
             border-radius: 10px;
+            color: white !important;
+        }
+
+        .btn-primary {
             color: white !important;
         }
 
@@ -84,9 +90,13 @@
         .dark-mode h2,
         .dark-mode h3,
         .dark-mode h4,
+        .dark-mode h5 {
+            color: #f1f5f9;
+        }
+
         .dark-mode p,
         .dark-mode span {
-            color: #e2e8f0 !important;
+            color: #cbd5e1;
         }
 
         .dark-mode .sidebar {
@@ -109,8 +119,16 @@
         }
 
         /* FORCE TEXT VISIBILITY */
-        h1, h2, h3, h4, h5, h6, p, span, label, strong {
+        /*h1, h2, h3, h4, h5, h6, p, span, label, strong {
             color: #e2e8f0 !important;
+        }*/
+
+        h1, h2, h3, h4, h5, h6 {
+            color: #0f172a;
+        }
+
+        p, span {
+            color: #334155;
         }
 
         /* FIX MUTED TEXT */
@@ -118,9 +136,9 @@
             color: #94a3b8 !important;
         }
 
-        .card * {
+        /*.card * {
             color: #e2e8f0 !important;
-        }
+        }*/
 
         .dark-mode .sidebar a {
             color: #cbd5e1;
