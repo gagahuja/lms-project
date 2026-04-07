@@ -59,6 +59,8 @@
         .sidebar button {
             width: 100%;
             margin-bottom: 10px;
+            display: block;
+            width: 100%;
         }
 
         .sidebar a:hover {
@@ -226,6 +228,10 @@
     {% if request.user.is_authenticated %}
         <p class="mt-2">Hi, {{ request.user.username }}</p>
     {% endif %}
+
+    <button onclick="toggleDarkMode()" class="btn btn-sm btn-outline-secondary mb-3 w-100">
+        🌙 Theme
+    </button>
 
     <hr>
 
