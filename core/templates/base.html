@@ -21,9 +21,11 @@
             width: 240px;
             height: 100vh;
             position: fixed;
-            background: #111827;
+            background: rgba(2, 6, 23, 0.85);
+            backdrop-filter: blur(12px);
             color: white;
             padding: 20px;
+            border-right: 1px solid rgba(255,255,255,0.08);
         }
 
         .sidebar a {
@@ -31,15 +33,17 @@
             display: block;
             margin: 12px 0;
             text-decoration: none;
+            transition: 0.3s;
         }
 
         .sidebar a:hover {
             color: white;
+            transform: translateX(5px);
         }
 
 
         .main {
-            margin-left: 260px;
+            margin-left: 240px;
             padding: 20px;
             width: calc(100% - 240px);
             min-height: 100vh;
@@ -75,7 +79,7 @@
 
         /* Dark Mode */
         .dark-mode {
-            background-color: #0f172a;
+            background-color: #020617;
         }
 
         .dark-mode .main {
@@ -84,11 +88,10 @@
 
         .dark-mode .card {
             background-color: #1e293b;
-            color: white;
         }
 
         .dark-mode .sidebar {
-            background: #020617;
+            background: rgba(0,0,0,0.9);
         }
 
         @media (max-width: 768px) {
@@ -114,6 +117,7 @@
 
     <h4>
         <img src="/static/logo.png" width="30">
+        <p style="font-size:12px; color:#94a3b8;">AI Powered Learning</p>
         ScoreSkill
     </h4>
 
@@ -157,6 +161,17 @@
 <script>
 function toggleDarkMode() {
     document.body.classList.toggle("dark-mode");
+
+    if (document.body.classList.contains("dark-mode")) {
+        localStorage.setItem("theme", "dark");
+    } else {
+        localStorage.setItem("theme", "light");
+    }
+}
+
+// Load saved theme
+if (localStorage.getItem("theme") === "dark") {
+    document.body.classList.add("dark-mode");
 }
 </script>
 
