@@ -20,17 +20,22 @@
         /* LIGHT */
         .sidebar {
             background: #ffffff;
-            color: #0f172a;
+            color: #475569;
             border-right: 1px solid #e2e8f0;
             width: 240px;
             height: 100vh;
             position: fixed;
             top: 0;
             left: 0;
-            background: #ffffff;
-            padding: 20px;
+            padding: 10px 12px;
             z-index: 1000;
-            border-right: 1px solid #e2e8f0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 6px 0;
+            text-decoration: none;
+            transition: 0.3s;
         }
 
         .sidebar a {
@@ -38,10 +43,18 @@
         }
 
         .sidebar a:hover {
-            color: white;
+            background: rgba(0,0,0,0.05);
             transform: translateX(5px);
         }
 
+        .sidebar a.active {
+            background: #2563eb;
+            color: white !important;
+        }
+
+        .sidebar hr {
+            margin: 15px 0;
+        }
 
         .main {
             margin-left: 240px;
@@ -155,6 +168,10 @@
 
         .dark-mode .sidebar a {
             color: #cbd5e1;
+        }
+
+        .dark-mode .sidebar a:hover {
+            background: rgba(255,255,255,0.08);
         }
     </style>
 </head>
