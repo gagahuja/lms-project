@@ -23,6 +23,9 @@ class CustomUserAdmin(UserAdmin):
 class AssignmentAdmin(admin.ModelAdmin):
     list_display = ['title', 'lesson']
 
+class SubmissionAdmin(admin.ModelAdmin):
+    list_display = ['assignment', 'student', 'submitted_at']
+
 admin.site.register(Assignment, AssignmentAdmin)
 admin.site.register(User, CustomUserAdmin)
 admin.site.register(Course)
@@ -31,8 +34,8 @@ admin.site.register(LiveClass)
 admin.site.register(Attendance)
 admin.site.register(Module)
 admin.site.register(Lesson)
-#admin.site.register(Assignment)
-admin.site.register(Submission)
+admin.site.register(Assignment)
+admin.site.register(Submission, SubmissionAdmin)
 admin.site.register(Quiz)
 admin.site.register(Question)
 admin.site.register(StudentAnswer)

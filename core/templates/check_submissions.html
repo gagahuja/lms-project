@@ -1,0 +1,16 @@
+{% for s in submissions %}
+<div class="card p-3 mb-3">
+
+    <p><strong>{{ s.student.username }}</strong></p>
+
+    <a href="{{ s.file.url }}" target="_blank">View Submission</a>
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="text" name="remarks" placeholder="Remarks">
+        <input type="file" name="checked_file">
+        <button class="btn btn-success">Submit Review</button>
+    </form>
+
+</div>
+{% endfor %}

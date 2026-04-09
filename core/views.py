@@ -589,3 +589,32 @@ def ai_insights(request):
     insights = response.choices[0].message.content
 
     return render(request, "ai_insights.html", {"insights": insights})
+
+
+from django.shortcuts import get_object_or_404
+
+def view_assignment(request, assignment_id):
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+
+    if request.method == "POST":
+        file = request.FILES.get("file")
+
+        Submission.objects.create(
+            assignment=assignment,
+            student=request.user,
+            file=file
+        )
+
+        return redirect('dashboard')
+
+    return render(request, "view_assignment.html", {
+        "assignment": assignment
+    })
+
+
+def check_submissions(request, assignment_id):
+    submissions = Submission.objects.filter(assignment_id=assignment_id)
+
+    return render(request, 'check_submissions.html', {
+        'submissions': submissions
+    })

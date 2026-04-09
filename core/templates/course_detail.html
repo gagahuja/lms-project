@@ -55,6 +55,9 @@
                 {% for assignment in lesson.assignment_set.all %}
                     <div>
                         {{ assignment.title }}
+                        <a href="/assignment/{{ assignment.id }}/" class="btn btn-primary">
+                            View Assignment
+                        </a>
                         <a href="/submit/{{ assignment.id }}/" class="btn btn-sm btn-primary">
                             Submit
                         </a>
