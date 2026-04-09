@@ -599,11 +599,12 @@ def view_assignment(request, assignment_id):
     if request.method == "POST":
         file = request.FILES.get("file")
 
-        Submission.objects.create(
-            assignment=assignment,
-            student=request.user,
-            file=file
-        )
+        if file:
+            Submission.objects.create(
+                assignment=assignment,
+                student=request.user,
+                file=file
+            )
 
         return redirect('dashboard')
 

@@ -1,20 +1,29 @@
 {% extends 'base.html' %}
+
 {% block content %}
 
 <h3>{{ assignment.title }}</h3>
 
-<!-- SECURE VIEW -->
-<div style="pointer-events: none; user-select: none;">
+<!-- 🔒 SECURE VIEW -->
+<div style="user-select: none;">
     <iframe src="{{ assignment.file.url }}"
-            width="100%" height="500px">
+            width="100%" height="500px"
+            style="border-radius:10px;">
     </iframe>
 </div>
 
-<!-- SUBMIT FORM -->
+<hr>
+
+<h5>📤 Submit Your Solution</h5>
+
 <form method="POST" enctype="multipart/form-data">
     {% csrf_token %}
-    <input type="file" name="file" required class="form-control mt-3">
-    <button class="btn btn-success mt-2">Submit Assignment</button>
+
+    <input type="file" name="file" class="form-control" required>
+
+    <button class="btn btn-success mt-2">
+        Submit Assignment
+    </button>
 </form>
 
 {% endblock %}

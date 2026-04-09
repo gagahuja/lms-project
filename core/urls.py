@@ -27,7 +27,7 @@ urlpatterns = [
     path('leaderboard/', views.leaderboard, name='leaderboard'),
     path('complete/<int:lesson_id>/', views.mark_complete),
     path('ai-insights/', views.ai_insights, name='ai_insights'),
-    path('assignment/<int:assignment_id>/', views.view_assignment),
+    path('assignment/<int:assignment_id>/', views.view_assignment, name='view_assignment'),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
