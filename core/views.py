@@ -614,8 +614,25 @@ def view_assignment(request, assignment_id):
 
 
 def check_submissions(request, assignment_id):
-    submissions = Submission.objects.filter(assignment_id=assignment_id)
+    assignment = Assignment.objects.get(id=assignment_id)
+    submissions = Submission.objects.filter(assignment=assignment)
+
+    if request.method == "POST":
+        submission_id = request.POST.get("submission_id")
+        remarks = request.POST.get("remarks")
+        checked_file = request.FILES.get("checked_file")
+
+        submission = Submission.objects.get(id=submission_id)
+        submission.remarks = remarks
+
+        if checked_file:
+            submission.checked_file = checked_file
+
+        submission.save()
+
+        return redirect('check_submissions', assignment_id=assignment.id)
 
     return render(request, 'check_submissions.html', {
+        'assignment': assignment,
         'submissions': submissions
     })

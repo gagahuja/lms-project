@@ -1,16 +1,47 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h3>📋 Submissions - {{ assignment.title }}</h3>
+
 {% for s in submissions %}
 <div class="card p-3 mb-3">
 
     <p><strong>{{ s.student.username }}</strong></p>
 
-    <a href="{{ s.file.url }}" target="_blank">View Submission</a>
+    <a href="{{ s.file.url }}" target="_blank" class="btn btn-primary btn-sm">
+        View Submission
+    </a>
 
+    {% if s.remarks %}
+        <p class="mt-2"><strong>Remarks:</strong> {{ s.remarks }}</p>
+    {% endif %}
+
+    {% if s.checked_file %}
+        <a href="{{ s.checked_file.url }}" class="btn btn-success btn-sm mt-1">
+            Download Checked File
+        </a>
+    {% endif %}
+
+    <hr>
+
+    <!-- REVIEW FORM -->
     <form method="POST" enctype="multipart/form-data">
         {% csrf_token %}
-        <input type="text" name="remarks" placeholder="Remarks">
-        <input type="file" name="checked_file">
-        <button class="btn btn-success">Submit Review</button>
+
+        <input type="hidden" name="submission_id" value="{{ s.id }}">
+
+        <textarea name="remarks" class="form-control mb-2"
+                  placeholder="Write remarks..."></textarea>
+
+        <input type="file" name="checked_file" class="form-control mb-2">
+
+        <button class="btn btn-success btn-sm">
+            Submit Review
+        </button>
     </form>
 
 </div>
 {% endfor %}
+
+{% endblock %}

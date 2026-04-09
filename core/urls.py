@@ -28,6 +28,7 @@ urlpatterns = [
     path('complete/<int:lesson_id>/', views.mark_complete),
     path('ai-insights/', views.ai_insights, name='ai_insights'),
     path('assignment/<int:assignment_id>/', views.view_assignment, name='view_assignment'),
+    path('check-submissions/<int:assignment_id>/', views.check_submissions, name='check_submissions'),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
