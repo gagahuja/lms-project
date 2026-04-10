@@ -7,6 +7,7 @@ from .models import LiveClass, Attendance
 from .models import Module, Lesson, Assignment, Submission
 from .models import Quiz, Question, StudentAnswer
 from .models import QuizResult
+from .models import Handout
 
 class CustomUserAdmin(UserAdmin):
     model = User
@@ -19,6 +20,13 @@ class CustomUserAdmin(UserAdmin):
     add_fieldsets = UserAdmin.add_fieldsets + (
         (None, {'fields': ('user_type',)}),
     )
+
+
+class HandoutAdmin(admin.ModelAdmin):
+    list_display = ['title', 'lesson', 'created_at']
+
+admin.site.register(Handout, HandoutAdmin)
+
 
 class AssignmentAdmin(admin.ModelAdmin):
     list_display = ['title', 'lesson']

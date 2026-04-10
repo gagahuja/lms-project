@@ -18,6 +18,7 @@ from .models import Lesson
 from .models import QuizResult
 from .models import Progress
 from .models import Points
+from .models import Handout
 
 
 def login_view(request):
@@ -635,4 +636,12 @@ def check_submissions(request, assignment_id):
     return render(request, 'check_submissions.html', {
         'assignment': assignment,
         'submissions': submissions
+    })
+
+
+def view_handout(request, handout_id):
+    handout = Handout.objects.get(id=handout_id)
+
+    return render(request, 'view_handout.html', {
+        'handout': handout
     })

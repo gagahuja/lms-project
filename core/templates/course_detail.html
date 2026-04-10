@@ -34,7 +34,16 @@
                 {% if lesson.notes %}
                 <a href="{{ lesson.notes.url }}">📄 Notes</a>
                 {% endif %}
+                
+                <h6>📚 Handouts</h6>
 
+                {% for handout in lesson.handout_set.all %}
+                    <a href="/handout/{{ handout.id }}/" class="btn btn-info btn-sm mb-1">
+                        {{ handout.title }}
+                    </a>
+                {% empty %}
+                    <p>No handouts</p>
+                {% endfor %}
                 <br>
 
                 <!-- AI NOTES BUTTON -->

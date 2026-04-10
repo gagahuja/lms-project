@@ -139,3 +139,13 @@ class QuizResult(models.Model):
 class Points(models.Model):
     student = models.ForeignKey(User, on_delete=models.CASCADE)
     points = models.IntegerField(default=0)
+
+
+class Handout(models.Model):
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
+    title = models.CharField(max_length=200)
+    file = models.FileField(upload_to='handouts/')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title
