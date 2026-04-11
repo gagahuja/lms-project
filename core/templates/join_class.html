@@ -1,24 +1,40 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Join Class</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
+{% extends 'base.html' %}
 
-<div class="container text-center mt-5">
-    <h2>{{ class.title }}</h2>
+{% block content %}
 
-    <a href="{{ class.meet_link }}" target="_blank" class="btn btn-success m-2">
-        🎥 Join Google Meet
-    </a>
+<h3>{{ class.title }}</h3>
 
-    {% if class.whiteboard_link %}
-    <a href="{{ class.whiteboard_link }}" target="_blank" class="btn btn-warning m-2">
-        📝 Open Whiteboard
-    </a>
-    {% endif %}
+<div class="row">
+
+    <!-- VIDEO CLASS -->
+    <div class="col-md-8">
+        <div class="card p-2">
+            <iframe 
+                src="{{ class.meet_link }}" 
+                width="100%" 
+                height="500" 
+                allowfullscreen>
+            </iframe>
+        </div>
+    </div>
+
+    <!-- WHITEBOARD -->
+    <div class="col-md-4">
+        <div class="card p-2">
+            <h5>🧠 Whiteboard</h5>
+
+            {% if class.whiteboard_link %}
+                <iframe 
+                    src="{{ class.whiteboard_link }}" 
+                    width="100%" 
+                    height="500">
+                </iframe>
+            {% else %}
+                <p>No whiteboard added</p>
+            {% endif %}
+        </div>
+    </div>
+
 </div>
 
-</body>
-</html>
+{% endblock %}

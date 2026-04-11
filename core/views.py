@@ -19,6 +19,8 @@ from .models import QuizResult
 from .models import Progress
 from .models import Points
 from .models import Handout
+from django.utils import timezone
+from datetime import timedelta
 
 
 def login_view(request):
@@ -64,12 +66,15 @@ def dashboard(request):
             lesson__module__course__in=courses
         ).count()
 
+        live_classes = LiveClass.objects.filter(course__in=courses)
+
         return render(request, 'teacher_dashboard.html', {
             'courses': courses,
             'total_students': total_students,
             'total_classes': total_classes,
             'total_revenue': total_revenue,
             'total_assignments': total_assignments,
+            'live_classes': live_classes,
         })
         
     else:
@@ -78,7 +83,30 @@ def dashboard(request):
 
         courses = Course.objects.exclude(id__in=[c.id for c in enrolled_courses])
 
+        next_class = LiveClass.objects.filter(
+            course__in=enrolled_courses,
+            date__gte=timezone.now()
+        ).order_by('date').first()
+
         live_classes = LiveClass.objects.filter(course__in=enrolled_courses)
+
+        for cls in live_classes:
+            now = timezone.now()
+
+            cls.can_join = False
+            cls.status = "Upcoming"
+
+            if cls.date - timedelta(minutes=5) <= now <= cls.date:
+                cls.status = "Starting Soon"
+
+            if cls.is_active:
+                cls.status = "Live"
+
+            if now > cls.date + timedelta(hours=2):
+                cls.status = "Completed"
+
+            if cls.is_active and cls.date - timedelta(minutes=5) <= now <= cls.date + timedelta(hours=2):
+                cls.can_join = True
 
         # 📈 PROGRESS DATA
         progress_data = []
@@ -129,7 +157,8 @@ def dashboard(request):
             'live_classes': live_classes,
             'progress_data': progress_data,
             'assignments': assignment_data,
-            'quiz_results': quiz_results
+            'quiz_results': quiz_results,
+            'next_class': next_class
         })
     
 
@@ -223,7 +252,7 @@ def create_live_class(request):
         course_id = request.POST['course']
         title = request.POST['title']
         meet_link = request.POST['meet_link']
-        whiteboard_link = request.POST['whiteboard_link']
+        whiteboard_link = request.POST.get('whiteboard_link')
         date = request.POST['date']
 
         LiveClass.objects.create(
@@ -644,4 +673,42 @@ def view_handout(request, handout_id):
 
     return render(request, 'view_handout.html', {
         'handout': handout
+    })
+
+
+def start_class(request, class_id):
+    cls = LiveClass.objects.get(id=class_id)
+    cls.is_active = True
+    cls.save()
+    return redirect('dashboard')
+
+
+def stop_class(request, class_id):
+    cls = LiveClass.objects.get(id=class_id)
+    cls.is_active = False
+    cls.save()
+    return redirect('dashboard')
+
+
+def join_live_class(request, class_id):
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    cls = LiveClass.objects.get(id=class_id)
+
+    # MARK ATTENDANCE
+    Attendance.objects.get_or_create(
+        student=request.user,
+        live_class=cls
+    )
+
+    # REDIRECT TO MEET
+    return redirect(cls.meet_link)
+
+
+def view_attendance(request, class_id):
+    records = Attendance.objects.filter(live_class_id=class_id)
+
+    return render(request, 'attendance.html', {
+        'records': records
     })

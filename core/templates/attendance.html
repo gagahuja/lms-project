@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h3>📊 Attendance</h3>
+
+{% for r in records %}
+<div class="card p-2 mb-2">
+    {{ r.student.username }}
+</div>
+{% endfor %}
+
+{% endblock %}

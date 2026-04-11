@@ -43,16 +43,60 @@
 {% endfor %}
 </div>
 
-<!-- 🔴 LIVE CLASSES -->
-<h4 class="mt-4">Live Classes</h4>
+{% if next_class %}
+<div class="card p-3 mb-3 border border-warning">
+    <h5>🔥 Next Class</h5>
 
-{% for class in live_classes %}
-<div class="card p-2 mb-2">
-    {{ class.title }}
+    <strong>{{ next_class.title }}</strong><br>
+    <small class="live-class-time" data-time="{{ cls.date }}">
+        {{ cls.date }}
+    </small>
 
-    <a href="/join/{{ class.id }}/" class="btn btn-success btn-sm">
-        Join Class
+    <br>
+
+    <a href="/join-class/{{ next_class.id }}" class="btn btn-success btn-sm mt-2">
+        Join Now
     </a>
+</div>
+{% endif %}
+
+<!-- 🔴 LIVE CLASSES -->
+<h5 class="mt-4">📡 Live Classes</h5>
+
+{% for cls in live_classes %}
+<div class="card p-3 mb-2">
+
+    <strong>{{ cls.title }}</strong><br>
+    <small>{{ cls.date }}</small><br>
+
+    {% if cls.whiteboard_link %}
+    <a href="{{ cls.whiteboard_link }}" target="_blank" class="btn btn-info btn-sm mt-2">
+        Open Whiteboard
+    </a>
+{% endif %}
+    <!-- STATUS -->
+    {% if cls.status == "Live" %}
+        <span class="badge bg-danger">🔴 Live</span>
+    {% elif cls.status == "Starting Soon" %}
+        <span class="badge bg-warning">⏳ Starting Soon</span>
+    {% elif cls.status == "Completed" %}
+        <span class="badge bg-secondary">✔ Completed</span>
+    {% else %}
+        <span class="badge bg-info">📅 Upcoming</span>
+    {% endif %}
+
+    <br>
+
+    {% if cls.can_join %}
+        <a href="/join-class/{{ cls.id }}/" class="btn btn-success btn-sm mt-2">
+            Join Class
+        </a>
+    {% else %}
+        <button class="btn btn-secondary btn-sm mt-2" disabled>
+            Not Available
+        </button>
+    {% endif %}
+
 </div>
 {% endfor %}
 

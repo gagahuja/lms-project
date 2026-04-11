@@ -326,5 +326,25 @@ document.onkeydown = function(e) {
 };
 </script>
 
+<script>
+function checkClassReminder() {
+    const elements = document.querySelectorAll(".live-class-time");
+
+    const now = new Date();
+
+    elements.forEach(el => {
+        const classTime = new Date(el.dataset.time);
+
+        const diff = (classTime - now) / 60000; // minutes
+
+        if (diff > 0 && diff <= 5) {
+            alert("⏳ Your class is starting soon!");
+        }
+    });
+}
+
+setInterval(checkClassReminder, 60000); // every 1 min
+</script>
+
 </body>
 </html>

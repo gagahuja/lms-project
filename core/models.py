@@ -35,9 +35,13 @@ class Enrollment(models.Model):
 class LiveClass(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
+
     meet_link = models.URLField()
     whiteboard_link = models.URLField(blank=True, null=True)
+
     date = models.DateTimeField()
+
+    is_active = models.BooleanField(default=False)  # 🔥 START/STOP CONTROL
 
     def __str__(self):
         return self.title

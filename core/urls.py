@@ -29,6 +29,11 @@ urlpatterns = [
     path('ai-insights/', views.ai_insights, name='ai_insights'),
     path('assignment/<int:assignment_id>/', views.view_assignment, name='view_assignment'),
     path('check-submissions/<int:assignment_id>/', views.check_submissions, name='check_submissions'),
+    path('handout/<int:handout_id>/', views.view_handout, name='view_handout'),
+    path('start-class/<int:class_id>/', views.start_class, name='start_class'),
+    path('stop-class/<int:class_id>/', views.stop_class, name='stop_class'),
+    path('join-class/<int:class_id>/', views.join_live_class, name='join_class'),
+    path('attendance/<int:class_id>/', views.view_attendance),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
