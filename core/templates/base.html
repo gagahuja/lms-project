@@ -240,6 +240,23 @@
             background: #ffffff !important;
         }
 
+        /* FIX HEADER TEXT IN DARK MODE */
+        .dark-mode .sidebar h4,
+        .dark-mode .sidebar p {
+            color: #f1f5f9 !important;  /* LIGHT TEXT */
+        }
+        
+        .dark-mode .logo-light {
+            display: none;
+        }
+
+        .dark-mode .logo-dark {
+            display: inline;
+        }
+
+        .dark-mode img {
+            filter: brightness(2);
+        }
         
     </style>
 </head>
@@ -250,7 +267,8 @@
 <div class="sidebar" id="sidebar">
 
     <h4>
-        <img src="{% static 'scoreskill_logo.png' %}" width="45" style="border-radius:8px;">
+        <img src="{% static 'scoreskill_logo.png' %}" class="logo-light" width="35">
+        <img src="{% static 'scoreskill_logo.png' %}" class="logo-dark d-none" width="35">
         <p style="font-size:12px; color:#94a3b8;">AI Powered Learning</p>
         ScoreSkill
     </h4>
