@@ -580,11 +580,17 @@ def generate_ai_quiz(request, course_id):
 
 
 def leaderboard(request):
-    results = QuizResult.objects.all().order_by('-score')[:10]
+    from django.db.models import Sum
+    from .models import QuizResult
 
-    return render(request, 'leaderboard.html', {
-        'results': results
-    })
+    data = (
+        QuizResult.objects
+        .values('student__username')
+        .annotate(total_score=Sum('score'))
+        .order_by('-total_score')
+    )
+
+    return render(request, 'leaderboard.html', {'data': data})
 
 
 def mark_complete(request, lesson_id):
