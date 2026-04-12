@@ -2,18 +2,28 @@
 
 {% block content %}
 
-<h2 class="mb-4">🤖 AI Performance Insights</h2>
+<h2>🤖 AI Performance Insights</h2>
 
-<div class="card p-4">
-    {% if insights %}
-        <p style="white-space: pre-line;">{{ insights }}</p>
-    {% else %}
-        <p>No insights available yet.</p>
-    {% endif %}
+<div class="card p-3 mt-3">
+
+    <h4>📊 Total Score: {{ score }}</h4>
+
+    <h5>
+        Performance:
+        {% if level == "Strong" %}
+            <span class="text-success">💪 Strong</span>
+        {% elif level == "Average" %}
+            <span class="text-warning">🙂 Average</span>
+        {% else %}
+            <span class="text-danger">⚠ Weak</span>
+        {% endif %}
+    </h5>
+
+    <hr>
+
+    <h5>🤖 AI Feedback</h5>
+    <p>{{ feedback }}</p>
+
 </div>
-
-<a href="/dashboard/" class="btn btn-secondary mt-3">
-    ⬅ Back to Dashboard
-</a>
 
 {% endblock %}

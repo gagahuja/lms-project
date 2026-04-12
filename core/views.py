@@ -614,31 +614,49 @@ def leaderboard(request):
 
 
 def ai_insights(request):
-    from openai import OpenAI
+    from django.db.models import Sum
+    from .models import QuizResult
     from django.conf import settings
 
-    submissions = Submission.objects.filter(student=request.user)
-    quizzes = QuizResult.objects.filter(student=request.user)
+    user = request.user
 
-    summary = f"""
-    Student performance:
-    Assignments submitted: {submissions.count()}
-    Quiz attempts: {quizzes.count()}
-    """
+    # 📊 TOTAL SCORE
+    result = QuizResult.objects.filter(student=user).aggregate(total=Sum('score'))
+    total_score = result['total'] or 0
 
-    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    # 🧠 PERFORMANCE LEVEL
+    if total_score < 5:
+        level = "Weak"
+    elif total_score < 15:
+        level = "Average"
+    else:
+        level = "Strong"
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{
-            "role": "user",
-            "content": f"Analyze this student performance and give improvement tips:\n{summary}"
-        }]
-    )
+    # 🤖 AI FEEDBACK
+    feedback = ""
 
-    insights = response.choices[0].message.content
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
-    return render(request, "ai_insights.html", {"insights": insights})
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{
+                "role": "user",
+                "content": f"A student has {level} performance with score {total_score}. Give short improvement advice."
+            }]
+        )
+
+        feedback = response.choices[0].message.content
+
+    except:
+        feedback = "AI feedback not available"
+
+    return render(request, "ai_insights.html", {
+        "score": total_score,
+        "level": level,
+        "feedback": feedback
+    })
 
 
 from django.shortcuts import get_object_or_404
