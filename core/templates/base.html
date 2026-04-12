@@ -258,6 +258,16 @@
             filter: brightness(2);
         }
 
+        /* DEFAULT (LIGHT MODE) */
+        .logo {
+            transition: 0.3s ease;
+        }
+
+        /* DARK MODE FIX */
+        .dark-mode .logo {
+            filter: brightness(2) contrast(1.2);
+        }
+
     </style>
 </head>
 
@@ -267,8 +277,8 @@
 <div class="sidebar" id="sidebar">
 
     <h4>
-        <img src="{% static 'scoreskill_logo.png' %}" class="logo-light" width="45">
-        <img src="{% static 'scoreskill_logo.png' %}" class="logo-dark d-none" width="45">
+        <img src="{% static 'scoreskill_logo.png' %}" class="logo" width="45">
+        
         <p style="font-size:12px; color:#94a3b8;">AI Powered Learning</p>
         ScoreSkill
     </h4>
