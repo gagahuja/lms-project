@@ -4,6 +4,8 @@
 <head>
     <title>ScoreSkill</title>
 
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#6366f1">
         
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -21,9 +23,10 @@
 
         /* LIGHT */
         .sidebar {
-            background: #ffffff;
+            background: rgba(17, 24, 39, 0.8);
             color: #475569;
-            border-right: 1px solid #e2e8f0;
+            backdrop-filter: blur(15px);
+            border-right: 1px solid rgba(255,255,255,0.1);
             width: 240px;
             height: 100vh;
             position: fixed;
@@ -106,11 +109,13 @@
         .card {
             background: #ffffff;
             color: #0f172a;
+            animation: fadeIn 0.4s ease-in;
         }
 
         /* Hover effect */
         .card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-6px);
+            box-shadow: 0 10px 25px rgba(99,102,241,0.3);
         }
 
         /* Buttons */
@@ -119,8 +124,14 @@
             color: #000 !important;
         }
 
+        .btn-success {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border: none;
+        }
+
         .btn-primary {
-            color: white !important;
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            border: none;
         }
 
         /* Smooth fade animation */
@@ -129,7 +140,7 @@
         }
 
         @keyframes fadeIn {
-            from {opacity: 0; transform: translateY(8px);}
+            from {opacity: 0; transform: translateY(10px);}
             to {opacity: 1;}
         }
 
@@ -213,6 +224,8 @@
         .dark-mode .sidebar a:hover {
             background: rgba(255,255,255,0.08);
         }
+
+        
     </style>
 </head>
 
@@ -222,7 +235,7 @@
 <div class="sidebar" id="sidebar">
 
     <h4>
-        <img src="{% static 'scoreskill_logo.png' %}" width="35" style="border-radius:8px;">
+        <img src="{% static 'scoreskill_logo.png' %}" width="45" style="border-radius:8px;">
         <p style="font-size:12px; color:#94a3b8;">AI Powered Learning</p>
         ScoreSkill
     </h4>
@@ -279,6 +292,10 @@
 <!-- MAIN -->
 <div class="main">
     <div class="container-fluid">
+        <div class="card p-3 mb-3" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color:white;">
+            <h4>Welcome to ScoreSkill 🚀</h4>
+            <small>Smart Learning Platform</small>
+        </div>
         {% block content %}
         {% endblock %}
     </div>

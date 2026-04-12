@@ -21,7 +21,6 @@ from .models import Points
 from .models import Handout
 from django.utils import timezone
 from datetime import timedelta
-from .models import Recording
 
 
 
@@ -55,6 +54,8 @@ def home(request):
 def dashboard(request):
     if not request.user.is_authenticated:
         return redirect('login')
+    
+    recordings = []
 
     if getattr(request.user, 'user_type', None) == 'teacher':
         courses = Course.objects.filter(teacher=request.user)
@@ -111,9 +112,7 @@ def dashboard(request):
                 cls.can_join = True
 
         
-            recordings = Recording.objects.filter(
-                live_class__course__in=enrolled_courses
-            )
+            
 
         # 📈 PROGRESS DATA
         progress_data = []
@@ -157,6 +156,11 @@ def dashboard(request):
 
         # 🧠 QUIZ RESULTS
         quiz_results = QuizResult.objects.filter(student=request.user)
+
+        from .models import Recording
+        recordings = Recording.objects.filter(
+                live_class__course__in=enrolled_courses
+            )
 
         return render(request, 'student_dashboard.html', {
             'courses': courses,
