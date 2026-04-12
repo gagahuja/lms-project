@@ -21,6 +21,8 @@ from .models import Points
 from .models import Handout
 from django.utils import timezone
 from datetime import timedelta
+from reportlab.pdfgen import canvas
+
 
 
 
@@ -730,3 +732,69 @@ def view_attendance(request, class_id):
     return render(request, 'attendance.html', {
         'records': records
     })
+
+
+def generate_certificate(request, course_id):
+    from reportlab.pdfgen import canvas
+    from django.http import HttpResponse
+    from .models import Course
+    import os
+    from django.conf import settings
+    import datetime
+
+    course = Course.objects.get(id=course_id)
+    user = request.user
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="certificate.pdf"'
+
+    p = canvas.Canvas(response)
+
+    width, height = 600, 800
+
+    # 📁 IMAGE PATHS
+    logo_path = os.path.join(settings.BASE_DIR, 'static/scoreskill_logo.png')
+    bg_path = os.path.join(settings.BASE_DIR, 'static/certificate_bg.png')
+
+    # 🖼️ BACKGROUND IMAGE (FIRST)
+    if os.path.exists(bg_path):
+        p.drawImage(bg_path, 0, 0, width=width, height=height)
+
+    # 🟡 BORDER (optional if no bg)
+    p.setLineWidth(4)
+    p.rect(30, 30, width-60, height-60)
+
+    # 🏷️ LOGO (TOP CENTER)
+    if os.path.exists(logo_path):
+        p.drawImage(logo_path, width/2 - 40, 720, width=80, height=80)
+
+    # 🎓 TITLE
+    p.setFont("Helvetica-Bold", 24)
+    p.drawCentredString(width/2, 680, "Certificate of Completion")
+
+    # 🧾 TEXT
+    p.setFont("Helvetica", 14)
+    p.drawCentredString(width/2, 640, "This is to certify that")
+
+    # 👤 NAME
+    p.setFont("Helvetica-Bold", 18)
+    p.drawCentredString(width/2, 600, user.username)
+
+    # 📘 TEXT
+    p.setFont("Helvetica", 14)
+    p.drawCentredString(width/2, 560, "has successfully completed")
+
+    # 📚 COURSE
+    p.setFont("Helvetica-Bold", 18)
+    p.drawCentredString(width/2, 520, course.title)
+
+    # 📅 DATE
+    p.setFont("Helvetica", 12)
+    p.drawCentredString(width/2, 480, f"Date: {datetime.date.today()}")
+
+    # ✍️ SIGN
+    p.drawString(80, 100, "Instructor Signature")
+
+    p.save()
+
+    return response
