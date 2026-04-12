@@ -153,3 +153,9 @@ class Handout(models.Model):
 
     def __str__(self):
         return self.title
+    
+
+class Recording(models.Model):
+    live_class = models.ForeignKey(LiveClass, on_delete=models.CASCADE)
+    video = models.FileField(upload_to='recordings/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)

@@ -8,6 +8,8 @@ from .models import Module, Lesson, Assignment, Submission
 from .models import Quiz, Question, StudentAnswer
 from .models import QuizResult
 from .models import Handout
+from .models import Recording
+
 
 class CustomUserAdmin(UserAdmin):
     model = User
@@ -48,3 +50,4 @@ admin.site.register(Quiz)
 admin.site.register(Question)
 admin.site.register(StudentAnswer)
 admin.site.register(QuizResult)
+admin.site.register(Recording)

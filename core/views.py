@@ -21,6 +21,8 @@ from .models import Points
 from .models import Handout
 from django.utils import timezone
 from datetime import timedelta
+from .models import Recording
+
 
 
 def login_view(request):
@@ -108,6 +110,11 @@ def dashboard(request):
             if cls.is_active and cls.date - timedelta(minutes=5) <= now <= cls.date + timedelta(hours=2):
                 cls.can_join = True
 
+        
+            recordings = Recording.objects.filter(
+                live_class__course__in=enrolled_courses
+            )
+
         # 📈 PROGRESS DATA
         progress_data = []
 
@@ -158,7 +165,8 @@ def dashboard(request):
             'progress_data': progress_data,
             'assignments': assignment_data,
             'quiz_results': quiz_results,
-            'next_class': next_class
+            'next_class': next_class,
+            'recordings': recordings
         })
     
 
