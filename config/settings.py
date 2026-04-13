@@ -160,3 +160,8 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+
+import os
+
+RAZORPAY_KEY = os.environ.get("RAZORPAY_KEY")
+RAZORPAY_SECRET = os.environ.get("RAZORPAY_SECRET")

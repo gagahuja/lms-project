@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="card p-4 text-center">
+
+    <h3>🔒 Course Locked</h3>
+    <p>You need to purchase this course to access content.</p>
+
+    <h4>₹ {{ course.price }}</h4>
+
+    <a href="/buy-course/{{ course.id }}/" class="btn btn-success">
+        Buy Now 💰
+    </a>
+
+</div>
+
+{% endblock %}

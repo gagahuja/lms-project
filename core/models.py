@@ -159,3 +159,10 @@ class Recording(models.Model):
     live_class = models.ForeignKey(LiveClass, on_delete=models.CASCADE)
     video = models.FileField(upload_to='recordings/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
+
+
+class Subscription(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    plan = models.CharField(max_length=50)
+    is_active = models.BooleanField(default=True)
+    start_date = models.DateTimeField(auto_now_add=True)

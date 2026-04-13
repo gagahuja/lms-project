@@ -24,6 +24,9 @@ from datetime import timedelta
 from reportlab.pdfgen import canvas
 
 
+def is_enrolled(user):
+    
+    return Enrollment.objects.filter(student=user).exists()
 
 
 def login_view(request):
@@ -288,7 +291,9 @@ from django.conf import settings
 def buy_course(request, course_id):
     course = Course.objects.get(id=course_id)
 
-    client = razorpay.Client(auth=("rzp_test_SVTMhk0hvNVHGy", "STlXAEpa9EWmM4ddaxBO2sUF"))
+    client = razorpay.Client(
+        auth=(settings.RAZORPAY_KEY, settings.RAZORPAY_SECRET)
+    )
 
     payment = client.order.create({
         "amount": course.price * 100,
@@ -321,6 +326,11 @@ def payment_success(request, course_id):
 
 def course_detail(request, course_id):
     course = Course.objects.get(id=course_id)
+
+    # 🔒 CHECK ENROLLMENT
+    if not Enrollment.objects.filter(student=request.user, course=course).exists():
+        return render(request, 'locked_course.html', {'course': course})
+
     modules = Module.objects.filter(course=course)
 
     return render(request, 'course_detail.html', {
@@ -532,6 +542,10 @@ def generate_ai_quiz(request, course_id):
 
     course = get_object_or_404(Course, id=course_id)
 
+    # 🔒 LOCK AI QUIZ
+    if not is_enrolled(request.user):
+        return HttpResponse("🔒 Buy a course to access AI Quiz")
+
     if request.method == "POST":
         topic = request.POST.get("topic")
 
@@ -580,6 +594,8 @@ def generate_ai_quiz(request, course_id):
 
     return render(request, "ai_quiz.html", {"course": course})
 
+    
+
 
 def leaderboard(request):
     from django.db.models import Sum
@@ -618,6 +634,10 @@ def ai_insights(request):
     from .models import QuizResult
     from django.conf import settings
 
+    # 🔒 SUBSCRIPTION LOCK
+    if not has_subscription(request.user):
+        return HttpResponse("🔒 Upgrade to Pro Plan")
+    
     user = request.user
 
     # 📊 TOTAL SCORE
@@ -816,3 +836,12 @@ def generate_certificate(request, course_id):
     p.save()
 
     return response
+
+
+def has_subscription(user):
+    from .models import Subscription
+    return Subscription.objects.filter(user=user, is_active=True).exists()
+
+
+def subscription_page(request):
+    return render(request, "subscription.html")
