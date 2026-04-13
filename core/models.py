@@ -20,6 +20,8 @@ class Course(models.Model):
     teacher = models.ForeignKey(User, on_delete=models.CASCADE)
     price = models.IntegerField(default=0)
 
+    is_private = models.BooleanField(default=False)   # 👈 ADD THIS
+
     def __str__(self):
         return self.title
     
@@ -166,3 +168,12 @@ class Subscription(models.Model):
     plan = models.CharField(max_length=50)
     is_active = models.BooleanField(default=True)
     start_date = models.DateTimeField(auto_now_add=True)
+
+
+class CourseRequest(models.Model):
+    student = models.ForeignKey(User, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    approved = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.student.username} → {self.course.title}"

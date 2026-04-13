@@ -22,6 +22,7 @@ from .models import Handout
 from django.utils import timezone
 from datetime import timedelta
 from reportlab.pdfgen import canvas
+from .models import CourseRequest
 
 
 def is_enrolled(user):
@@ -89,7 +90,6 @@ def dashboard(request):
         enrolled = Enrollment.objects.filter(student=request.user)
         enrolled_courses = [e.course for e in enrolled]
 
-        courses = Course.objects.exclude(id__in=[c.id for c in enrolled_courses])
 
         next_class = LiveClass.objects.filter(
             course__in=enrolled_courses,
@@ -845,3 +845,22 @@ def has_subscription(user):
 
 def subscription_page(request):
     return render(request, "subscription.html")
+
+
+def all_courses(request):
+    courses = Course.objects.all()
+
+    return render(request, 'all_courses.html', {
+        'courses': courses
+    })
+
+
+def request_course(request, course_id):
+    course = Course.objects.get(id=course_id)
+
+    CourseRequest.objects.get_or_create(
+        student=request.user,
+        course=course
+    )
+
+    return HttpResponse("✅ Request sent to admin")

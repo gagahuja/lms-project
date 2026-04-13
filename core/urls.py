@@ -36,6 +36,8 @@ urlpatterns = [
     path('attendance/<int:class_id>/', views.view_attendance),
     path('certificate/<int:course_id>/', views.generate_certificate),
     path('subscription/', views.subscription_page),
+    path('courses/', views.all_courses, name='all_courses'),
+    path('request-course/<int:course_id>/', views.request_course),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

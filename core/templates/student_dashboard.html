@@ -27,24 +27,26 @@
 {% endfor %}
 
 <!-- 🎓 ENROLLED COURSES -->
-<h4 class="mt-4">Your Courses</h4>
+<h4 class="mt-4">🎓 My Courses</h4>
 
-<div class="row">
-{% for course in enrolled_courses %}
-    <div class="col-md-4">
+{% if enrolled_courses %}
+    {% for course in enrolled_courses %}
         <div class="card p-3 mb-3">
             <h5>{{ course.title }}</h5>
-
-            <a href="/course/{{ course.id }}/" class="btn btn-primary mt-2">
-                Continue Learning
+            <a href="/course/{{ course.id }}/" class="btn btn-primary">
+                Open Course
             </a>
             <a href="/certificate/{{ course.id }}/" class="btn btn-success btn-sm mt-2">
                 🎓 Download Certificate
-        </a>
+            </a>
         </div>
+    {% endfor %}
+{% else %}
+    <div class="card p-3 text-center">
+        No courses enrolled yet
     </div>
-{% endfor %}
-</div>
+{% endif %}
+
 
 {% if next_class %}
 <div class="card p-3 mb-3 border border-warning">
@@ -168,22 +170,7 @@
 
 
 
-<!-- 🌐 EXPLORE COURSES -->
-<h4 class="mt-4">Explore More Courses</h4>
 
-<div class="row">
-{% for course in courses %}
-    <div class="col-md-4">
-        <div class="card p-3 mb-3">
-            <h5>{{ course.title }}</h5>
-
-            <a href="/enroll/{{ course.id }}/" class="btn btn-success mt-2">
-                Enroll
-            </a>
-        </div>
-    </div>
-{% endfor %}
-</div>
 
 <!-- JS FIX FOR PROGRESS -->
 <script>

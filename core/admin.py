@@ -9,6 +9,8 @@ from .models import Quiz, Question, StudentAnswer
 from .models import QuizResult
 from .models import Handout
 from .models import Recording
+from .models import CourseRequest
+
 
 
 class CustomUserAdmin(UserAdmin):
@@ -36,10 +38,15 @@ class AssignmentAdmin(admin.ModelAdmin):
 class SubmissionAdmin(admin.ModelAdmin):
     list_display = ['assignment', 'student', 'submitted_at']
 
+
+class EnrollmentAdmin(admin.ModelAdmin):
+    list_display = ['student', 'course']
+
+admin.site.register(Enrollment, EnrollmentAdmin)
 admin.site.register(Assignment, AssignmentAdmin)
 admin.site.register(User, CustomUserAdmin)
 admin.site.register(Course)
-admin.site.register(Enrollment)
+#admin.site.register(Enrollment)
 admin.site.register(LiveClass)
 admin.site.register(Attendance)
 admin.site.register(Module)
@@ -51,3 +58,4 @@ admin.site.register(Question)
 admin.site.register(StudentAnswer)
 admin.site.register(QuizResult)
 admin.site.register(Recording)
+admin.site.register(CourseRequest)
