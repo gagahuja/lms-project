@@ -331,6 +331,12 @@
             <span>Dashboard</span>
         </a>
 
+        {% if request.user.is_staff %}
+            <a href="/admin-dashboard/">
+                <i class="bi bi-graph-up"></i> Admin Panel
+            </a>
+        {% endif %}
+
         <a href="/courses/"><i class="bi bi-book"></i> All Courses</a>
         
         {% if request.user.user_type == 'teacher' %}

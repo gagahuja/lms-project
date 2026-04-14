@@ -13,13 +13,17 @@
             <p>{{ course.description }}</p>
             <p>₹ {{ course.price }}</p>
 
-            {% if course.is_private %}
+            {% if course in enrolled_courses %}
+                <button class="btn btn-success">Enrolled ✅</button>
+
+            {% elif course.is_private %}
                 <a href="/request-course/{{ course.id }}/" class="btn btn-warning">
                     Request Access 🔒
                 </a>
+
             {% else %}
-                <a href="/buy-course/{{ course.id }}/" class="btn btn-success">
-                    Buy / Enroll 💰
+                <a href="/buy-course/{{ course.id }}/" class="btn btn-primary">
+                    Buy Now 💰
                 </a>
             {% endif %}
 

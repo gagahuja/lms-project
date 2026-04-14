@@ -69,7 +69,9 @@ def dashboard(request):
         total_students = Enrollment.objects.filter(course__in=courses).count()
         total_classes = LiveClass.objects.filter(course__in=courses).count()
 
-        total_revenue = sum(course.price for course in courses)
+        total_revenue = Enrollment.objects.filter(
+            course__in=courses
+        ).count() * 500  # temporary logic
 
         total_assignments = Assignment.objects.filter(
             lesson__module__course__in=courses
@@ -324,12 +326,19 @@ def payment_success(request, course_id):
     return redirect('dashboard')
 
 
+from django.shortcuts import get_object_or_404
+
 def course_detail(request, course_id):
-    course = Course.objects.get(id=course_id)
+    course = get_object_or_404(Course, id=course_id)
 
     # 🔒 CHECK ENROLLMENT
-    if not Enrollment.objects.filter(student=request.user, course=course).exists():
-        return render(request, 'locked_course.html', {'course': course})
+    is_enrolled = Enrollment.objects.filter(
+        student=request.user,
+        course=course
+    ).exists()
+
+    if not is_enrolled:
+        return HttpResponse("❌ You must enroll to access this course")
 
     modules = Module.objects.filter(course=course)
 
@@ -864,3 +873,26 @@ def request_course(request, course_id):
     )
 
     return HttpResponse("✅ Request sent to admin")
+
+
+from django.contrib.admin.views.decorators import staff_member_required
+
+@staff_member_required
+def admin_dashboard(request):
+    from .models import User, Course, Enrollment
+
+    total_users = User.objects.count()
+    total_courses = Course.objects.count()
+    total_enrollments = Enrollment.objects.count()
+
+    # 💰 SIMPLE REVENUE CALCULATION
+    total_revenue = sum([
+        e.course.price for e in Enrollment.objects.select_related('course')
+    ])
+
+    return render(request, 'admin_dashboard.html', {
+        'total_users': total_users,
+        'total_courses': total_courses,
+        'total_enrollments': total_enrollments,
+        'total_revenue': total_revenue
+    })

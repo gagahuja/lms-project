@@ -38,6 +38,7 @@ urlpatterns = [
     path('subscription/', views.subscription_page),
     path('courses/', views.all_courses, name='all_courses'),
     path('request-course/<int:course_id>/', views.request_course),
+    path('admin-dashboard/', views.admin_dashboard),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2>📊 Admin Dashboard</h2>
+
+<div class="row">
+
+    <div class="col-md-3">
+        <div class="card p-3 text-center">
+            <h4>{{ total_users }}</h4>
+            <p>👥 Users</p>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card p-3 text-center">
+            <h4>{{ total_courses }}</h4>
+            <p>📚 Courses</p>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card p-3 text-center">
+            <h4>{{ total_enrollments }}</h4>
+            <p>🎓 Enrollments</p>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card p-3 text-center">
+            <h4>₹ {{ total_revenue }}</h4>
+            <p>💰 Revenue</p>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
