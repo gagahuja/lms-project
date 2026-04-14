@@ -168,7 +168,7 @@ def dashboard(request):
             )
 
         return render(request, 'student_dashboard.html', {
-            'courses': courses,
+            #'courses': courses,
             'enrolled_courses': enrolled_courses,
             'live_classes': live_classes,
             'progress_data': progress_data,
