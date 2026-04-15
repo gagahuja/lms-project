@@ -2,47 +2,34 @@
 
 {% block content %}
 
-<h2>🏆 Leaderboard</h2>
-
-<div class="card p-3 mt-3">
+<h3>🏆 Leaderboard</h3>
 
 <table class="table table-dark table-striped">
-    <thead>
-        <tr>
-            <th>Rank</th>
-            <th>Student</th>
-            <th>Score</th>
-        </tr>
-    </thead>
+    <tr>
+        <th>Rank</th>
+        <th>Student</th>
+        <th>Score</th>
+    </tr>
 
-    <tbody>
-        {% for item in data %}
-        <tr>
-            <td>{{ forloop.counter }}</td>
-            <td>{{ item.student__username }}</td>
-            <td>{{ item.total_score }}</td>
-        </tr>
-        {% empty %}
-        <tr class="
-        {% if forloop.counter == 1 %}table-warning
-        {% elif forloop.counter == 2 %}table-secondary
-        {% elif forloop.counter == 3 %}table-info
+    {% for item in data %}
+    <tr>
+        <td>#{{ forloop.counter }}</td>
+        <td>{{ item.student.username }}</td>
+        <td>{{ item.score }}</td>
+    </tr>
+    {% endfor %}
+    <td>
+        {{ item.score }}
+
+        {% if item.score > 50 %}
+            🥇
+        {% elif item.score > 20 %}
+            🥈
+        {% else %}
+            🥉
         {% endif %}
-        ">
-            <td>
-            {% if forloop.counter == 1 %}🥇
-            {% elif forloop.counter == 2 %}🥈
-            {% elif forloop.counter == 3 %}🥉
-            {% else %}
-                {{ forloop.counter }}
-            {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
+    </td>
 
 </table>
-
-</div>
 
 {% endblock %}

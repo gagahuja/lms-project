@@ -618,19 +618,30 @@ def generate_ai_quiz(request, course_id):
 
     
 
-
+from django.db.models import Sum
 def leaderboard(request):
-    from django.db.models import Sum
-    from .models import QuizResult
+    from .models import User, QuizResult
 
-    data = (
-        QuizResult.objects
-        .values('student__username')
-        .annotate(total_score=Sum('score'))
-        .order_by('-total_score')
-    )
+    data = []
 
-    return render(request, 'leaderboard.html', {'data': data})
+    students = User.objects.filter(user_type='student')
+
+    for student in students:
+        total_score = QuizResult.objects.filter(student=student).aggregate(
+            total=Sum('score')
+        )['total'] or 0
+
+        data.append({
+            'student': student,
+            'score': total_score
+        })
+
+    # 🔥 SORT DESCENDING
+    data = sorted(data, key=lambda x: x['score'], reverse=True)
+
+    return render(request, 'leaderboard.html', {
+        'data': data
+    })
 
 
 from django.shortcuts import redirect

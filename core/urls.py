@@ -41,6 +41,7 @@ urlpatterns = [
     path('admin-dashboard/', views.admin_dashboard),
     path('buy-subscription/', views.buy_subscription),
     path('give-pro/<int:user_id>/', views.give_pro),
+    path('leaderboard/', views.leaderboard),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
