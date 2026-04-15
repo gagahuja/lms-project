@@ -9,20 +9,20 @@
 </a>
 
 <!-- 📈 PROGRESS -->
-<h4>📈 Your Progress</h4>
+<h4>📈 My Progress</h4>
 
 {% for item in progress_data %}
 <div class="card p-3 mb-3">
-    <strong>{{ item.course.title }}</strong>
 
-    <p>{{ item.completed }}/{{ item.total }} lessons completed</p>
+    <h5>{{ item.course.title }}</h5>
 
     <div class="progress">
-        <div class="progress-bar bg-success"
-             data-percent="{{ item.percent }}">
-            {{ item.percent }}%
+        <div class="progress-bar bg-success progress-fill"
+            data-width="{{ item.percent|default:0 }}">
+            {{ item.percent|default:0 }}%
         </div>
     </div>
+
 </div>
 {% endfor %}
 
@@ -36,9 +36,11 @@
             <a href="/course/{{ course.id }}/" class="btn btn-primary">
                 Open Course
             </a>
-            <a href="/certificate/{{ course.id }}/" class="btn btn-success btn-sm mt-2">
-                🎓 Download Certificate
-            </a>
+            {% if item.certificate %}
+                <a href="/certificate/{{ item.course.id }}/" class="btn btn-success mt-2">
+                    🎓 Download Certificate
+                </a>
+            {% endif %}
         </div>
     {% endfor %}
 {% else %}
@@ -174,9 +176,9 @@
 
 <!-- JS FIX FOR PROGRESS -->
 <script>
-document.querySelectorAll('.progress-bar').forEach(function(bar) {
-    let percent = bar.getAttribute('data-percent');
-    bar.style.width = percent + "%";
+document.querySelectorAll('.progress-fill').forEach(function(el) {
+    let width = el.getAttribute('data-width');
+    el.style.width = width + '%';
 });
 </script>
 

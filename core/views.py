@@ -23,6 +23,8 @@ from django.utils import timezone
 from datetime import timedelta
 from reportlab.pdfgen import canvas
 from .models import CourseRequest
+from django.db.models import Count
+
 
 
 def is_enrolled(user):
@@ -125,22 +127,25 @@ def dashboard(request):
         progress_data = []
 
         for course in enrolled_courses:
-            lessons = Lesson.objects.filter(module__course=course)
-            total = lessons.count()
+            total_lessons = Lesson.objects.filter(module__course=course).count()
 
-            completed = Progress.objects.filter(
+            completed_lessons = Progress.objects.filter(
                 student=request.user,
-                lesson__in=lessons,
+                lesson__module__course=course,
                 completed=True
             ).count()
 
-            percent = int((completed / total) * 100) if total > 0 else 0
+            percent = 0
+            if total_lessons > 0:
+                percent = int((completed_lessons / total_lessons) * 100)
+
+            # 🎓 CERTIFICATE CONDITION
+            certificate_unlocked = percent >= 80
 
             progress_data.append({
                 'course': course,
-                'completed': completed,
-                'total': total,
-                'percent': percent
+                'percent': percent,
+                'certificate': certificate_unlocked
             })
 
         # 📄 ASSIGNMENTS (based on enrolled courses)
@@ -628,11 +633,17 @@ def leaderboard(request):
     return render(request, 'leaderboard.html', {'data': data})
 
 
+from django.shortcuts import redirect
+
 def mark_complete(request, lesson_id):
-    Progress.objects.get_or_create(
+    from .models import Lesson, Progress
+
+    lesson = Lesson.objects.get(id=lesson_id)
+
+    Progress.objects.update_or_create(
         student=request.user,
-        lesson_id=lesson_id,
-        completed=True
+        lesson=lesson,
+        defaults={'completed': True}
     )
 
     return redirect('dashboard')
@@ -916,3 +927,22 @@ def buy_subscription(request):
     )
 
     return HttpResponse("✅ Subscription Activated")
+
+
+from django.contrib.admin.views.decorators import staff_member_required
+
+@staff_member_required
+def give_pro(request, user_id):
+    from .models import Subscription, User
+
+    user = User.objects.get(id=user_id)
+
+    Subscription.objects.update_or_create(
+        user=user,
+        defaults={
+            'plan': 'Pro',
+            'is_active': True
+        }
+    )
+
+    return HttpResponse(f"✅ Pro activated for {user.username}")

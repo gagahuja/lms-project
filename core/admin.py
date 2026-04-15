@@ -10,6 +10,7 @@ from .models import QuizResult
 from .models import Handout
 from .models import Recording
 from .models import CourseRequest
+from .models import Subscription
 
 
 
@@ -42,6 +43,12 @@ class SubmissionAdmin(admin.ModelAdmin):
 class EnrollmentAdmin(admin.ModelAdmin):
     list_display = ['student', 'course']
 
+
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = ['user', 'plan', 'is_active', 'start_date']
+    list_editable = ['is_active']   # 🔥 toggle directly
+
+admin.site.register(Subscription, SubscriptionAdmin)
 admin.site.register(Enrollment, EnrollmentAdmin)
 admin.site.register(Assignment, AssignmentAdmin)
 admin.site.register(User, CustomUserAdmin)

@@ -25,7 +25,7 @@ urlpatterns = [
     path('ai-notes/<int:lesson_id>/', views.generate_ai_notes),
     path('ai-quiz/<int:course_id>/', views.generate_ai_quiz),
     path('leaderboard/', views.leaderboard, name='leaderboard'),
-    path('complete/<int:lesson_id>/', views.mark_complete),
+    path('complete-lesson/<int:lesson_id>/', views.mark_complete),
     path('ai-insights/', views.ai_insights, name='ai_insights'),
     path('assignment/<int:assignment_id>/', views.view_assignment, name='view_assignment'),
     path('check-submissions/<int:assignment_id>/', views.check_submissions, name='check_submissions'),
@@ -40,6 +40,7 @@ urlpatterns = [
     path('request-course/<int:course_id>/', views.request_course),
     path('admin-dashboard/', views.admin_dashboard),
     path('buy-subscription/', views.buy_subscription),
+    path('give-pro/<int:user_id>/', views.give_pro),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
