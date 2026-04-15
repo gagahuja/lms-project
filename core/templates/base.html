@@ -342,16 +342,13 @@
 
     {% if request.user.is_authenticated %}
 
-        <a href="/dashboard/" class="active">
-            <i class="bi bi-speedometer2"></i>
-            <span>Dashboard</span>
-        </a>
 
         <div style="position: relative;">
 
             <!-- 🔔 BUTTON -->
-            <div onclick="toggleNotifications()" style="cursor:pointer; position:relative;">
-                🔔 Notifications
+            <button onclick="toggleNotifications()" 
+                style="background:none;border:none;color:white;cursor:pointer;position:relative;">
+                🔔
 
                 {% if notification_count > 0 %}
                 <span style="
@@ -366,13 +363,13 @@
                     {{ notification_count }}
                 </span>
                 {% endif %}
-            </div>
+            </button>
 
             <!-- 📩 DROPDOWN -->
             <div id="notificationBox" style="
                 display:none;
                 position:absolute;
-                top:30px;
+                top:35px;
                 right:0;
                 width:300px;
                 max-height:400px;
@@ -380,14 +377,14 @@
                 background:#1e293b;
                 color:white;
                 border-radius:10px;
-                -shadow:0 5px 20px rgba(0,0,0,0.3);
+                box-shadow:0 5px 20px rgba(0,0,0,0.3);
                 z-index:999;
                 padding:10px;
             ">
                 <h6>Notifications</h6>
                 <hr>
 
-                {% for n in notifications|slice:":5" %}
+                {% for n in notifications %}
                     <div style="padding:8px; border-bottom:1px solid #334155;">
                         {{ n.message }}
                     </div>
@@ -401,6 +398,11 @@
             </div>
 
         </div>
+
+        <a href="/dashboard/" class="active">
+            <i class="bi bi-speedometer2"></i>
+            <span>Dashboard</span>
+        </a>
 
         {% if request.user.is_staff %}
             <a href="/admin-dashboard/">
@@ -524,6 +526,18 @@ setInterval(checkClassReminder, 60000); // every 1 min
 setInterval(function(){
     fetch('/notifications/')
 }, 10000); // every 10 sec
+</script>
+
+<script>
+function toggleNotifications() {
+    const box = document.getElementById("notificationBox");
+
+    if (box.style.display === "block") {
+        box.style.display = "none";
+    } else {
+        box.style.display = "block";
+    }
+}
 </script>
 
 </body>

@@ -82,14 +82,14 @@ def dashboard(request):
 
         live_classes = LiveClass.objects.filter(course__in=courses)
 
-        notification_count = Notification.objects.filter(
-            user=request.user,
-            is_read=False
-        ).count()   
-
         notifications = Notification.objects.filter(
             user=request.user
         ).order_by('-created_at')[:5]
+
+        notification_count = Notification.objects.filter(
+            user=request.user,
+            is_read=False
+        ).count()
 
         return render(request, 'teacher_dashboard.html', {
             'courses': courses,
@@ -192,13 +192,14 @@ def dashboard(request):
                 live_class__course__in=enrolled_courses
             )
 
-        notification_count = Notification.objects.filter(
-            user=request.user
-        ).count()
-
         notifications = Notification.objects.filter(
             user=request.user
         ).order_by('-created_at')[:5]
+
+        notification_count = Notification.objects.filter(
+            user=request.user,
+            is_read=False
+        ).count()
 
         return render(request, 'student_dashboard.html', {
             #'courses': courses,
