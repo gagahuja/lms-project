@@ -72,7 +72,7 @@
             background: #475569;
             border-radius: 10px;
         }
-        
+
         .sidebar button {
             width: 100%;
             margin-bottom: 10px;
@@ -306,6 +306,11 @@
         .ai-btn:hover {
             opacity: 0.9;
         }
+
+        .notification-card {
+            background: rgba(255,255,255,0.05);
+            border-left: 4px solid #6366f1;
+        }
     </style>
 </head>
 
@@ -342,6 +347,61 @@
             <span>Dashboard</span>
         </a>
 
+        <div style="position: relative;">
+
+            <!-- 🔔 BUTTON -->
+            <div onclick="toggleNotifications()" style="cursor:pointer; position:relative;">
+                🔔 Notifications
+
+                {% if notification_count > 0 %}
+                <span style="
+                    position:absolute;
+                    top:-5px;
+                    right:-10px;
+                    background:red;
+                    color:white;
+                    border-radius:50%;
+                    padding:3px 7px;
+                    font-size:12px;">
+                    {{ notification_count }}
+                </span>
+                {% endif %}
+            </div>
+
+            <!-- 📩 DROPDOWN -->
+            <div id="notificationBox" style="
+                display:none;
+                position:absolute;
+                top:30px;
+                right:0;
+                width:300px;
+                max-height:400px;
+                overflow-y:auto;
+                background:#1e293b;
+                color:white;
+                border-radius:10px;
+                -shadow:0 5px 20px rgba(0,0,0,0.3);
+                z-index:999;
+                padding:10px;
+            ">
+                <h6>Notifications</h6>
+                <hr>
+
+                {% for n in notifications|slice:":5" %}
+                    <div style="padding:8px; border-bottom:1px solid #334155;">
+                        {{ n.message }}
+                    </div>
+                {% empty %}
+                    <p>No notifications</p>
+                {% endfor %}
+
+                <a href="/notifications/" class="btn btn-sm btn-primary mt-2 w-100">
+                    View All
+                </a>
+            </div>
+
+        </div>
+
         {% if request.user.is_staff %}
             <a href="/admin-dashboard/">
                 <i class="bi bi-graph-up"></i> Admin Panel
@@ -369,6 +429,9 @@
             </a>
             <a href="/subscription/">
                 <i class="bi bi-currency-rupee"></i> Upgrade
+            </a>
+            <a href="/notifications/">
+                <i class="bi bi-bell"></i> Notifications
             </a>
         {% endif %}
 
@@ -455,6 +518,12 @@ function checkClassReminder() {
 }
 
 setInterval(checkClassReminder, 60000); // every 1 min
+</script>
+
+<script>
+setInterval(function(){
+    fetch('/notifications/')
+}, 10000); // every 10 sec
 </script>
 
 </body>

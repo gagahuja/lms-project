@@ -24,6 +24,7 @@ from datetime import timedelta
 from reportlab.pdfgen import canvas
 from .models import CourseRequest
 from django.db.models import Count
+from .models import Notification
 
 
 
@@ -81,6 +82,15 @@ def dashboard(request):
 
         live_classes = LiveClass.objects.filter(course__in=courses)
 
+        notification_count = Notification.objects.filter(
+            user=request.user,
+            is_read=False
+        ).count()   
+
+        notifications = Notification.objects.filter(
+            user=request.user
+        ).order_by('-created_at')[:5]
+
         return render(request, 'teacher_dashboard.html', {
             'courses': courses,
             'total_students': total_students,
@@ -88,6 +98,8 @@ def dashboard(request):
             'total_revenue': total_revenue,
             'total_assignments': total_assignments,
             'live_classes': live_classes,
+            'notification_count': notification_count,
+            'notifications': notifications,
         })
         
     else:
@@ -142,6 +154,12 @@ def dashboard(request):
             # 🎓 CERTIFICATE CONDITION
             certificate_unlocked = percent >= 80
 
+            if certificate_unlocked:
+                Notification.objects.get_or_create(
+                    user=request.user,
+                    message=f"🎓 Certificate unlocked for {course.title}"
+                )
+
             progress_data.append({
                 'course': course,
                 'percent': percent,
@@ -174,6 +192,14 @@ def dashboard(request):
                 live_class__course__in=enrolled_courses
             )
 
+        notification_count = Notification.objects.filter(
+            user=request.user
+        ).count()
+
+        notifications = Notification.objects.filter(
+            user=request.user
+        ).order_by('-created_at')[:5]
+
         return render(request, 'student_dashboard.html', {
             #'courses': courses,
             'enrolled_courses': enrolled_courses,
@@ -182,7 +208,9 @@ def dashboard(request):
             'assignments': assignment_data,
             'quiz_results': quiz_results,
             'next_class': next_class,
-            'recordings': recordings
+            'recordings': recordings,
+            'notification_count': notification_count,
+            'notifications': notifications,
         })
     
 
@@ -286,6 +314,15 @@ def create_live_class(request):
             whiteboard_link=whiteboard_link,
             date=date
         )
+
+        # 🔔 NOTIFY STUDENTS
+        students = Enrollment.objects.filter(course_id=course_id)
+
+        for e in students:
+            Notification.objects.create(
+                user=e.student,
+                message=f"📢 New live class '{title}' scheduled"
+            )
 
         return redirect('dashboard')
 
@@ -477,31 +514,19 @@ def attempt_quiz(request, quiz_id):
                 selected_answer=selected
             )
 
-            from .models import QuizResult
+        # SAVE RESULT
+        QuizResult.objects.create(
+            student=request.user,
+            quiz=quiz,
+            score=score,
+            total=questions.count()
+        )
 
-    if request.method == 'POST':
-        score = 0
-
-        for q in questions:
-            selected = request.POST.get(str(q.id))
-
-            if selected == q.correct_answer:
-                score += 1
-
-            StudentAnswer.objects.create(
-                student=request.user,
-                question=q,
-                selected_answer=selected
-            )
-
-            # SAVE RESULT
-            QuizResult.objects.create(
-                student=request.user,
-                quiz=quiz,
-                score=score,
-                total=questions.count()
-            )
-
+        # 🔔 NOTIFICATION (ADD THIS)
+        Notification.objects.create(
+            user=request.user,
+            message=f"✅ Quiz submitted. Score: {score}/{questions.count()}"
+        )
 
         return HttpResponse(f"Your Score: {score}/{questions.count()}")
 
@@ -733,6 +758,12 @@ def view_assignment(request, assignment_id):
                 file=file
             )
 
+        # 🔔 NOTIFY STUDENT
+        Notification.objects.create(
+            user=request.user,
+            message=f"📄 You submitted assignment: {assignment.title}"
+        )
+
         return redirect('dashboard')
 
     return render(request, "view_assignment.html", {
@@ -957,3 +988,14 @@ def give_pro(request, user_id):
     )
 
     return HttpResponse(f"✅ Pro activated for {user.username}")
+
+
+def notifications(request):
+    notes = Notification.objects.filter(user=request.user).order_by('-created_at')
+
+    # MARK ALL AS READ WHEN PAGE OPENED
+    notes.update(is_read=True)
+
+    return render(request, 'notifications.html', {
+        'notifications': notes
+    })

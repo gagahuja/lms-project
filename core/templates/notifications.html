@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h3 class="mb-4">🔔 Notifications</h3>
+
+{% for n in notifications %}
+    <div class="card p-3 mb-2 notification-card {% if not n.is_read %}border border-danger{% endif %}">
+        {{ n.message }}
+        <small class="text-muted d-block">
+            {{ n.created_at }}
+        </small>
+    </div>
+{% endfor %}
+
+{% endblock %}
