@@ -511,6 +511,9 @@ def generate_ai_notes(request, lesson_id):
     from django.conf import settings
     from openai import OpenAI
 
+    if not has_subscription(request.user):
+        return HttpResponse("🔒 Upgrade to access AI Notes")
+
     lesson = Lesson.objects.get(id=lesson_id)
     notes = ""
 
@@ -554,6 +557,11 @@ def generate_ai_quiz(request, course_id):
     # 🔒 LOCK AI QUIZ
     if not is_enrolled(request.user):
         return HttpResponse("🔒 Buy a course to access AI Quiz")
+    
+
+    # 🔒 LOCK
+    if not has_subscription(request.user):
+        return HttpResponse("🔒 Subscription required for AI Quiz")
 
     if request.method == "POST":
         topic = request.POST.get("topic")
@@ -645,7 +653,7 @@ def ai_insights(request):
 
     # 🔒 SUBSCRIPTION LOCK
     if not has_subscription(request.user):
-        return HttpResponse("🔒 Upgrade to Pro Plan")
+        return HttpResponse("🔒 Upgrade to Pro Plan to view AI Insights")
     
     user = request.user
 
@@ -896,3 +904,15 @@ def admin_dashboard(request):
         'total_enrollments': total_enrollments,
         'total_revenue': total_revenue
     })
+
+
+def buy_subscription(request):
+    from .models import Subscription
+
+    Subscription.objects.create(
+        user=request.user,
+        plan="Pro",
+        is_active=True
+    )
+
+    return HttpResponse("✅ Subscription Activated")
