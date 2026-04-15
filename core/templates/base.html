@@ -311,6 +311,17 @@
             background: rgba(255,255,255,0.05);
             border-left: 4px solid #6366f1;
         }
+
+        #notificationBox::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: 20px;
+            border-width: 8px;
+            border-style: solid;
+            border-color: transparent transparent #1e293b transparent;
+        }
+        
     </style>
 </head>
 
@@ -370,8 +381,10 @@
                 display:none;
                 position:absolute;
                 top:35px;
-                right:0;
-                width:300px;
+                left: 100%;
+                margin-left: 10px;
+                width:280px;
+                max-width:90vw;
                 max-height:400px;
                 overflow-y:auto;
                 background:#1e293b;
