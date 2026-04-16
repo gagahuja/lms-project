@@ -36,11 +36,13 @@
             <a href="/course/{{ course.id }}/" class="btn btn-primary">
                 Open Course
             </a>
-            {% if item.certificate %}
-                <a href="/certificate/{{ item.course.id }}/" class="btn btn-success mt-2">
-                    🎓 Download Certificate
-                </a>
-            {% endif %}
+            {% for p in progress_data %}
+                {% if p.course.id == course.id and p.certificate %}
+                    <a href="/certificate/{{ course.id }}/" class="btn btn-success mt-2">
+                        🎓 Download Certificate
+                    </a>
+                {% endif %}
+            {% endfor %}
         </div>
     {% endfor %}
 {% else %}
@@ -55,7 +57,7 @@
     <h5>🔥 Next Class</h5>
 
     <strong>{{ next_class.title }}</strong><br>
-    <small class="live-class-time" data-time="{{ cls.date }}">
+    <small class="live-class-time" data-time="{{ next_class.date }}">
         {{ cls.date }}
     </small>
 
