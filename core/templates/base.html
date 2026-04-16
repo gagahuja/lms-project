@@ -397,13 +397,8 @@
                 <h6>Notifications</h6>
                 <hr>
 
-                {% for n in notifications %}
-                    <div style="padding:8px; border-bottom:1px solid #a1a3a5;">
-                        {{ n.message }}
-                    </div>
-                {% empty %}
-                    <p>No notifications</p>
-                {% endfor %}
+                <div id="notificationList"></div>
+                
 
                 <a href="/notifications/" class="btn btn-sm btn-primary mt-2 w-100">
                     View All
@@ -551,6 +546,45 @@ function toggleNotifications() {
         box.style.display = "block";
     }
 }
+</script>
+
+<script>
+function loadNotifications() {
+    fetch('/api/notifications/')
+    .then(res => res.json())
+    .then(data => {
+
+        let box = document.getElementById("notificationList");
+        let html = "";
+
+        if (data.notifications.length === 0) {
+            html = "<p>No notifications</p>";
+        } else {
+            data.notifications.forEach(n => {
+                html += `
+                    <div style="padding:8px;border-bottom:1px solid #334155;">
+                        ${n.message}
+                        <small style="display:block;color:gray">${n.time}</small>
+                    </div>
+                `;
+            });
+        }
+
+        box.innerHTML = html;
+
+        // 🔴 UPDATE COUNT
+        let badge = document.querySelector("#notifCount");
+        if (badge) {
+            badge.innerText = data.count;
+        }
+    });
+}
+
+// AUTO REFRESH EVERY 5 SEC
+setInterval(loadNotifications, 5000);
+
+// LOAD ON PAGE START
+loadNotifications();
 </script>
 
 </body>

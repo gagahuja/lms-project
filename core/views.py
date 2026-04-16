@@ -1000,3 +1000,30 @@ def notifications(request):
     return render(request, 'notifications.html', {
         'notifications': notes
     })
+
+
+
+from django.http import JsonResponse
+
+def get_notifications(request):
+    notes = Notification.objects.filter(
+        user=request.user
+    ).order_by('-created_at')[:5]
+
+    data = []
+
+    for n in notes:
+        data.append({
+            "message": n.message,
+            "time": str(n.created_at.strftime("%H:%M"))
+        })
+
+    count = Notification.objects.filter(
+        user=request.user,
+        is_read=False
+    ).count()
+
+    return JsonResponse({
+        "notifications": data,
+        "count": count
+    })
