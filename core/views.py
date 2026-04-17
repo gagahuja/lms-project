@@ -25,6 +25,7 @@ from reportlab.pdfgen import canvas
 from .models import CourseRequest
 from django.db.models import Count
 from .models import Notification
+from .models import Doubt
 
 
 
