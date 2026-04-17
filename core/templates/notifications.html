@@ -10,6 +10,11 @@
         <small class="text-muted d-block">
             {{ n.created_at }}
         </small>
+        {% if not n.is_read %}
+        <a href="/mark-read/{{ n.id }}/" class="btn btn-sm btn-outline-light mt-2">
+            Mark as Read
+        </a>
+        {% endif %}
     </div>
 {% endfor %}
 

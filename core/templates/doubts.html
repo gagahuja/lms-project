@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h3>❓ Ask Doubt</h3>
+
+<form method="POST">
+    {% csrf_token %}
+
+    <select name="course" class="form-control mb-2">
+        {% for c in courses %}
+        <option value="{{ c.id }}">{{ c.title }}</option>
+        {% endfor %}
+    </select>
+
+    <textarea name="question" class="form-control mb-2" placeholder="Ask your doubt..."></textarea>
+
+    <button class="btn btn-primary">Submit</button>
+</form>
+
+<hr>
+
+<h4>Your Doubts</h4>
+
+{% for d in doubts %}
+<div class="card p-2 mb-2">
+    <strong>Q:</strong> {{ d.question }}<br>
+
+    {% if d.answer %}
+        <strong>A:</strong> {{ d.answer }}
+    {% else %}
+        <span class="text-warning">Waiting for teacher reply</span>
+    {% endif %}
+</div>
+{% endfor %}
+
+{% endblock %}

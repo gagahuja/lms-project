@@ -554,6 +554,16 @@ function loadNotifications() {
     .then(res => res.json())
     .then(data => {
 
+        let oldCount = window.lastCount || 0;
+
+        // 🔔 PLAY SOUND IF NEW NOTIFICATION ARRIVES
+        if (data.count > oldCount) {
+            document.getElementById("notifSound").play();
+        }
+
+        // SAVE CURRENT COUNT
+        window.lastCount = data.count;
+
         let box = document.getElementById("notificationList");
         let html = "";
 
@@ -587,5 +597,18 @@ setInterval(loadNotifications, 5000);
 loadNotifications();
 </script>
 
+<script>
+// Allow sound after first user interaction
+document.addEventListener("click", function() {
+    document.getElementById("notifSound").play().then(() => {
+        document.getElementById("notifSound").pause();
+        document.getElementById("notifSound").currentTime = 0;
+    }).catch(() => {});
+}, { once: true });
+</script>
+
+<audio id="notifSound">
+    <source src="https://www.soundjay.com/buttons/sounds/button-3.mp3" type="audio/mpeg">
+</audio>
 </body>
 </html>

@@ -187,3 +187,11 @@ class Notification(models.Model):
 
     def __str__(self):
         return self.message
+    
+
+class Doubt(models.Model):
+    student = models.ForeignKey(User, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    question = models.TextField()
+    answer = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)

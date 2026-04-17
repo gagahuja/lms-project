@@ -1027,3 +1027,29 @@ def get_notifications(request):
         "notifications": data,
         "count": count
     })
+
+
+def mark_notification_read(request, id):
+    n = Notification.objects.get(id=id)
+    n.is_read = True
+    n.save()
+    return redirect('/notifications/')
+
+
+def doubts(request):
+    doubts = Doubt.objects.filter(student=request.user)
+
+    if request.method == "POST":
+        question = request.POST.get("question")
+        course_id = request.POST.get("course")
+
+        Doubt.objects.create(
+            student=request.user,
+            course_id=course_id,
+            question=question
+        )
+
+    return render(request, "doubts.html", {
+        "doubts": doubts,
+        "courses": Course.objects.all()
+    })

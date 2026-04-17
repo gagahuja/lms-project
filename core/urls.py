@@ -43,6 +43,8 @@ urlpatterns = [
     path('give-pro/<int:user_id>/', views.give_pro),
     path('leaderboard/', views.leaderboard),
     path('api/notifications/', views.get_notifications),
+    path('mark-read/<int:id>/', views.mark_notification_read),
+    path('doubts/', views.doubts),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
