@@ -44,13 +44,15 @@ def login_view(request):
 
         user = authenticate(request, username=username, password=password)
 
-        from django.utils.timezone import now
-
-        request.user.last_seen = now()
-        request.user.save()
 
         if user is not None:
             login(request, user)
+
+            from django.utils.timezone import now
+
+            request.user.last_seen = now()
+            request.user.save()
+
             return redirect('dashboard')
         else:
             error = "Invalid username or password"
@@ -70,9 +72,12 @@ def home(request):
 
 
 def dashboard(request):
-    request.user.last_seen = now()
-    request.user.save()
+    from django.utils.timezone import now
+
     if not request.user.is_authenticated:
+        request.user.last_seen = now()
+        request.user.save()
+        
         return redirect('login')
     
     recordings = []
