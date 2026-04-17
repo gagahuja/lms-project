@@ -400,7 +400,7 @@
                 <div id="notificationList"></div>
                 
 
-                <a href="/notifications/" class="btn btn-sm btn-primary mt-2 w-100">
+                <a href="{% url 'notifications' %}" class="btn btn-sm btn-primary mt-2 w-100">
                     View All
                 </a>
             </div>
@@ -556,12 +556,13 @@ function loadNotifications() {
 
         let oldCount = window.lastCount || 0;
 
-        // 🔔 PLAY SOUND IF NEW NOTIFICATION ARRIVES
         if (data.count > oldCount) {
-            document.getElementById("notifSound").play();
+            let sound = document.getElementById("notifSound");
+
+            sound.currentTime = 0; // reset
+            sound.play().catch(e => console.log("Sound blocked:", e));
         }
 
-        // SAVE CURRENT COUNT
         window.lastCount = data.count;
 
         let box = document.getElementById("notificationList");
@@ -598,13 +599,16 @@ loadNotifications();
 </script>
 
 <script>
-// Allow sound after first user interaction
-document.addEventListener("click", function() {
-    document.getElementById("notifSound").play().then(() => {
-        document.getElementById("notifSound").pause();
-        document.getElementById("notifSound").currentTime = 0;
+document.addEventListener("click", function enableSound() {
+    let sound = document.getElementById("notifSound");
+
+    sound.play().then(() => {
+        sound.pause();
+        sound.currentTime = 0;
     }).catch(() => {});
-}, { once: true });
+
+    document.removeEventListener("click", enableSound);
+});
 </script>
 
 <audio id="notifSound">
