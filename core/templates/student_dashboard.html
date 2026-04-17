@@ -36,6 +36,10 @@
             <a href="/course/{{ course.id }}/" class="btn btn-primary">
                 Open Course
             </a>
+            <a href="/chat/{{ course.teacher.id }}/{{ course.id }}/"
+                class="btn btn-info mt-2">
+                💬 Chat with Teacher
+            </a>
             {% for p in progress_data %}
                 {% if p.course.id == course.id and p.certificate %}
                     <a href="/certificate/{{ course.id }}/" class="btn btn-success mt-2">

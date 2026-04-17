@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h5>
+💬 Chat with {{ other_user.username }}
+
+{% if other_user.last_seen %}
+    <small style="color:lightgreen;">
+        ● Active recently
+    </small>
+{% endif %}
+</h5>
+
+<div style="max-height:400px; overflow-y:auto;" class="card p-3 mb-3">
+
+    {% for msg in messages %}
+        <div class="mb-2">
+            <strong>
+                {% if msg.sender == request.user %}
+                    You:
+                {% else %}
+                    {{ other_user.username }}:
+                {% endif %}
+            </strong>
+
+            {% if msg.file %}
+                <br>
+                <a href="{{ msg.file.url }}" target="_blank" class="btn btn-sm btn-outline-info">
+                    📎 Download File
+                </a>
+            {% endif %}
+            <div class="chat-box">
+                {% for msg in messages %}
+                    <div>
+                        {{ msg.text }}
+                    </div>
+                {% endfor %}
+            </div>
+            <p id="typing-status" style="color:gray;"></p>
+            <button type="button" onclick="startRecording()" class="btn btn-danger mt-2">
+                🎤 Start
+            </button>
+
+            <button type="button" onclick="stopRecording()" class="btn btn-success mt-2">
+                Stop
+            </button>
+
+            {% if msg.file %}
+                {% if ".webm" in msg.file.url %}
+                    <audio controls>
+                        <source src="{{ msg.file.url }}">
+                    </audio>
+                {% else %}
+                    <a href="{{ msg.file.url }}" target="_blank">📎 File</a>
+                {% endif %}
+            {% endif %}
+            {% if msg.sender == request.user %}
+                {% if msg.is_seen %}
+                    <span style="color:lightgreen;">✔✔ Seen</span>
+                {% else %}
+                    <span style="color:gray;">✔ Sent</span>
+                {% endif %}
+            {% endif %}
+        </div>
+    {% endfor %}
+
+</div>
+
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="text" name="text" class="form-control mb-2" placeholder="Type message...">
+    <input type="file" name="file" class="form-control mb-2">
+    <button class="btn btn-primary">Send</button>
+</form>
+
+<script>
+setInterval(() => {
+    fetch(window.location.href)
+    .then(res => res.text())
+    .then(data => {
+
+        let parser = new DOMParser();
+        let html = parser.parseFromString(data, 'text/html');
+
+        let newChat = html.querySelector('.chat-box').innerHTML;
+
+        document.querySelector('.chat-box').innerHTML = newChat;
+    });
+}, 2000);
+</script>
+
+<script>
+let mediaRecorder;
+let audioChunks = [];
+
+async function startRecording() {
+    let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+
+    audioChunks = [];
+    mediaRecorder.start();
+
+    mediaRecorder.ondataavailable = e => {
+        audioChunks.push(e.data);
+    };
+}
+
+function stopRecording() {
+    mediaRecorder.stop();
+
+    mediaRecorder.onstop = async () => {
+        let blob = new Blob(audioChunks, { type: "audio/webm" });
+        let file = new File([blob], "voice.webm");
+
+        let formData = new FormData();
+        formData.append("file", file);
+
+        await fetch("", {
+            method: "POST",
+            body: formData
+        });
+
+        location.reload();
+    };
+}
+</script>
+
+<script>
+let typingTimer;
+
+const input = document.querySelector('input[name="text"]');
+
+input.addEventListener('input', () => {
+
+    fetch('/typing/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    });
+
+    document.getElementById("typing-status").innerText = "Typing...";
+
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => {
+        document.getElementById("typing-status").innerText = "";
+    }, 1500);
+});
+</script>
+
+{% endblock %}

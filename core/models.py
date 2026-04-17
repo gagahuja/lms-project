@@ -12,7 +12,7 @@ class User(AbstractUser):
         choices=USER_TYPE_CHOICES,
         default='student'
     )
-
+    last_seen = models.DateTimeField(null=True, blank=True)
 
 class Course(models.Model):
     title = models.CharField(max_length=200)
@@ -194,4 +194,14 @@ class Doubt(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     question = models.TextField()
     answer = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class Message(models.Model):
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='messages')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    text = models.TextField(null=True, blank=True)
+    file = models.FileField(upload_to='chat_files/', null=True, blank=True)
+    is_seen = models.BooleanField(default=False)  
     created_at = models.DateTimeField(auto_now_add=True)

@@ -46,6 +46,7 @@ urlpatterns = [
     path('mark-read/<int:id>/', views.mark_notification_read),
     path('doubts/', views.doubts),
     path('notifications/', views.notifications, name='notifications'),
+    path('chat/<int:user_id>/<int:course_id>/', views.chat),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

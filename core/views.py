@@ -29,6 +29,7 @@ from .models import Doubt
 
 
 
+
 def is_enrolled(user):
     
     return Enrollment.objects.filter(student=user).exists()
@@ -43,6 +44,11 @@ def login_view(request):
 
         user = authenticate(request, username=username, password=password)
 
+        from django.utils.timezone import now
+
+        request.user.last_seen = now()
+        request.user.save()
+
         if user is not None:
             login(request, user)
             return redirect('dashboard')
@@ -50,6 +56,8 @@ def login_view(request):
             error = "Invalid username or password"
 
     return render(request, 'login.html', {'error': error})
+
+    
 
 
 def logout_view(request):
@@ -62,6 +70,8 @@ def home(request):
 
 
 def dashboard(request):
+    request.user.last_seen = now()
+    request.user.save()
     if not request.user.is_authenticated:
         return redirect('login')
     
@@ -1054,3 +1064,57 @@ def doubts(request):
         "doubts": doubts,
         "courses": Course.objects.all()
     })
+
+
+
+def chat(request, user_id, course_id):
+    from .models import Message
+
+    other_user = User.objects.get(id=user_id)
+    course = Course.objects.get(id=course_id)
+
+    messages = Message.objects.filter(
+        course=course
+    ).filter(
+        sender=request.user, receiver=other_user
+    ) | Message.objects.filter(
+        sender=other_user, receiver=request.user
+    )
+
+    messages = messages.order_by('created_at')
+    
+    if request.method == "POST":
+        text = request.POST.get("text")
+        file = request.FILES.get("file")
+
+        if text or file:
+            Message.objects.create(
+                sender=request.user,
+                receiver=other_user,
+                course=course,
+                text=text,
+                file=file
+            )
+
+            # Notification
+            from .models import Notification
+            Notification.objects.create(
+                user=other_user,
+                message=f"💬 New message from {request.user.username}"
+            )
+
+        return redirect(request.path)
+    
+    messages.filter(receiver=request.user).update(is_seen=True)
+
+    return render(request, "chat.html", {
+        "messages": messages,
+        "other_user": other_user,
+        "course": course
+    })
+
+
+from django.http import JsonResponse
+
+def typing(request):
+    return JsonResponse({"status": "typing"})
