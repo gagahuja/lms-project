@@ -35,18 +35,16 @@ class Enrollment(models.Model):
     
 
 class LiveClass(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
-
-    meet_link = models.URLField()
-    whiteboard_link = models.URLField(blank=True, null=True)
-
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
     date = models.DateTimeField()
 
-    is_active = models.BooleanField(default=False)  # 🔥 START/STOP CONTROL
+    meeting_link = models.URLField(null=True, blank=True)
 
-    def __str__(self):
-        return self.title
+    is_live = models.BooleanField(default=False)
+    is_completed = models.BooleanField(default=False)
+
+    whiteboard_link = models.URLField(null=True, blank=True)
 
 
 class Attendance(models.Model):
@@ -158,7 +156,11 @@ class Handout(models.Model):
     
 
 class Recording(models.Model):
-    live_class = models.ForeignKey(LiveClass, on_delete=models.CASCADE)
+    live_class = models.ForeignKey(
+        LiveClass,
+        on_delete=models.CASCADE,
+        related_name='recordings'   # ✅ FIX
+    )
     video = models.FileField(upload_to='recordings/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
@@ -204,4 +206,20 @@ class Message(models.Model):
     text = models.TextField(null=True, blank=True)
     file = models.FileField(upload_to='chat_files/', null=True, blank=True)
     is_seen = models.BooleanField(default=False)  
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class CallOffer(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    offer = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class CallAnswer(models.Model):
+    answer = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class IceCandidate(models.Model):
+    candidate = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)

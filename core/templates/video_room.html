@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h3>🎥 Live Class Room</h3>
+
+<div class="row">
+
+    <div class="col-md-6">
+        <video id="localVideo" autoplay muted style="width:100%; border-radius:10px;"></video>
+    </div>
+
+    <div class="col-md-6">
+        <video id="remoteVideo" autoplay style="width:100%; border-radius:10px;"></video>
+    </div>
+
+</div>
+
+<div class="mt-3">
+    <button onclick="startCall()" class="btn btn-success">Start</button>
+    <button onclick="joinCall()" class="btn btn-primary">Join</button>
+    <button onclick="endCall()" class="btn btn-danger">End</button>
+</div>
+
+<script>
+let localStream;
+let peerConnection;
+
+const config = {
+    iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+};
+
+// 🎯 START (Teacher)
+async function startCall() {
+
+    localStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+    });
+
+    document.getElementById("localVideo").srcObject = localStream;
+
+    peerConnection = new RTCPeerConnection(config);
+
+    localStream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, localStream);
+    });
+
+    peerConnection.ontrack = event => {
+        document.getElementById("remoteVideo").srcObject = event.streams[0];
+    };
+
+    // SEND ICE
+    peerConnection.onicecandidate = async event => {
+        if (event.candidate) {
+            await fetch('/save-candidate/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ candidate: JSON.stringify(event.candidate) })
+            });
+        }
+    };
+
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+
+    await fetch('/save-offer/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ offer: offer.sdp })
+    });
+
+    console.log("Teacher started call");
+}
+
+
+// 🎯 JOIN (Student)
+async function joinCall() {
+
+    localStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+    });
+
+    document.getElementById("localVideo").srcObject = localStream;
+
+    peerConnection = new RTCPeerConnection(config);
+
+    localStream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, localStream);
+    });
+
+    peerConnection.ontrack = event => {
+        document.getElementById("remoteVideo").srcObject = event.streams[0];
+    };
+
+    // RECEIVE ICE
+    setInterval(async () => {
+        const res = await fetch('/get-candidates/');
+        const data = await res.json();
+
+        data.candidates.forEach(async c => {
+            try {
+                await peerConnection.addIceCandidate(JSON.parse(c));
+            } catch(e){}
+        });
+    }, 2000);
+
+    // GET OFFER
+    const res = await fetch('/get-offer/');
+    const data = await res.json();
+
+    if (!data.offer) {
+        alert("Teacher has not started the class");
+        return;
+    }
+
+    await peerConnection.setRemoteDescription({
+        type: "offer",
+        sdp: data.offer
+    });
+
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+
+    await fetch('/save-answer/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ answer: answer.sdp })
+    });
+
+    console.log("Student joined call");
+}
+</script>
+
+{% endblock %}

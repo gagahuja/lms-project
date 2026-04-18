@@ -26,6 +26,8 @@ from .models import CourseRequest
 from django.db.models import Count
 from .models import Notification
 from .models import Doubt
+from .models import CallOffer
+from .models import CallAnswer
 
 
 
@@ -77,7 +79,7 @@ def dashboard(request):
     if not request.user.is_authenticated:
         request.user.last_seen = now()
         request.user.save()
-        
+
         return redirect('login')
     
     recordings = []
@@ -831,6 +833,7 @@ def start_class(request, class_id):
 def stop_class(request, class_id):
     cls = LiveClass.objects.get(id=class_id)
     cls.is_active = False
+    cls.is_completed = True
     cls.save()
     return redirect('dashboard')
 
@@ -1123,3 +1126,61 @@ from django.http import JsonResponse
 
 def typing(request):
     return JsonResponse({"status": "typing"})
+
+
+
+import json
+from django.http import JsonResponse
+
+def save_offer(request):
+    data = json.loads(request.body)
+
+    CallOffer.objects.create(
+        offer=data['offer']
+    )
+
+    return JsonResponse({"status": "saved"})
+
+
+def get_offer(request):
+    offer = CallOffer.objects.last()
+    return JsonResponse({"offer": offer.offer})
+
+
+def video_room(request):
+    return render(request, "video_room.html")
+
+
+def save_answer(request):
+    import json
+    data = json.loads(request.body)
+
+    CallAnswer.objects.create(
+        answer=data['answer']
+    )
+
+    return JsonResponse({"status": "saved"})
+
+
+from .models import IceCandidate
+def save_candidate(request):
+    import json
+    data = json.loads(request.body)
+
+    IceCandidate.objects.create(
+        candidate=data['candidate']
+    )
+
+    return JsonResponse({"status": "saved"})
+
+
+def get_candidates(request):
+    candidates = IceCandidate.objects.all().order_by('created_at')
+
+    data = [c.candidate for c in candidates]
+
+    return JsonResponse({"candidates": data})
+
+
+def agora_video(request):
+    return render(request, "agora_video.html")

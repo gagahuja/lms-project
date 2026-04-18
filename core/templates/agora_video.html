@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h3>🎥 Live Class (Agora)</h3>
+
+<div id="videos" class="row"></div>
+
+<button onclick="joinCall()" class="btn btn-success mt-3">Join Class</button>
+
+<script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.21.0.js"></script>
+
+<script>
+const APP_ID = "d5e97c79d91c4f4d8e524654aea1bab0";  // 🔴 replace this
+
+let client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+let localTracks = [];
+
+async function joinCall() {
+
+    await client.join(APP_ID, "test-channel", null, null);
+
+    localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+
+    let player = document.createElement("div");
+    player.id = "local-player";
+    player.style.height = "300px";
+    document.getElementById("videos").appendChild(player);
+
+    localTracks[1].play("local-player");
+
+    await client.publish(localTracks);
+
+    client.on("user-published", async (user, mediaType) => {
+        await client.subscribe(user, mediaType);
+
+        let remoteDiv = document.createElement("div");
+        remoteDiv.id = user.uid;
+        remoteDiv.style.height = "300px";
+        document.getElementById("videos").appendChild(remoteDiv);
+
+        if (mediaType === "video") {
+            user.videoTrack.play(remoteDiv.id);
+        }
+
+        if (mediaType === "audio") {
+            user.audioTrack.play();
+        }
+    });
+}
+</script>
+
+{% endblock %}

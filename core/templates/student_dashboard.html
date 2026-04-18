@@ -115,19 +115,25 @@
 
 <h5 class="mt-4">🎥 Class Recordings</h5>
 
-{% if enrolled_courses %}
-    {% for rec in recordings %}
-        <div class="card p-2 mb-2">
-            <video width="100%" controls>
-                <source src="{{ rec.video.url }}">
-            </video>
-        </div>
+{% for course in enrolled_courses %}
+    {% for cls in course.liveclass_set.all %}
+        {% for rec in cls.recordings.all %}
+
+            <div class="card p-2 mb-2">
+                <strong>{{ cls.title }}</strong>
+
+                <video width="100%" controls class="mt-2">
+                    <source src="{{ rec.video.url }}">
+                </video>
+            </div>
+
+        {% endfor %}
     {% endfor %}
-{% else %}
+{% empty %}
     <div class="card p-3 text-center">
-        🔒 Buy a course to unlock recordings
+        No recordings available
     </div>
-{% endif %}
+{% endfor %}
 
 <h4 class="mt-4">📄 Assignments</h4>
 

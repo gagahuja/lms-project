@@ -47,6 +47,14 @@ urlpatterns = [
     path('doubts/', views.doubts),
     path('notifications/', views.notifications, name='notifications'),
     path('chat/<int:user_id>/<int:course_id>/', views.chat),
+    path('typing/', views.typing),
+    path('video-room/', views.video_room),
+    path('save-offer/', views.save_offer),
+    path('get-offer/', views.get_offer),
+    path('save-answer/', views.save_answer),
+    path('save-candidate/', views.save_candidate),
+    path('get-candidates/', views.get_candidates),
+    path('live-class/', views.agora_video),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
