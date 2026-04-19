@@ -1,40 +1,26 @@
 {% extends 'base.html' %}
-
 {% block content %}
 
-<h3>📡 Create Live Class</h3>
+<h3>Create Live Class</h3>
 
 <form method="POST">
     {% csrf_token %}
 
-    <!-- COURSE -->
-    <label>Select Course</label>
-    <select name="course" class="form-control mb-2" required>
+    <input type="text" name="title" placeholder="Class Title" class="form-control mb-2">
+
+    <select name="course" class="form-control mb-2">
         {% for course in courses %}
-        <option value="{{ course.id }}">{{ course.title }}</option>
+            <option value="{{ course.id }}">{{ course.title }}</option>
         {% endfor %}
     </select>
 
-    <!-- TITLE -->
-    <label>Class Title</label>
-    <input type="text" name="title" class="form-control mb-2" required>
+    <input type="datetime-local" name="date" class="form-control mb-2">
 
-    <!-- GOOGLE MEET LINK -->
-    <label>Google Meet Link</label>
-    <input type="url" name="meet_link" class="form-control mb-2"
-           placeholder="https://meet.google.com/..." required>
+    <input type="text" name="meeting_link" placeholder="Meeting Link" class="form-control mb-2">
 
-    <!-- WHITEBOARD LINK -->
-    <label>Whiteboard Link (Optional)</label>
-    <input type="url" name="whiteboard_link" class="form-control mb-2"
-           placeholder="https://www.tldraw.com">
+    <input type="text" name="whiteboard" placeholder="Whiteboard Link" class="form-control mb-2">
 
-    <!-- DATE + TIME -->
-    <label>Date & Time</label>
-    <input type="datetime-local" name="date" class="form-control mb-3" required>
-
-    <button class="btn btn-success">Create Class</button>
-
+    <button class="btn btn-success">Create</button>
 </form>
 
 {% endblock %}

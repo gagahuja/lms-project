@@ -44,6 +44,7 @@ class LiveClass(models.Model):
     is_live = models.BooleanField(default=False)
     is_completed = models.BooleanField(default=False)
 
+    
     whiteboard_link = models.URLField(null=True, blank=True)
 
 

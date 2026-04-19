@@ -313,40 +313,23 @@ def create_course(request):
     return render(request, 'create_course.html')
 
 
+from django.shortcuts import render, redirect
+from .models import LiveClass
+
 def create_live_class(request):
-    if not request.user.is_authenticated or request.user.user_type != 'teacher':
-        return redirect('login')
+    if request.method == "POST":
+        LiveClass.objects.create(
+            title=request.POST['title'],
+            course_id=request.POST['course'],
+            date=request.POST['date'],
+            meeting_link=request.POST['meeting_link'],
+            whiteboard_link=request.POST['whiteboard']
+        )
+        return redirect('dashboard')
 
     courses = Course.objects.filter(teacher=request.user)
 
-    if request.method == 'POST':
-        course_id = request.POST['course']
-        title = request.POST['title']
-        meet_link = request.POST['meet_link']
-        whiteboard_link = request.POST.get('whiteboard_link')
-        date = request.POST['date']
-
-        LiveClass.objects.create(
-            course_id=course_id,
-            title=title,
-            meet_link=meet_link,
-            whiteboard_link=whiteboard_link,
-            date=date
-        )
-
-        # 🔔 NOTIFY STUDENTS
-        students = Enrollment.objects.filter(course_id=course_id)
-
-        for e in students:
-            Notification.objects.create(
-                user=e.student,
-                message=f"📢 New live class '{title}' scheduled"
-            )
-
-        return redirect('dashboard')
-
-    return render(request, 'create_live_class.html', {'courses': courses})
-
+    return render(request, "create_live_class.html", {"courses": courses})
 
 import razorpay
 from django.conf import settings
@@ -825,14 +808,14 @@ def view_handout(request, handout_id):
 
 def start_class(request, class_id):
     cls = LiveClass.objects.get(id=class_id)
-    cls.is_active = True
+    cls.is_live = True
     cls.save()
     return redirect('dashboard')
 
 
 def stop_class(request, class_id):
     cls = LiveClass.objects.get(id=class_id)
-    cls.is_active = False
+    cls.is_live = False
     cls.is_completed = True
     cls.save()
     return redirect('dashboard')

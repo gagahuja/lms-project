@@ -77,16 +77,11 @@
 <h5 class="mt-4">📡 Live Classes</h5>
 
 {% for cls in live_classes %}
-<div class="card p-3 mb-2">
+<div class="card p-3 mb-3">
 
     <strong>{{ cls.title }}</strong><br>
     <small>{{ cls.date }}</small><br>
 
-    {% if cls.whiteboard_link %}
-    <a href="{{ cls.whiteboard_link }}" target="_blank" class="btn btn-info btn-sm mt-2">
-        Open Whiteboard
-    </a>
-{% endif %}
     <!-- STATUS -->
     {% if cls.status == "Live" %}
         <span class="badge bg-danger">🔴 Live</span>
@@ -100,9 +95,32 @@
 
     <br>
 
+    <!-- JOIN BUTTON -->
+    {% if request.user.user_type == "teacher" %}
+
+        <div class="mt-2">
+
+            {% if not cls.is_live and not cls.is_completed %}
+                <a href="/start-class/{{ cls.id }}/"
+                class="btn btn-warning btn-sm">
+                ▶ Start
+                </a>
+            {% endif %}
+
+            {% if cls.is_live %}
+            <a href="/stop-class/{{ cls.id }}/"
+               class="btn btn-danger btn-sm">
+               ⏹ Stop
+            </a>
+            {% endif %}
+
+        </div>
+
+    {% endif %}
     {% if cls.can_join %}
-        <a href="/join-class/{{ cls.id }}/" class="btn btn-success btn-sm mt-2">
-            Join Class
+        <a href="/live-class/" target="_blank"
+           class="btn btn-success btn-sm mt-2">
+           Join Class
         </a>
     {% else %}
         <button class="btn btn-secondary btn-sm mt-2" disabled>
@@ -110,6 +128,10 @@
         </button>
     {% endif %}
 
+</div>
+{% empty %}
+<div class="card p-3 text-center">
+    No live classes available
 </div>
 {% endfor %}
 
