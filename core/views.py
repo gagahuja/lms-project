@@ -322,7 +322,6 @@ def create_live_class(request):
             title=request.POST['title'],
             course_id=request.POST['course'],
             date=request.POST['date'],
-            meeting_link=request.POST['meeting_link'],
             whiteboard_link=request.POST['whiteboard']
         )
         return redirect('dashboard')
@@ -1165,5 +1164,5 @@ def get_candidates(request):
     return JsonResponse({"candidates": data})
 
 
-def agora_video(request):
-    return render(request, "agora_video.html")
+def agora_video(request, class_id):
+    return render(request, "agora_video.html", {"class_id": class_id})

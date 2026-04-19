@@ -12,13 +12,14 @@
 
 <script>
 const APP_ID = "d5e97c79d91c4f4d8e524654aea1bab0";  // 🔴 replace this
+const CHANNEL = "{{ class_id }}";
 
 let client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 let localTracks = [];
 
 async function joinCall() {
 
-    await client.join(APP_ID, "test-channel", null, null);
+    await client.join(APP_ID, CHANNEL, null, null);
 
     localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
 
