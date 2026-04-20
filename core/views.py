@@ -138,16 +138,20 @@ def dashboard(request):
             cls.can_join = False
             cls.status = "Upcoming"
 
+            # ⏳ Starting soon (5 min before)
             if cls.date - timedelta(minutes=5) <= now <= cls.date:
                 cls.status = "Starting Soon"
 
-            if cls.is_active:
+            # 🔴 Live (use correct field)
+            if cls.is_live:
                 cls.status = "Live"
 
-            if now > cls.date + timedelta(hours=2):
+            # ✅ Completed
+            if cls.is_completed or now > cls.date + timedelta(hours=2):
                 cls.status = "Completed"
 
-            if cls.is_active and cls.date - timedelta(minutes=5) <= now <= cls.date + timedelta(hours=2):
+            # 🎯 Join condition
+            if cls.is_live or (cls.date - timedelta(minutes=5) <= now <= cls.date + timedelta(hours=2)):
                 cls.can_join = True
 
         
@@ -833,7 +837,7 @@ def join_live_class(request, class_id):
     )
 
     # REDIRECT TO MEET
-    return redirect(cls.meet_link)
+    return redirect(cls.meeting_link)
 
 
 def view_attendance(request, class_id):
