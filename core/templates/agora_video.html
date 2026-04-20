@@ -7,41 +7,44 @@
 <div id="videos" class="row"></div>
 
 <button onclick="joinCall()" class="btn btn-success mt-3">Join Class</button>
+<div id="local-player" style="width: 300px; height: 200px;"></div>
+<div id="remote-player" style="width: 300px; height: 200px;"></div>
 
-<script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.21.0.js"></script>
+<script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
 
 <script>
-const APP_ID = "d5e97c79d91c4f4d8e524654aea1bab0";  // 🔴 replace this
+const APP_ID = "d5e97c79d91c4f4d8e524654aea1bab0";  // 🔴 PUT YOUR APP ID HERE
 const CHANNEL = "{{ class_id }}";
 
-let client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+let client;
 let localTracks = [];
 
 async function joinCall() {
+    client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
     await client.join(APP_ID, CHANNEL, null, null);
 
+    // 🎤 Mic + Camera
     localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
 
-    let player = document.createElement("div");
-    player.id = "local-player";
-    player.style.height = "300px";
-    document.getElementById("videos").appendChild(player);
-
+    // Show local video
     localTracks[1].play("local-player");
 
+    // Publish
     await client.publish(localTracks);
 
+    // Receive remote users
     client.on("user-published", async (user, mediaType) => {
         await client.subscribe(user, mediaType);
 
-        let remoteDiv = document.createElement("div");
-        remoteDiv.id = user.uid;
-        remoteDiv.style.height = "300px";
-        document.getElementById("videos").appendChild(remoteDiv);
-
         if (mediaType === "video") {
-            user.videoTrack.play(remoteDiv.id);
+            const remoteContainer = document.createElement("div");
+            remoteContainer.id = user.uid;
+            remoteContainer.style.width = "300px";
+            remoteContainer.style.height = "200px";
+            document.getElementById("remote-player").appendChild(remoteContainer);
+
+            user.videoTrack.play(remoteContainer);
         }
 
         if (mediaType === "audio") {
