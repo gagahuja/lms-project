@@ -1168,5 +1168,8 @@ def get_candidates(request):
     return JsonResponse({"candidates": data})
 
 
-def agora_video(request, class_id):
+def agora_video(request, class_id=None):
+    if not class_id:
+        return redirect('dashboard')
+
     return render(request, "agora_video.html", {"class_id": class_id})
