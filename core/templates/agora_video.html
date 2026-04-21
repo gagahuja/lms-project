@@ -135,6 +135,7 @@
             <button onclick="toggleMic()">🎤</button>
             <button onclick="toggleCamera()">📷</button>
             <button onclick="shareScreen()">🖥</button>
+            <button onclick="askAI()">🤖 Ask AI</button>
         </div>
 
         <!-- TEACHER PANEL -->
@@ -160,6 +161,11 @@
                 <input type="text" id="chat-input" placeholder="Type message...">
                 <button onclick="sendMessage()">Send</button>
                 <button onclick="startRecording()">🎤</button>
+                <button onclick="addEmoji('😊')">😊</button>
+                <button onclick="addEmoji('👍')">👍</button>
+                <button onclick="addEmoji('🔥')">🔥</button>
+                <input type="file" id="fileInput">
+                <button onclick="sendFile()">📎</button>
             </div>
         </div>
 
@@ -337,6 +343,42 @@ function kickUser(uid) {
     if (el) el.remove();
 
     alert("User removed (UI only)");
+}
+
+function addEmoji(emoji) {
+    let input = document.getElementById("chat-input");
+    input.value += emoji;
+}
+
+function sendFile() {
+    let file = document.getElementById("fileInput").files[0];
+
+    let reader = new FileReader();
+
+    reader.onload = function(e) {
+        document.getElementById("chat-messages").innerHTML +=
+            `<a href="${e.target.result}" target="_blank">📎 File</a><br>`;
+    };
+
+    reader.readAsDataURL(file);
+}
+
+function askAI() {
+    let question = prompt("Ask your doubt:");
+
+    fetch("/ai-help/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrftoken
+        },
+        body: JSON.stringify({question: question})
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("chat-messages").innerHTML +=
+            `<p><b>AI:</b> ${data.answer}</p>`;
+    });
 }
 </script>
 

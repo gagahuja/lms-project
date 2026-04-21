@@ -58,6 +58,7 @@ urlpatterns = [
     path('upload-recording/<int:class_id>/', views.upload_recording, name='upload_recording'),
     path('send-message/<int:class_id>/', views.send_message),
     path('get-messages/<int:class_id>/', views.get_messages),
+    path('ai-help/', views.ai_help),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

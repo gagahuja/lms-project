@@ -1231,3 +1231,16 @@ def get_messages(request, class_id):
     ]
 
     return JsonResponse({"messages": data})
+
+
+import json
+from django.http import JsonResponse
+
+def ai_help(request):
+    data = json.loads(request.body)
+    question = data.get("question")
+
+    # TEMP RESPONSE (you can connect OpenAI later)
+    answer = "This is AI response to: " + question
+
+    return JsonResponse({"answer": answer})
