@@ -105,12 +105,13 @@
 }
 
 .chat-box {
-    flex: 2;
+    height: 60%;
     background: #111;
     color: white;
     display: flex;
     flex-direction: column;
     border-radius: 10px;
+    overflow: hidden;
 }
 
 .chat-messages {
@@ -121,10 +122,12 @@
 
 .chat-input {
     display: flex;
+    border-top: 1px solid #333;
 }
 
 .chat-input input {
     flex: 1;
+    padding: 5px;
 }
 
 .chat-input-box {
@@ -137,16 +140,17 @@
 
 /* PARTICIPANTS */
 .participants {
-    flex: 1;
+    height: 40%;
     background: #222;
     color: white;
     padding: 10px;
     border-radius: 10px;
+    overflow-y: auto;
 }
 
 /* VIDEO */
 .video-area {
-    flex: 3;
+    flex: 1;
     position: relative;
     background: black;
     border-radius: 12px;
@@ -169,12 +173,16 @@
 
 /* SIDE PANEL */
 .side-panel {
-    flex: 1;
+    width: 300px;
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
 </style>
+
+
+
+<h3>🎥 Live Class (Agora)</h3>
 
 {% if request.user.user_type == "teacher" or request.user.is_superuser %}
 <div class="teacher-panel">
@@ -182,8 +190,6 @@
     <button onclick="endClass()">❌ End Class</button>
 </div>
 {% endif %}
-
-<h3>🎥 Live Class (Agora)</h3>
 
 <div class="live-container">
 
