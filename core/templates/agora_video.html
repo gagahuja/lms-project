@@ -4,115 +4,87 @@
 
 <style>
 
-.live-container {
+.live-wrapper {
     display: flex;
-    gap: 10px;
-    margin-left: 260px; /* IMPORTANT: avoid sidebar overlap */
-    padding: 10px;
+    gap: 15px;
+    margin-left: 260px;
+    padding: 15px;
+}
+
+/* VIDEO SECTION */
+.video-section {
+    flex: 3;
+    display: flex;
+    flex-direction: column;
 }
 
 .video-container {
-    display: flex;
-    gap: 20px;
-}
-
-.video-box {
-    width: 45%;
-    height: 300px;
-    background: black;
-    border-radius: 12px;
-}
-
-/* CONTROLS */
-.controls {
-    position: absolute;
-    bottom: 10px;
-    width: 100%;
-    text-align: center;
-}
-
-.controls button {
-    margin: 5px;
-    padding: 8px 12px;
-}
-
-.main {
-    margin-left: 260px;
-}
-
-.main-video {
     position: relative;
-    width: 100%;
     height: 70vh;
     background: black;
     border-radius: 12px;
     overflow: hidden;
 }
 
-.big-video {
+.remote-video {
     width: 100%;
     height: 100%;
 }
 
-.small-video {
+.local-video {
     position: absolute;
-    bottom: 20px;
-    right: 20px;
+    bottom: 15px;
+    right: 15px;
     width: 200px;
-    height: 150px;
+    height: 140px;
     border-radius: 10px;
     border: 2px solid white;
 }
 
-.chat-box {
-    position: fixed;
-    right: 10px;
-    top: 100px;
-    width: 300px;
-    height: 400px;
-    background: white;
-    overflow-y: scroll;
-    padding: 10px;
-    border-radius: 10px;
+/* CONTROLS */
+.controls-bar {
+    margin-top: 10px;
+    text-align: center;
 }
 
+.controls-bar button {
+    margin: 5px;
+    padding: 8px 14px;
+    border-radius: 8px;
+}
+
+/* TEACHER PANEL */
 .teacher-panel {
-    position: absolute;
-    top: 100px;
-    left: 280px; /* sidebar width + spacing */
-    background: #222;
-    padding: 10px;
-    border-radius: 10px;
-    z-index: 9999; /* VERY IMPORTANT */
+    margin-top: 10px;
+    text-align: center;
 }
 
-.layout {
+.teacher-panel button {
+    margin: 5px;
+}
+
+/* RIGHT PANEL */
+.right-panel {
+    flex: 1;
     display: flex;
+    flex-direction: column;
     gap: 10px;
 }
 
-.video-section {
-    width: 75%;
-    position: relative;
-}
-
-.chat-section {
-    width: 25%;
-    background: #111;
-    color: white;
-    height: 70vh;
-    display: flex;
-    flex-direction: column;
-}
-
+/* CHAT */
 .chat-box {
-    height: 60%;
+    flex: 2;
     display: flex;
     flex-direction: column;
     background: #111;
     color: white;
     border-radius: 10px;
-    overflow: hidden;
+}
+
+.chat-header {
+    padding: 10px;
+    background: #222;
+    font-weight: bold;
 }
 
 .chat-messages {
@@ -128,108 +100,70 @@
 
 .chat-input input {
     flex: 1;
-    padding: 5px;
-}
-
-.chat-input-box {
-    display: flex;
-}
-
-.chat-input-box input {
-    flex: 1;
+    padding: 6px;
 }
 
 /* PARTICIPANTS */
-.participants {
-    height: 40%;
+.participants-box {
+    flex: 1;
     background: #222;
     color: white;
+    border-radius: 10px;
     padding: 10px;
-    border-radius: 10px;
     overflow-y: auto;
-}
-
-/* VIDEO */
-.video-area {
-    flex: 1;
-    position: relative;
-    background: black;
-    border-radius: 12px;
-}
-
-.remote-video {
-    width: 100%;
-    height: 100%;
-}
-
-.local-video {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    width: 200px;
-    height: 150px;
-    border: 2px solid white;
-    border-radius: 10px;
-}
-
-/* SIDE PANEL */
-.side-panel {
-    width: 320px;
-    display: flex;
-    flex-direction: column;
-    height: 80vh;
-    gap: 10px;
 }
 </style>
 
 
 
-<h3>🎥 Live Class (Agora)</h3>
-
-{% if request.user.user_type == "teacher" or request.user.is_superuser %}
-<div class="teacher-panel">
-    <button onclick="muteAll()">🔇 Mute All</button>
-    <button onclick="endClass()">❌ End Class</button>
-</div>
-{% endif %}
-
-<div class="live-container">
+<div class="live-wrapper">
 
     <!-- VIDEO AREA -->
-    <div class="video-area">
+    <div class="video-section">
 
-        <div id="remote-player" class="remote-video"></div>
+        <div class="video-container">
+            <div id="remote-player" class="remote-video"></div>
 
-        <div id="local-player" class="local-video"></div>
+            <div id="local-player" class="local-video"></div>
+        </div>
 
         <!-- CONTROLS -->
-        <div class="controls">
+        <div class="controls-bar">
             <button onclick="joinCall()">🟢 Join</button>
             <button onclick="toggleMic()">🎤</button>
             <button onclick="toggleCamera()">📷</button>
             <button onclick="shareScreen()">🖥</button>
         </div>
 
+        <!-- TEACHER PANEL -->
+        {% if request.user.user_type == "teacher" %}
+        <div class="teacher-panel">
+            <button onclick="muteAll()">🔇 Mute All</button>
+            <button onclick="endClass()">❌ End Class</button>
+        </div>
+        {% endif %}
+
     </div>
 
     <!-- RIGHT PANEL -->
-    <div class="side-panel">
+    <div class="right-panel">
 
         <!-- CHAT -->
         <div class="chat-box">
+            <div class="chat-header">💬 Chat</div>
+
             <div id="chat-messages" class="chat-messages"></div>
 
             <div class="chat-input">
                 <input type="text" id="chat-input" placeholder="Type message...">
                 <button onclick="sendMessage()">Send</button>
                 <button onclick="startRecording()">🎤</button>
-                <button onclick="stopRecording()">⏹</button>
             </div>
         </div>
 
         <!-- PARTICIPANTS -->
-        <div class="participants">
-            <h6>Participants</h6>
+        <div class="participants-box">
+            <div class="chat-header">👨‍🎓 Participants</div>
             <div id="participants-list"></div>
         </div>
 
