@@ -99,7 +99,9 @@ document.addEventListener("DOMContentLoaded", function () {
             {% for lesson in module.lesson_set.all %}
                 <li>
                     🎥 {{ lesson.title }}
-
+                    <a href="/upload-recording/{{ cls.id }}/" class="btn btn-warning btn-sm">
+                        🎥 Upload Recording
+                    </a>
                     <!-- ASSIGNMENTS -->
                     {% for assignment in lesson.assignment_set.all %}
                         <div class="card p-2 mt-2">

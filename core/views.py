@@ -1184,3 +1184,21 @@ def agora_video(request, class_id):
         "class_id": class_id,
         "class": cls
     })
+
+
+def upload_recording(request, class_id):
+    from .models import Recording
+
+    if request.method == "POST":
+        video = request.FILES.get("video")
+
+        Recording.objects.create(
+            live_class_id=class_id,
+            video=video
+        )
+
+        return redirect("dashboard")
+
+    return render(request, "upload_recording.html", {
+        "class_id": class_id
+    })

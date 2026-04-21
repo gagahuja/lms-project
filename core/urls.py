@@ -55,6 +55,7 @@ urlpatterns = [
     path('save-candidate/', views.save_candidate),
     path('get-candidates/', views.get_candidates),
     path('live-class/<int:class_id>/', views.agora_video, name='agora_video'),
+    path('upload-recording/<int:class_id>/', views.upload_recording, name='upload_recording'),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -25,21 +25,44 @@
 .controls button {
     margin: 5px;
     padding: 10px 15px;
+    border-radius: 8px;
+}
+
+.main-video {
+    position: relative;
+    width: 100%;
+    height: 70vh;
+    background: black;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.big-video {
+    width: 100%;
+    height: 100%;
+}
+
+.small-video {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 200px;
+    height: 150px;
+    border-radius: 10px;
+    border: 2px solid white;
 }
 </style>
 
 <h3>🎥 Live Class (Agora)</h3>
 
-<div class="video-container">
+<div class="main-video">
+    <div id="remote-player" class="big-video"></div>
 
-    <div id="local-player" class="video-box"></div>
-
-    <div id="remote-player" class="video-box"></div>
-
+    <div id="local-player" class="small-video"></div>
 </div>
 
 <div class="controls">
-    <button onclick="joinCall()">Join</button>
+    <button onclick="joinCall()">🟢 Join</button>
     <button onclick="toggleMic()">🎤</button>
     <button onclick="toggleCamera()">📷</button>
     <button onclick="shareScreen()">🖥</button>
@@ -90,8 +113,11 @@ async function joinCall() {
 
 async function shareScreen() {
     const screenTrack = await AgoraRTC.createScreenVideoTrack();
+
     await client.unpublish(localTracks);
+
     await client.publish(screenTrack);
+
     screenTrack.play("local-player");
 }
 

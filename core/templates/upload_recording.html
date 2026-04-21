@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h3>Upload Class Recording</h3>
+
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <input type="file" name="video" class="form-control mb-3">
+
+    <button type="submit" class="btn btn-success">
+        Upload
+    </button>
+</form>
+
+{% endblock %}
