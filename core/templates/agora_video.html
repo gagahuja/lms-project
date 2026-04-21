@@ -51,7 +51,38 @@
     border-radius: 10px;
     border: 2px solid white;
 }
+
+.chat-box {
+    position: fixed;
+    right: 10px;
+    top: 100px;
+    width: 300px;
+    height: 400px;
+    background: white;
+    overflow-y: scroll;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.teacher-panel {
+    position: fixed;
+    left: 20px;
+    bottom: 20px;
+    background: #111;
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+}
 </style>
+
+{% if request.user.user_type == "teacher" %}
+<div class="teacher-panel">
+    <h5>Teacher Controls</h5>
+
+    <button onclick="muteAll()">🔇 Mute All</button>
+    <button onclick="endClass()">❌ End Class</button>
+</div>
+{% endif %}
 
 <h3>🎥 Live Class (Agora)</h3>
 
@@ -66,6 +97,12 @@
     <button onclick="toggleMic()">🎤</button>
     <button onclick="toggleCamera()">📷</button>
     <button onclick="shareScreen()">🖥</button>
+</div>
+<div class="chat-box">
+    <div id="chat-messages"></div>
+
+    <input type="text" id="chat-input" placeholder="Type message...">
+    <button onclick="sendMessage()">Send</button>
 </div>
 
 <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
@@ -123,6 +160,61 @@ async function shareScreen() {
 
 function raiseHand() {
     alert("Hand Raised 🙋‍♂️");
+}
+
+function sendMessage() {
+    let text = document.getElementById("chat-input").value;
+
+    fetch(`/send-message/${CLASS_ID}/`, {
+        method: "POST",
+        headers: {"X-CSRFToken": csrftoken},
+        body: new URLSearchParams({text: text})
+    });
+}
+
+function loadMessages() {
+    fetch(`/get-messages/${CLASS_ID}/`)
+    .then(res => res.json())
+    .then(data => {
+        let box = document.getElementById("chat-messages");
+        box.innerHTML = "";
+
+        data.messages.forEach(m => {
+            box.innerHTML += `<p><b>${m.user}</b>: ${m.text}</p>`;
+        });
+    });
+}
+
+setInterval(loadMessages, 2000);
+
+let micMuted = false;
+async function toggleMic() {
+    if (micMuted) {
+        await localTracks[0].setEnabled(true);
+        micMuted = false;
+    } else {
+        await localTracks[0].setEnabled(false);
+        micMuted = true;
+    }
+}
+
+let camOff = false;
+async function toggleCamera() {
+    if (camOff) {
+        await localTracks[1].setEnabled(true);
+        camOff = false;
+    } else {
+        await localTracks[1].setEnabled(false);
+        camOff = true;
+    }
+}
+
+function muteAll() {
+    alert("All students muted (demo)");
+}
+
+function endClass() {
+    window.location.href = "/dashboard/";
 }
 </script>
 

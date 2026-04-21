@@ -1202,3 +1202,32 @@ def upload_recording(request, class_id):
     return render(request, "upload_recording.html", {
         "class_id": class_id
     })
+
+
+from django.http import JsonResponse
+from .models import Message
+
+def send_message(request, class_id):
+    if request.method == "POST":
+        text = request.POST.get("text")
+
+        Message.objects.create(
+            sender=request.user,
+            live_class_id=class_id,
+            text=text
+        )
+
+        return JsonResponse({"status": "sent"})
+    
+
+def get_messages(request, class_id):
+    messages = Message.objects.filter(
+        live_class_id=class_id
+    ).order_by("timestamp")
+
+    data = [
+        {"user": m.sender.username, "text": m.text}
+        for m in messages
+    ]
+
+    return JsonResponse({"messages": data})

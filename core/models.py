@@ -203,11 +203,14 @@ class Doubt(models.Model):
 class Message(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE)
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='messages')
+    live_class = models.ForeignKey(LiveClass, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     text = models.TextField(null=True, blank=True)
     file = models.FileField(upload_to='chat_files/', null=True, blank=True)
     is_seen = models.BooleanField(default=False)  
     created_at = models.DateTimeField(auto_now_add=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
 
 
 class CallOffer(models.Model):
