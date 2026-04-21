@@ -1168,8 +1168,19 @@ def get_candidates(request):
     return JsonResponse({"candidates": data})
 
 
-def agora_video(request, class_id=None):
-    if not class_id:
-        return redirect('dashboard')
+def agora_video(request, class_id):
+    from .models import LiveClass, Attendance
 
-    return render(request, "agora_video.html", {"class_id": class_id})
+    cls = LiveClass.objects.get(id=class_id)
+
+    # ✅ AUTO ATTENDANCE (only students)
+    if request.user.user_type == "student":
+        Attendance.objects.get_or_create(
+            student=request.user,
+            live_class=cls
+        )
+
+    return render(request, "agora_video.html", {
+        "class_id": class_id,
+        "class": cls
+    })

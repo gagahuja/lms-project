@@ -9,6 +9,8 @@
 <button onclick="joinCall()" class="btn btn-success mt-3">Join Class</button>
 <div id="local-player" style="width: 300px; height: 200px;"></div>
 <div id="remote-player" style="width: 300px; height: 200px;"></div>
+<button onclick="shareScreen()" class="btn btn-info">🖥 Share Screen</button>
+<button onclick="raiseHand()" class="btn btn-warning">✋ Raise Hand</button>
 
 <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
 
@@ -51,6 +53,17 @@ async function joinCall() {
             user.audioTrack.play();
         }
     });
+}
+
+async function shareScreen() {
+    const screenTrack = await AgoraRTC.createScreenVideoTrack();
+    await client.unpublish(localTracks);
+    await client.publish(screenTrack);
+    screenTrack.play("local-player");
+}
+
+function raiseHand() {
+    alert("Hand Raised 🙋‍♂️");
 }
 </script>
 
