@@ -6,8 +6,9 @@
 
 .live-container {
     display: flex;
-    height: 80vh;
     gap: 10px;
+    margin-left: 260px; /* IMPORTANT: avoid sidebar overlap */
+    padding: 10px;
 }
 
 .video-container {
@@ -76,13 +77,13 @@
 }
 
 .teacher-panel {
-    position: fixed;
-    bottom: 80px;
-    left: 20px;
+    position: absolute;
+    top: 100px;
+    left: 280px; /* sidebar width + spacing */
     background: #222;
     padding: 10px;
     border-radius: 10px;
-    z-index: 999;
+    z-index: 9999; /* VERY IMPORTANT */
 }
 
 .layout {
@@ -106,10 +107,10 @@
 
 .chat-box {
     height: 60%;
-    background: #111;
-    color: white;
     display: flex;
     flex-direction: column;
+    background: #111;
+    color: white;
     border-radius: 10px;
     overflow: hidden;
 }
@@ -173,9 +174,10 @@
 
 /* SIDE PANEL */
 .side-panel {
-    width: 300px;
+    width: 320px;
     display: flex;
     flex-direction: column;
+    height: 80vh;
     gap: 10px;
 }
 </style>
