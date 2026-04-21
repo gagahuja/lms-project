@@ -219,14 +219,18 @@
     <div class="video-section">
 
         <div class="video-container">
-            <div id="remote-player" class="remote-video-grid"></div>
 
-            <div id="local-player" class="local-video"></div>
+            <!-- REMOTE VIDEO (BIG SCREEN) -->
+            <div id="remote-player"></div>
+
+            <!-- LOCAL VIDEO (SMALL BOX) -->
+            <div id="local-player"></div>
+
         </div>
 
         <!-- CONTROLS -->
         <div class="controls-bar">
-            <button onclick="joinCall()">🟢 Join</button>
+            <button onclick="joinStream()" id="join-btn">🟢 Join</button>
             <button onclick="toggleMic()">🎤</button>
             <button onclick="toggleCamera()">📷</button>
             <button onclick="shareScreen()">🖥</button>
@@ -297,46 +301,47 @@
 <script>
 const APP_ID = "68983e3ac34747498d839a7e4c83a9c5";  // 🔴 PUT YOUR APP ID HERE
 const CHANNEL = "{{ live_class.id }}";
-console.log("Joining channel:", CHANNEL);
 
-let client;
+
+let client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 let localTracks = [];
 
 async function joinCall() {
-    client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+    try {
+        const UID = Math.floor(Math.random() * 10000);
 
-    const UID = Math.floor(Math.random() * 10000);
+        await client.join(APP_ID, CHANNEL, null, UID);
 
-    await client.join(APP_ID, CHANNEL, null, UID);
+        localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
 
-    // 🎤 Mic + Camera
-    localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+        // LOCAL VIDEO
+        localTracks[1].play("local-player");
 
-    // Show local video
-    localTracks[1].play("local-player");
+        await client.publish(localTracks);
 
-    // Publish
-    await client.publish(localTracks);
+        // REMOTE USERS
+        client.on("user-published", async (user, mediaType) => {
+            await client.subscribe(user, mediaType);
 
-    // Receive remote users
-    client.on("user-published", async (user, mediaType) => {
-        await client.subscribe(user, mediaType);
+            if (mediaType === "video") {
+                let remoteContainer = document.createElement("div");
+                remoteContainer.id = "user-" + user.uid;
+                remoteContainer.style.width = "100%";
+                remoteContainer.style.height = "100%";
 
-        if (mediaType === "video") {
+                document.getElementById("remote-player").appendChild(remoteContainer);
 
-            let remoteContainer = document.createElement("div");
-            remoteContainer.id = "user-" + user.uid;
-            remoteContainer.className = "video-box";
+                user.videoTrack.play(remoteContainer);
+            }
 
-            document.getElementById("remote-player").appendChild(remoteContainer);
+            if (mediaType === "audio") {
+                user.audioTrack.play();
+            }
+        });
 
-            user.videoTrack.play(remoteContainer);
-        }
-
-        if (mediaType === "audio") {
-            user.audioTrack.play();
-        }
-    });
+    } catch (error) {
+        console.error("JOIN ERROR:", error);
+    }
 }
 
 async function shareScreen() {
@@ -560,6 +565,38 @@ function sendMessage() {
     }));
 
     input.value = "";
+}
+
+
+async function joinStream() {
+    console.log("Join clicked");   // DEBUG
+
+    try {
+        const UID = Math.floor(Math.random() * 10000);
+
+        await client.join(APP_ID, CHANNEL, null, UID);
+
+        console.log("Joined channel");
+
+        localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+
+        // show own video
+        let player = document.createElement("div");
+        player.id = "local-player";
+        player.style.width = "100%";
+        player.style.height = "100%";
+
+        document.getElementById("local-player-container").appendChild(player);
+
+        localTracks[1].play(player);
+
+        await client.publish(localTracks);
+
+        console.log("Published stream");
+
+    } catch (error) {
+        console.error("JOIN ERROR:", error);
+    }
 }
 </script>
 
