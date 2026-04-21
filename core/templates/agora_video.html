@@ -20,16 +20,34 @@
 
 .video-container {
     position: relative;
+    width: 100%;
     height: 75vh;
     background: black;
     border-radius: 12px;
     overflow: hidden;
-    width: 100%;
 }
 
 .remote-video {
     width: 100%;
     height: 100%;
+}
+
+/* REMOTE VIDEO (MAIN SCREEN) */
+#remote-player {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* LOCAL VIDEO (SMALL BOX) */
+#local-player {
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    width: 180px;
+    height: 120px;
+    border-radius: 10px;
+    border: 2px solid white;
+    z-index: 10;
 }
 
 .local-video {
@@ -284,18 +302,23 @@ async function joinCall() {
         await client.subscribe(user, mediaType);
 
         if (mediaType === "video") {
-            const remoteContainer = document.createElement("div");
-            remoteContainer.id = user.uid;
-            remoteContainer.style.width = "300px";
-            remoteContainer.style.height = "200px";
-            document.getElementById("remote-player").appendChild(remoteContainer);
-
-            user.videoTrack.play(remoteContainer);
+            document.getElementById("remote-player").innerHTML = "";
+            user.videoTrack.play("remote-player");
         }
 
         if (mediaType === "audio") {
             user.audioTrack.play();
         }
+
+        // ✅ ADD PARTICIPANT
+        let div = document.getElementById("participants-list");
+
+        div.innerHTML += `
+            <p id="user-${user.uid}">
+                ${user.uid}
+                <button onclick="kickUser(${user.uid})">❌</button>
+            </p>
+        `;
     });
 }
 
@@ -313,15 +336,7 @@ function raiseHand() {
     alert("Hand Raised 🙋‍♂️");
 }
 
-function sendMessage() {
-    let text = document.getElementById("chat-input").value;
 
-    fetch(`/send-message/${CLASS_ID}/`, {
-        method: "POST",
-        headers: {"X-CSRFToken": csrftoken},
-        body: new URLSearchParams({text: text})
-    });
-}
 
 function loadMessages() {
     fetch(`/get-messages/${CLASS_ID}/`)
@@ -398,19 +413,6 @@ function stopRecording() {
     };
 }
 
-client.on("user-published", async (user, mediaType) => {
-
-    await client.subscribe(user, mediaType);
-
-    let div = document.getElementById("participants-list");
-
-    div.innerHTML += `
-        <p id="user-${user.uid}">
-            ${user.uid}
-            <button onclick="kickUser(${user.uid})">❌</button>
-        </p>
-    `;
-});
 
 function kickUser(uid) {
     let el = document.getElementById(`user-${uid}`);
@@ -456,16 +458,6 @@ function askAI() {
 }
 
 
-function sendMessage() {
-    let input = document.getElementById("chat-input");
-    let msg = input.value.trim();
-
-    if (!msg) return;
-
-    addMessage(msg, "right");
-
-    input.value = "";
-}
 
 function addMessage(text, side) {
     let box = document.getElementById("chat-messages");
@@ -510,6 +502,49 @@ document.getElementById("fileInput").addEventListener("change", function() {
 
     reader.readAsDataURL(file);
 });
+
+
+const classId = "{{ live_class.id }}";
+
+const socket = new WebSocket(
+    'wss://' + window.location.host + '/ws/chat/' + classId + '/'
+);
+
+
+socket.onopen = function() {
+    console.log("✅ WebSocket Connected");
+};
+
+socket.onerror = function(e) {
+    console.log("❌ WebSocket Error", e);
+};
+
+socket.onclose = function() {
+    console.log("⚠️ WebSocket Closed");
+};
+
+socket.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+
+    let currentUser = "{{ request.user.username }}";
+
+    let side = data.user === currentUser ? "right" : "left";
+
+    addMessage(`<b>${data.user}:</b> ${data.message}`, side);
+};
+
+function sendMessage() {
+    let input = document.getElementById("chat-input");
+    let message = input.value.trim();
+
+    if (!message) return;
+
+    socket.send(JSON.stringify({
+        'message': message
+    }));
+
+    input.value = "";
+}
 </script>
 
 {% endblock %}
