@@ -296,7 +296,8 @@
 
 <script>
 const APP_ID = "68983e3ac34747498d839a7e4c83a9c5";  // 🔴 PUT YOUR APP ID HERE
-const CHANNEL = "{{ class_id }}";
+const CHANNEL = "{{ live_class.id }}";
+console.log("Joining channel:", CHANNEL);
 
 let client;
 let localTracks = [];
@@ -304,7 +305,9 @@ let localTracks = [];
 async function joinCall() {
     client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
-    await client.join(APP_ID, CHANNEL, null, null);
+    const UID = Math.floor(Math.random() * 10000);
+
+    await client.join(APP_ID, CHANNEL, null, UID);
 
     // 🎤 Mic + Camera
     localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
