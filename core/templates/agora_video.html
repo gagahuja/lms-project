@@ -92,18 +92,20 @@
     <div id="local-player" class="small-video"></div>
 </div>
 
-<div class="controls">
-    <button onclick="joinCall()">🟢 Join</button>
-    <button onclick="toggleMic()">🎤</button>
-    <button onclick="toggleCamera()">📷</button>
-    <button onclick="shareScreen()">🖥</button>
-</div>
 <div class="chat-box">
     <div id="chat-messages"></div>
 
     <input type="text" id="chat-input" placeholder="Type message...">
     <button onclick="sendMessage()">Send</button>
 </div>
+
+<div class="controls">
+    <button onclick="joinCall()">🟢 Join</button>
+    <button onclick="toggleMic()">🎤</button>
+    <button onclick="toggleCamera()">📷</button>
+    <button onclick="shareScreen()">🖥</button>
+</div>
+
 
 <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
 
