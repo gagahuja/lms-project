@@ -40,15 +40,17 @@
 
 .remote-video-grid {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 10px;
     width: 100%;
     height: 100%;
 }
 
 /* Each video */
 .video-box {
-    width: 100%;
-    height: 100%;
+    background: black;
+    border-radius: 10px;
+    overflow: hidden;
 }
 
 /* LOCAL VIDEO (SMALL BOX) */
@@ -265,6 +267,9 @@
 
                 <button onclick="sendMessage()">➤</button>
 
+                <button onclick="startRecording()">🎤</button>
+                <button onclick="stopRecording()">⏹</button>
+
             </div>
 
             <!-- EMOJI PICKER -->
@@ -415,8 +420,7 @@ function stopRecording() {
 
         let audioURL = URL.createObjectURL(blob);
 
-        document.getElementById("chat-messages").innerHTML +=
-            `<audio controls src="${audioURL}"></audio>`;
+        addMessage(`<audio controls src="${audioURL}"></audio>`, "right");
 
         audioChunks = [];
     };
