@@ -306,7 +306,26 @@ const CHANNEL = "{{ live_class.id }}";
 let client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 let localTracks = [];
 
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        let cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            let cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
 
+const csrftoken = getCookie('csrftoken');
+
+async function joinStream() {
+    alert("Join clicked");  // DEBUG
+}
 
 async function shareScreen() {
     const screenTrack = await AgoraRTC.createScreenVideoTrack();
@@ -325,7 +344,7 @@ function raiseHand() {
 
 
 function loadMessages() {
-    fetch(`/get-messages/${CLASS_ID}/`)
+    fetch(`/get-messages/{{ live_class.id }}/`)
     .then(res => res.json())
     .then(data => {
         let box = document.getElementById("chat-messages");
