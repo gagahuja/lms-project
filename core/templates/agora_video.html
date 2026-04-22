@@ -25,6 +25,25 @@
     height: 75vh;
 }
 
+.video-container.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 10px;
+}
+
+.video-container.speaker {
+    display: flex;
+    flex-direction: column;
+}
+
+.video-container.speaker .video-box:first-child {
+    height: 70vh;
+}
+
+.video-container.speaker .video-box {
+    height: 120px;
+}
+
 .video-box {
     width: 100%;
     height: 100%;
@@ -220,6 +239,8 @@
             <button onclick="joinStream()" id="join-btn">🟢 Join</button>
             <button onclick="toggleMic()">🎤</button>
             <button onclick="toggleCamera()">📷</button>
+            <button onclick="setGrid()">🔲 Grid</button>
+            <button onclick="setSpeaker()">🎯 Speaker</button>
             <button onclick="shareScreen()">🖥</button>
             <button onclick="askAI()">🤖 Ask AI</button>
             <button onclick="leaveCall()">🚪 Leave</button>
@@ -508,10 +529,9 @@ document.getElementById("fileInput").addEventListener("change", function() {
 
 const classId = "{{ live_class.id }}";
 
-const socket = new WebSocket(
-    'wss://' + window.location.host + '/ws/chat/' + classId + '/'
+let socket = new WebSocket(
+    'wss://' + window.location.host + '/ws/chat/{{ class.id }}/'
 );
-
 
 socket.onopen = function() {
     console.log("✅ WebSocket Connected");
@@ -528,12 +548,14 @@ socket.onclose = function() {
 socket.onmessage = function(e) {
     const data = JSON.parse(e.data);
 
+    // END CLASS
     if (data.type === "end_class") {
-        alert("Class has been ended by teacher");
+        alert("Class ended by teacher");
         window.location.href = "/dashboard/";
         return;
     }
 
+    // NORMAL CHAT
     let currentUser = "{{ request.user.username }}";
     let side = data.user === currentUser ? "right" : "left";
 
@@ -546,13 +568,10 @@ function sendMessage() {
 
     if (!message) return;
 
-    // ✅ Send via WebSocket
     socket.send(JSON.stringify({
-        'message': message
+        type: "chat",
+        message: message
     }));
-
-    // ✅ ALSO show instantly (IMPORTANT)
-    addMessage(`<b>You:</b> ${message}`, "right");
 
     input.value = "";
 }
@@ -566,16 +585,12 @@ function sendMessage() {
             await client.subscribe(user, mediaType);
 
             if (mediaType === "video") {
-                let remoteContainer = document.createElement("div");
-                remoteContainer.id = "user-" + user.uid;
-                remoteContainer.className = "video-box";
+                let player = document.createElement("div");
+                player.id = user.uid;
+                player.className = "video-box";
 
-                remoteContainer.style.width = "100%";
-                remoteContainer.style.height = "100%";
-
-                document.getElementById("remote-player").appendChild(remoteContainer);
-
-                user.videoTrack.play(remoteContainer);
+                document.getElementById("remote-player").appendChild(player);
+                user.videoTrack.play(player);
             }
 
             if (mediaType === "audio") {
@@ -636,6 +651,19 @@ async function leaveCall() {
     } catch (err) {
         console.error(err);
     }
+}
+
+
+function setGrid() {
+    let container = document.getElementById("remote-player");
+    container.classList.remove("speaker");
+    container.classList.add("grid");
+}
+
+function setSpeaker() {
+    let container = document.getElementById("remote-player");
+    container.classList.remove("grid");
+    container.classList.add("speaker");
 }
 </script>
 
