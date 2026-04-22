@@ -221,7 +221,7 @@
         <div class="video-container">
 
             <!-- REMOTE VIDEO (BIG SCREEN) -->
-            <div id="remote-player"></div>
+            <div id="remote-player" class="remote-video-grid"></div>
 
             <!-- LOCAL VIDEO (SMALL BOX) -->
             <div id="local-player"></div>
@@ -323,9 +323,7 @@ function getCookie(name) {
 
 const csrftoken = getCookie('csrftoken');
 
-async function joinStream() {
-    alert("Join clicked");  // DEBUG
-}
+
 
 async function shareScreen() {
     const screenTrack = await AgoraRTC.createScreenVideoTrack();
@@ -550,6 +548,36 @@ function sendMessage() {
     input.value = "";
 }
 
+// ✅ HANDLE REMOTE USERS
+        client.on("user-joined", user => {
+            console.log("User joined:", user.uid);
+        });
+``
+        client.on("user-published", async (user, mediaType) => {
+            await client.subscribe(user, mediaType);
+
+            if (mediaType === "video") {
+                let remoteContainer = document.createElement("div");
+                remoteContainer.id = "user-" + user.uid;
+                remoteContainer.className = "video-box";
+
+                remoteContainer.style.width = "100%";
+                remoteContainer.style.height = "100%";
+
+                document.getElementById("remote-player").appendChild(remoteContainer);
+
+                user.videoTrack.play(remoteContainer);
+            }
+
+            if (mediaType === "audio") {
+                user.audioTrack.play();
+            }
+        });
+
+        client.on("user-left", (user) => {
+            let el = document.getElementById("user-" + user.uid);
+            if (el) el.remove();
+        });
 
 async function joinStream() {
     console.log("Join clicked");
@@ -571,24 +599,6 @@ async function joinStream() {
 
         console.log("Published stream");
 
-        // ✅ HANDLE REMOTE USERS
-        client.on("user-published", async (user, mediaType) => {
-            await client.subscribe(user, mediaType);
-
-            if (mediaType === "video") {
-                let remoteContainer = document.createElement("div");
-                remoteContainer.id = "user-" + user.uid;
-                remoteContainer.className = "video-box";
-
-                document.getElementById("remote-player").appendChild(remoteContainer);
-
-                user.videoTrack.play(remoteContainer);
-            }
-
-            if (mediaType === "audio") {
-                user.audioTrack.play();
-            }
-        });
 
     } catch (error) {
         console.error("JOIN ERROR:", error);
