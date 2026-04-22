@@ -300,8 +300,8 @@
 
 <script>
 const APP_ID = "68983e3ac34747498d839a7e4c83a9c5";  // 🔴 PUT YOUR APP ID HERE
-const CHANNEL = "{{ live_class.id }}";
-
+const CHANNEL = "class_" + "{{ live_class.id|default:'1' }}";
+console.log("CHANNEL:", CHANNEL);
 
 let client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 let localTracks = [];

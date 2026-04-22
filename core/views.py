@@ -252,6 +252,15 @@ def enroll(request, course_id):
     return redirect('dashboard')
 
 
+from django.shortcuts import render, get_object_or_404
+from .models import LiveClass
+
+def live_class(request, class_id):
+    live_class = get_object_or_404(LiveClass, id=class_id)
+
+    return render(request, "agora_video.html", {
+        "live_class": live_class
+    })
 
 def join_class(request, class_id):
     if not request.user.is_authenticated:
