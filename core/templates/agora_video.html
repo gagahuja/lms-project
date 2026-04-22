@@ -19,12 +19,17 @@
 }
 
 .video-container {
-    position: relative;
-    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 10px;
     height: 75vh;
+}
+
+.video-box {
+    width: 100%;
+    height: 100%;
     background: black;
-    border-radius: 12px;
-    overflow: hidden;
+    border-radius: 10px;
 }
 
 .remote-video {
@@ -46,24 +51,6 @@
     height: 100%;
 }
 
-/* Each video */
-.video-box {
-    background: black;
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-/* LOCAL VIDEO (SMALL BOX) */
-#local-player {
-    position: absolute;
-    bottom: 15px;
-    right: 15px;
-    width: 180px;
-    height: 120px;
-    border-radius: 10px;
-    border: 2px solid white;
-    z-index: 10;
-}
 
 .local-video {
     position: absolute;
@@ -235,6 +222,7 @@
             <button onclick="toggleCamera()">📷</button>
             <button onclick="shareScreen()">🖥</button>
             <button onclick="askAI()">🤖 Ask AI</button>
+            <button onclick="leaveCall()">🚪 Leave</button>
         </div>
 
         <!-- TEACHER PANEL -->
@@ -328,17 +316,20 @@ const csrftoken = getCookie('csrftoken');
 async function shareScreen() {
     const screenTrack = await AgoraRTC.createScreenVideoTrack();
 
-    await client.unpublish(localTracks);
-
     await client.publish(screenTrack);
 
-    screenTrack.play("local-player");
+    // Show in grid (not replace)
+    let localContainer = document.createElement("div");
+    localContainer.className = "video-box";
+
+    document.getElementById("remote-player").appendChild(localContainer);
+
+    localTracks[1].play(localContainer);
 }
 
 function raiseHand() {
     alert("Hand Raised 🙋‍♂️");
 }
-
 
 
 function loadMessages() {
@@ -357,14 +348,16 @@ function loadMessages() {
 setInterval(loadMessages, 2000);
 
 let micMuted = false;
+
 async function toggleMic() {
-    if (micMuted) {
-        await localTracks[0].setEnabled(true);
-        micMuted = false;
-    } else {
-        await localTracks[0].setEnabled(false);
-        micMuted = true;
-    }
+    if (!localTracks.length) return;
+
+    micMuted = !micMuted;
+    await localTracks[0].setEnabled(!micMuted);
+
+    // ✅ Show icon
+    let btn = document.querySelector('button[onclick="toggleMic()"]');
+    btn.innerText = micMuted ? "🔇 Muted" : "🎤 Mic";
 }
 
 let camOff = false;
@@ -383,9 +376,13 @@ function muteAll() {
 }
 
 function endClass() {
+    // Notify all via WebSocket
+    socket.send(JSON.stringify({
+        type: "end_class"
+    }));
+
     window.location.href = "/dashboard/";
 }
-
 
 let recorder;
 let audioChunks = [];
@@ -487,9 +484,12 @@ function toggleEmoji() {
 
 document.getElementById("emojiBox").addEventListener("click", function(e) {
     if (e.target.innerText) {
-        document.getElementById("chat-input").value += e.target.innerText;
+        let input = document.getElementById("chat-input");
+        input.value += e.target.innerText;
+        input.focus();
     }
 });
+
 
 document.getElementById("fileInput").addEventListener("change", function() {
     let file = this.files[0];
@@ -528,8 +528,13 @@ socket.onclose = function() {
 socket.onmessage = function(e) {
     const data = JSON.parse(e.data);
 
-    let currentUser = "{{ request.user.username }}";
+    if (data.type === "end_class") {
+        alert("Class has been ended by teacher");
+        window.location.href = "/dashboard/";
+        return;
+    }
 
+    let currentUser = "{{ request.user.username }}";
     let side = data.user === currentUser ? "right" : "left";
 
     addMessage(`<b>${data.user}:</b> ${data.message}`, side);
@@ -541,9 +546,13 @@ function sendMessage() {
 
     if (!message) return;
 
+    // ✅ Send via WebSocket
     socket.send(JSON.stringify({
         'message': message
     }));
+
+    // ✅ ALSO show instantly (IMPORTANT)
+    addMessage(`<b>You:</b> ${message}`, "right");
 
     input.value = "";
 }
@@ -602,6 +611,30 @@ async function joinStream() {
 
     } catch (error) {
         console.error("JOIN ERROR:", error);
+    }
+}
+
+
+async function leaveCall() {
+    try {
+        // Stop tracks
+        localTracks.forEach(track => {
+            track.stop();
+            track.close();
+        });
+
+        // Leave channel
+        await client.leave();
+
+        // Clear UI
+        document.getElementById("remote-player").innerHTML = "";
+
+        alert("You left the class");
+
+        window.location.href = "/dashboard/";
+
+    } catch (err) {
+        console.error(err);
     }
 }
 </script>
