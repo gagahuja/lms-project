@@ -306,43 +306,7 @@ const CHANNEL = "{{ live_class.id }}";
 let client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 let localTracks = [];
 
-async function joinCall() {
-    try {
-        const UID = Math.floor(Math.random() * 10000);
 
-        await client.join(APP_ID, CHANNEL, null, UID);
-
-        localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
-
-        // LOCAL VIDEO
-        localTracks[1].play("local-player");
-
-        await client.publish(localTracks);
-
-        // REMOTE USERS
-        client.on("user-published", async (user, mediaType) => {
-            await client.subscribe(user, mediaType);
-
-            if (mediaType === "video") {
-                let remoteContainer = document.createElement("div");
-                remoteContainer.id = "user-" + user.uid;
-                remoteContainer.style.width = "100%";
-                remoteContainer.style.height = "100%";
-
-                document.getElementById("remote-player").appendChild(remoteContainer);
-
-                user.videoTrack.play(remoteContainer);
-            }
-
-            if (mediaType === "audio") {
-                user.audioTrack.play();
-            }
-        });
-
-    } catch (error) {
-        console.error("JOIN ERROR:", error);
-    }
-}
 
 async function shareScreen() {
     const screenTrack = await AgoraRTC.createScreenVideoTrack();
@@ -569,7 +533,8 @@ function sendMessage() {
 
 
 async function joinStream() {
-    console.log("Join clicked");   // DEBUG
+    console.log("Join clicked");
+    console.log(APP_ID, CHANNEL);
 
     try {
         const UID = Math.floor(Math.random() * 10000);
@@ -580,19 +545,31 @@ async function joinStream() {
 
         localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
 
-        // show own video
-        let player = document.createElement("div");
-        player.id = "local-player";
-        player.style.width = "100%";
-        player.style.height = "100%";
-
-        document.getElementById("local-player-container").appendChild(player);
-
-        localTracks[1].play(player);
+        // ✅ FIX: PLAY DIRECTLY (NO container creation)
+        localTracks[1].play("local-player");
 
         await client.publish(localTracks);
 
         console.log("Published stream");
+
+        // ✅ HANDLE REMOTE USERS
+        client.on("user-published", async (user, mediaType) => {
+            await client.subscribe(user, mediaType);
+
+            if (mediaType === "video") {
+                let remoteContainer = document.createElement("div");
+                remoteContainer.id = "user-" + user.uid;
+                remoteContainer.className = "video-box";
+
+                document.getElementById("remote-player").appendChild(remoteContainer);
+
+                user.videoTrack.play(remoteContainer);
+            }
+
+            if (mediaType === "audio") {
+                user.audioTrack.play();
+            }
+        });
 
     } catch (error) {
         console.error("JOIN ERROR:", error);
