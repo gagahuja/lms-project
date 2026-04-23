@@ -11,6 +11,19 @@
     padding: 10px 10px 10px 0;  /* NO LEFT PADDING */
 }
 
+button {
+    background: #1e293b;
+    color: white;
+    border: none;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #6366f1;
+}
+
 /* VIDEO SECTION */
 .video-section {
     flex: 1;
@@ -19,29 +32,30 @@
 }
 
 .video-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 10px;
+    width: 100%;
     height: 75vh;
 }
 
-.video-container.grid {
+
+/* GRID */
+.grid-view {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 10px;
 }
 
-.video-container.speaker {
+/* SPEAKER */
+.speaker-view {
     display: flex;
     flex-direction: column;
 }
 
-.video-container.speaker .video-box:first-child {
-    height: 70vh;
+.speaker-view .video-box:first-child {
+    height: 100%;
 }
 
-.video-container.speaker .video-box {
-    height: 120px;
+.speaker-view .video-box:not(:first-child) {
+    height: 100px;
 }
 
 .video-box {
@@ -236,14 +250,14 @@
 
         <!-- CONTROLS -->
         <div class="controls-bar">
-            <button onclick="joinStream()" id="join-btn">🟢 Join</button>
-            <button onclick="toggleMic()">🎤</button>
-            <button onclick="toggleCamera()">📷</button>
-            <button onclick="setGrid()">🔲 Grid</button>
-            <button onclick="setSpeaker()">🎯 Speaker</button>
-            <button onclick="shareScreen()">🖥</button>
+            <button onclick="joinStream()" title="Join Class">🟢</button>
+            <button onclick="toggleMic()" title="Mute / Unmute">🎤</button>
+            <button onclick="toggleCamera()" title="Camera On/Off">📷</button>
+            <button onclick="setGrid()" title="Grid View">🔲</button>
+            <button onclick="setSpeaker()" title="Speaker View">🎯</button>
+            <button onclick="shareScreen()" title="Share Screen">🖥</button>
             <button onclick="askAI()">🤖 Ask AI</button>
-            <button onclick="leaveCall()">🚪 Leave</button>
+            <button onclick="leaveCall()" title="Leave Class">🚪</button>
         </div>
 
         <!-- TEACHER PANEL -->
@@ -287,7 +301,11 @@
 
             <!-- EMOJI PICKER -->
             <div id="emojiBox" class="emoji-box">
-                😊 😂 😍 😎 👍 🔥 🎯 💯 🙌 😢 😡  
+                <span>😊</span>
+                <span>😂</span>
+                <span>😍</span>
+                <span>👍</span>
+                <span>🔥</span>
             </div>
 
         </div>
@@ -479,21 +497,18 @@ function askAI() {
 
 
 
-function addMessage(text, side) {
+function addMessage(user, text) {
     let box = document.getElementById("chat-messages");
 
-    let time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    let msg = document.createElement("div");
+    msg.className = "msg";
 
-    let div = document.createElement("div");
-    div.className = `msg msg-${side}`;
-
-    div.innerHTML = `
+    msg.innerHTML = `
+        <strong>${user}</strong><br>
         ${text}
-        <span class="msg-time">${time}</span>
     `;
 
-    box.appendChild(div);
-
+    box.appendChild(msg);
     box.scrollTop = box.scrollHeight;
 }
 
@@ -503,12 +518,12 @@ function toggleEmoji() {
     box.style.display = box.style.display === "block" ? "none" : "block";
 }
 
-document.getElementById("emojiBox").addEventListener("click", function(e) {
-    if (e.target.innerText) {
+document.querySelectorAll("#emojiBox span").forEach(el => {
+    el.addEventListener("click", function() {
         let input = document.getElementById("chat-input");
-        input.value += e.target.innerText;
+        input.value += this.innerText;
         input.focus();
-    }
+    });
 });
 
 
@@ -548,18 +563,13 @@ socket.onclose = function() {
 socket.onmessage = function(e) {
     const data = JSON.parse(e.data);
 
-    // END CLASS
     if (data.type === "end_class") {
-        alert("Class ended by teacher");
+        alert("Class ended");
         window.location.href = "/dashboard/";
         return;
     }
 
-    // NORMAL CHAT
-    let currentUser = "{{ request.user.username }}";
-    let side = data.user === currentUser ? "right" : "left";
-
-    addMessage(`<b>${data.user}:</b> ${data.message}`, side);
+    addMessage(data.user, data.message);
 };
 
 function sendMessage() {
@@ -568,10 +578,14 @@ function sendMessage() {
 
     if (!message) return;
 
+    // send to socket
     socket.send(JSON.stringify({
         type: "chat",
         message: message
     }));
+
+    // show instantly
+    addMessage("You", message);
 
     input.value = "";
 }
@@ -597,11 +611,13 @@ function sendMessage() {
                 user.audioTrack.play();
             }
         });
+        updateLayout();
 
         client.on("user-left", (user) => {
             let el = document.getElementById("user-" + user.uid);
             if (el) el.remove();
         });
+        updateLayout();
 
 async function joinStream() {
     console.log("Join clicked");
@@ -629,6 +645,16 @@ async function joinStream() {
     }
 }
 
+function updateLayout() {
+    let container = document.getElementById("remote-player");
+    let count = container.children.length;
+
+    if (count === 1) {
+        container.className = "speaker-view";
+    } else {
+        container.className = "grid-view";
+    }
+}
 
 async function leaveCall() {
     try {
@@ -656,14 +682,12 @@ async function leaveCall() {
 
 function setGrid() {
     let container = document.getElementById("remote-player");
-    container.classList.remove("speaker");
-    container.classList.add("grid");
+    container.className = "grid-view";
 }
 
 function setSpeaker() {
     let container = document.getElementById("remote-player");
-    container.classList.remove("grid");
-    container.classList.add("speaker");
+    container.className = "speaker-view";
 }
 </script>
 
