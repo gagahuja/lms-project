@@ -61,8 +61,10 @@ button:hover {
 .video-box {
     width: 100%;
     height: 100%;
+    min-height: 250px;
     background: black;
     border-radius: 10px;
+    overflow: hidden;
 }
 
 .remote-video {
@@ -241,7 +243,7 @@ button:hover {
         <div class="video-container">
 
             <!-- REMOTE VIDEO (BIG SCREEN) -->
-            <div id="remote-player" class="remote-video-grid"></div>
+            <div id="remote-player" class="grid-view"></div>
 
             <!-- LOCAL VIDEO (SMALL BOX) -->
             <div id="local-player"></div>
@@ -545,7 +547,7 @@ document.getElementById("fileInput").addEventListener("change", function() {
 const classId = "{{ live_class.id }}";
 
 let socket = new WebSocket(
-    'wss://' + window.location.host + '/ws/chat/{{ class.id }}/'
+    'wss://' + window.location.host + '/ws/chat/{{ live_class.id }}/'
 );
 
 socket.onopen = function() {
@@ -600,7 +602,7 @@ function sendMessage() {
 
             if (mediaType === "video") {
                 let player = document.createElement("div");
-                player.id = user.uid;
+                player.id = "user-" + user.uid;
                 player.className = "video-box";
 
                 document.getElementById("remote-player").appendChild(player);
@@ -610,14 +612,16 @@ function sendMessage() {
             if (mediaType === "audio") {
                 user.audioTrack.play();
             }
+            updateLayout();
         });
-        updateLayout();
+        
 
         client.on("user-left", (user) => {
             let el = document.getElementById("user-" + user.uid);
             if (el) el.remove();
+
+            updateLayout();   // ✅ INSIDE
         });
-        updateLayout();
 
 async function joinStream() {
     console.log("Join clicked");
@@ -631,9 +635,17 @@ async function joinStream() {
         console.log("Joined channel");
 
         localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+        await localTracks[1].setEnabled(true);
 
         // ✅ FIX: PLAY DIRECTLY (NO container creation)
-        localTracks[1].play("local-player");
+        let localContainer = document.createElement("div");
+        localContainer.className = "video-box";
+        localContainer.id = "local-user";
+
+        document.getElementById("remote-player").appendChild(localContainer);
+
+        // PLAY VIDEO HERE
+        screenTrack.play(localContainer);
 
         await client.publish(localTracks);
 
