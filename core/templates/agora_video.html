@@ -247,9 +247,7 @@ button:hover {
             <!-- REMOTE VIDEO (BIG SCREEN) -->
             <div id="remote-player" class="grid-view"></div>
 
-            <!-- LOCAL VIDEO (SMALL BOX) -->
-            <div id="local-player"></div>
-
+            
         </div>
 
         <!-- CONTROLS -->
@@ -361,22 +359,13 @@ async function shareScreen() {
 
     await client.publish(screenTrack);
 
-    // Show in grid (not replace)
-    let localContainer = document.createElement("div");
-    localContainer.className = "video-box";
-    localContainer.id = "local-user";
+    let container = document.createElement("div");
+    container.className = "video-box";
+    container.id = "screen-share";
 
-    document.getElementById("remote-player").appendChild(localContainer);
+    document.getElementById("remote-player").appendChild(container);
 
-    // 🔥 IMPORTANT: use ID string
-    localTracks[1].play("local-user");
-    localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
-
-    console.log("Tracks:", localTracks);
-
-    // 🔥 IMPORTANT FIX
-    await localTracks[1].setEnabled(true);
-    console.log("Video container:", document.getElementById("remote-player"));
+    screenTrack.play("screen-share");
 }
 
 function raiseHand() {
@@ -636,33 +625,27 @@ function sendMessage() {
 
 async function joinStream() {
     console.log("Join clicked");
-    console.log(APP_ID, CHANNEL);
 
     try {
         const UID = Math.floor(Math.random() * 10000);
 
         await client.join(APP_ID, CHANNEL, null, UID);
 
-        console.log("Joined channel");
-
         localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
-        await localTracks[1].setEnabled(true);
 
-        // ✅ FIX: PLAY DIRECTLY (NO container creation)
+        // CREATE LOCAL VIDEO BOX
         let localContainer = document.createElement("div");
         localContainer.className = "video-box";
         localContainer.id = "local-user";
 
         document.getElementById("remote-player").appendChild(localContainer);
-        console.log(document.getElementById("local-user"));
 
-        // PLAY VIDEO HERE
-        screenTrack.play(localContainer);
+        // ✅ PLAY LOCAL CAMERA
+        localTracks[1].play("local-user");
 
         await client.publish(localTracks);
 
-        console.log("Published stream");
-
+        console.log("Stream started");
 
     } catch (error) {
         console.error("JOIN ERROR:", error);
