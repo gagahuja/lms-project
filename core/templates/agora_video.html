@@ -60,6 +60,14 @@ button:hover {
     height: 100px;
 }
 
+.pinned {
+    grid-column: span 2;
+    grid-row: span 2;
+    height: 100%;
+}
+
+
+
 .video-box {
     width: 100%;
     height: 100%;
@@ -67,6 +75,7 @@ button:hover {
     background: black;
     border-radius: 10px;
     overflow: hidden;
+    cursor: pointer;
 }
 
 .remote-video {
@@ -333,7 +342,9 @@ const CHANNEL = "class_" + "{{ live_class.id|default:'1' }}";
 console.log("CHANNEL:", CHANNEL);
 
 let client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+client.enableAudioVolumeIndicator();
 let localTracks = [];
+
 
 function getCookie(name) {
     let cookieValue = null;
@@ -447,7 +458,7 @@ function stopRecording() {
 
         let audioURL = URL.createObjectURL(blob);
 
-        addMessage(`<audio controls src="${audioURL}"></audio>`, "right");
+        addMessage(user, text)
 
         audioChunks = [];
     };
@@ -499,15 +510,16 @@ function askAI() {
 
 
 
-function addMessage(user, text) {
+function addMessage(user, text, side="left") {
     let box = document.getElementById("chat-messages");
 
     let msg = document.createElement("div");
-    msg.className = "msg";
+    msg.className = "msg " + (side === "right" ? "msg-right" : "msg-left");
 
     msg.innerHTML = `
         <strong>${user}</strong><br>
         ${text}
+        <span class="msg-time">${new Date().toLocaleTimeString()}</span>
     `;
 
     box.appendChild(msg);
@@ -521,11 +533,11 @@ function toggleEmoji() {
 }
 
 document.querySelectorAll("#emojiBox span").forEach(el => {
-    el.addEventListener("click", function() {
+    el.onclick = () => {
         let input = document.getElementById("chat-input");
-        input.value += this.innerText;
+        input.value += el.innerText;
         input.focus();
-    });
+    };
 });
 
 
@@ -571,7 +583,7 @@ socket.onmessage = function(e) {
         return;
     }
 
-    addMessage(data.user, data.message);
+    addMessage(data.user, data.message, "left");
 };
 
 function sendMessage() {
@@ -580,14 +592,12 @@ function sendMessage() {
 
     if (!message) return;
 
-    // send to socket
     socket.send(JSON.stringify({
         type: "chat",
         message: message
     }));
 
-    // show instantly
-    addMessage("You", message);
+    addMessage("You", message, "right");
 
     input.value = "";
 }
@@ -604,6 +614,7 @@ function sendMessage() {
                 let player = document.createElement("div");
                 player.id = "user-" + user.uid;
                 player.className = "video-box";
+                player.onclick = () => pinVideo(player);
 
                 document.getElementById("remote-player").appendChild(player);
                 user.videoTrack.play(player);
@@ -623,6 +634,22 @@ function sendMessage() {
             updateLayout();   // ✅ INSIDE
         });
 
+
+        client.on("volume-indicator", function(volumes) {
+            volumes.forEach(function(user) {
+
+                let el = document.getElementById("user-" + user.uid);
+
+                if (el) {
+                    if (user.level > 5) {
+                        el.style.border = "3px solid limegreen";
+                    } else {
+                        el.style.border = "none";
+                    }
+                }
+            });
+        });
+
 async function joinStream() {
     console.log("Join clicked");
 
@@ -636,12 +663,16 @@ async function joinStream() {
         // CREATE LOCAL VIDEO BOX
         let localContainer = document.createElement("div");
         localContainer.className = "video-box";
+        localContainer.onclick = () => pinVideo(localContainer);
         localContainer.id = "local-user";
 
         document.getElementById("remote-player").appendChild(localContainer);
 
         // ✅ PLAY LOCAL CAMERA
         localTracks[1].play("local-user");
+
+        // ✅ AUTO PIN (ADD THIS LINE)
+        pinVideo(localContainer);
 
         await client.publish(localTracks);
 
@@ -650,6 +681,7 @@ async function joinStream() {
     } catch (error) {
         console.error("JOIN ERROR:", error);
     }
+    updateParticipants();
 }
 
 function updateLayout() {
@@ -695,6 +727,35 @@ function setGrid() {
 function setSpeaker() {
     let container = document.getElementById("remote-player");
     container.className = "speaker-view";
+}
+
+
+function updateParticipants() {
+    let list = document.getElementById("participants-list");
+    if (!list) return;
+
+    list.innerHTML = "";
+
+    // YOU
+    let me = document.createElement("div");
+    me.innerHTML = `🧑 You`;
+    list.appendChild(me);
+
+    // OTHERS
+    client.remoteUsers.forEach(user => {
+        let div = document.createElement("div");
+        div.innerHTML = `👤 User ${user.uid}`;
+        list.appendChild(div);
+    });
+}
+
+
+function pinVideo(element) {
+    let all = document.querySelectorAll(".video-box");
+
+    all.forEach(el => el.classList.remove("pinned"));
+
+    element.classList.add("pinned");
 }
 </script>
 
