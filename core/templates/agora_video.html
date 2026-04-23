@@ -34,6 +34,7 @@ button:hover {
 .video-container {
     width: 100%;
     height: 75vh;
+    display: flex;
 }
 
 
@@ -42,6 +43,7 @@ button:hover {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 10px;
+    height: 100%;
 }
 
 /* SPEAKER */
@@ -74,8 +76,8 @@ button:hover {
 
 /* REMOTE VIDEO (MAIN SCREEN) */
 #remote-player {
-    width: 100% !important;
-    height: 100% !important;
+    flex: 1;
+    height: 100%;
 }
 
 .remote-video-grid {
@@ -366,6 +368,7 @@ async function shareScreen() {
     document.getElementById("remote-player").appendChild(localContainer);
 
     localTracks[1].play(localContainer);
+    console.log("Video container:", document.getElementById("remote-player"));
 }
 
 function raiseHand() {
