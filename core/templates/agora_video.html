@@ -139,6 +139,7 @@ button:hover {
     max-width: 320px;
     width: 320px;
     flex-shrink: 0;
+    height: 75vh;
 }
 
 /* CHAT */
@@ -156,7 +157,7 @@ button:hover {
 .chat-box {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    height: 60%;
     background: #0f172a;
     border-radius: 12px;
     overflow: hidden;
@@ -235,7 +236,7 @@ button:hover {
 }
 /* PARTICIPANTS */
 .participants-box {
-    flex: 1;
+    height: 40%;
     background: #222;
     color: white;
     border-radius: 10px;
@@ -558,8 +559,10 @@ document.getElementById("fileInput").addEventListener("change", function() {
 
 const classId = "{{ live_class.id }}";
 
+let protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+
 let socket = new WebSocket(
-    'wss://' + window.location.host + '/ws/chat/{{ live_class.id }}/'
+    protocol + window.location.host + '/ws/chat/{{ live_class.id }}/'
 );
 
 socket.onopen = function() {
