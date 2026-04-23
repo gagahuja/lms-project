@@ -364,10 +364,18 @@ async function shareScreen() {
     // Show in grid (not replace)
     let localContainer = document.createElement("div");
     localContainer.className = "video-box";
+    localContainer.id = "local-user";
 
     document.getElementById("remote-player").appendChild(localContainer);
 
-    localTracks[1].play(localContainer);
+    // 🔥 IMPORTANT: use ID string
+    localTracks[1].play("local-user");
+    localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+
+    console.log("Tracks:", localTracks);
+
+    // 🔥 IMPORTANT FIX
+    await localTracks[1].setEnabled(true);
     console.log("Video container:", document.getElementById("remote-player"));
 }
 
@@ -599,7 +607,7 @@ function sendMessage() {
         client.on("user-joined", user => {
             console.log("User joined:", user.uid);
         });
-``
+
         client.on("user-published", async (user, mediaType) => {
             await client.subscribe(user, mediaType);
 
@@ -646,6 +654,7 @@ async function joinStream() {
         localContainer.id = "local-user";
 
         document.getElementById("remote-player").appendChild(localContainer);
+        console.log(document.getElementById("local-user"));
 
         // PLAY VIDEO HERE
         screenTrack.play(localContainer);
