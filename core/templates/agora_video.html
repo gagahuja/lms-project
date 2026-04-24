@@ -588,6 +588,14 @@ socket.onclose = function() {
 socket.onmessage = function(e) {
     const data = JSON.parse(e.data);
 
+    if (data.type === "kick_user") {
+        if (client.uid == data.target) {
+            alert("You have been removed by teacher ❌");
+            leaveCall();
+        }
+        return;
+    }
+
     // ✋ RAISE HAND
     if (data.type === "raise_hand") {
         let list = document.getElementById("participants-list");
@@ -800,6 +808,7 @@ function updateParticipants() {
 
         div.innerHTML = `
             👤 User ${user.uid} ${mic}
+            <button onclick="kickUser(${user.uid})">❌</button>
         `;
 
         list.appendChild(div);
@@ -832,6 +841,12 @@ function raiseHand() {
     alert("Hand Raised 🙋‍♂️");
 }
 
+function kickUser(uid) {
+    socket.send(JSON.stringify({
+        type: "kick_user",
+        target: uid
+    }));
+}
 </script>
 
 {% endblock %}

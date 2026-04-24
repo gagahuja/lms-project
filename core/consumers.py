@@ -41,6 +41,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "user": self.scope["user"].username,
                 }
             )
+        elif msg_type == "kick_user":
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "kick_command",
+                    "target": data.get("target"),
+                }
+            )
         else:
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -71,4 +79,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             "type": "raise_hand",
             "user": event["user"]
+        }))
+
+    async def kick_command(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "kick_user",
+            "target": event["target"]
         }))
