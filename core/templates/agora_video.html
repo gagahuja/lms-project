@@ -346,6 +346,7 @@ button:hover {
 <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
 
 <script>
+const isTeacher = "{{ request.user.is_staff }}" === "True";
 const APP_ID = "68983e3ac34747498d839a7e4c83a9c5";  // 🔴 PUT YOUR APP ID HERE
 const CHANNEL = "class_" + "{{ live_class.id|default:'1' }}";
 console.log("CHANNEL:", CHANNEL);
@@ -671,7 +672,7 @@ function sendMessage() {
             if (mediaType === "audio") {
                 user.audioTrack.play();
             }
-            updateLayout();
+            updateParticipants();
         });
         
 
@@ -679,7 +680,7 @@ function sendMessage() {
             let el = document.getElementById("user-" + user.uid);
             if (el) el.remove();
 
-            updateLayout();   // ✅ INSIDE
+            updateParticipants();   // ✅ INSIDE
         });
 
 
@@ -808,7 +809,7 @@ function updateParticipants() {
 
         div.innerHTML = `
             👤 User ${user.uid} ${mic}
-            <button onclick="kickUser(${user.uid})">❌</button>
+            ${isTeacher ? `<button onclick="kickUser(${user.uid})">❌</button>` : ""}
         `;
 
         list.appendChild(div);
