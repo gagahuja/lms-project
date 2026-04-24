@@ -243,6 +243,13 @@ button:hover {
     padding: 10px;
     overflow-y: auto;
 }
+
+.hand-raised {
+    color: yellow;
+    font-weight: bold;
+    padding: 5px;
+    border-bottom: 1px solid #444;
+}
 </style>
 
 
@@ -265,6 +272,7 @@ button:hover {
             <button onclick="joinStream()" title="Join Class">🟢</button>
             <button onclick="toggleMic()" title="Mute / Unmute">🎤</button>
             <button onclick="toggleCamera()" title="Camera On/Off">📷</button>
+            <button onclick="raiseHand()" title="Raise Hand">✋</button>
             <button onclick="setGrid()" title="Grid View">🔲</button>
             <button onclick="setSpeaker()" title="Speaker View">🎯</button>
             <button onclick="shareScreen()" title="Share Screen">🖥</button>
@@ -580,12 +588,41 @@ socket.onclose = function() {
 socket.onmessage = function(e) {
     const data = JSON.parse(e.data);
 
+    // ✋ RAISE HAND
+    if (data.type === "raise_hand") {
+        let list = document.getElementById("participants-list");
+
+        let notice = document.createElement("div");
+        notice.className = "hand-raised";
+        notice.innerHTML = `✋ ${data.user} raised hand`;
+
+        list.prepend(notice);
+
+        return;
+    }
+
+    // 🔇 MUTE COMMAND (ADD THIS BLOCK)
+    if (data.type === "mute_user") {
+        let myUid = client.uid;
+
+        if (myUid == data.target) {
+            if (localTracks[0]) {
+                localTracks[0].setEnabled(false);
+
+                alert("You have been muted by teacher 🔇");
+            }
+        }
+        return;
+    }
+
+    // ❌ END CLASS
     if (data.type === "end_class") {
         alert("Class ended");
         window.location.href = "/dashboard/";
         return;
     }
 
+    // 💬 CHAT (existing)
     addMessage(data.user, data.message, "left");
 };
 
@@ -658,6 +695,7 @@ async function joinStream() {
 
     try {
         const UID = Math.floor(Math.random() * 10000);
+        client.uid = UID;
 
         await client.join(APP_ID, CHANNEL, null, UID);
 
@@ -739,17 +777,41 @@ function updateParticipants() {
 
     list.innerHTML = "";
 
-    // YOU
+    // 🧑 CURRENT USER (YOU)
     let me = document.createElement("div");
-    me.innerHTML = `🧑 You`;
+
+    let myMic = "🔇";
+    if (localTracks.length && localTracks[0] && localTracks[0].enabled) {
+        myMic = "🎤";
+    }
+
+    me.innerHTML = `
+        🧑 You ${myMic}
+    `;
+
     list.appendChild(me);
 
-    // OTHERS
+    // 👥 REMOTE USERS
     client.remoteUsers.forEach(user => {
         let div = document.createElement("div");
-        div.innerHTML = `👤 User ${user.uid}`;
+
+        // 🎤 mic status (Agora provides hasAudio)
+        let mic = user.hasAudio ? "🎤" : "🔇";
+
+        div.innerHTML = `
+            👤 User ${user.uid} ${mic}
+        `;
+
         list.appendChild(div);
     });
+}
+
+
+function muteUser(uid) {
+    socket.send(JSON.stringify({
+        type: "mute_user",
+        target: uid
+    }));
 }
 
 
@@ -760,6 +822,16 @@ function pinVideo(element) {
 
     element.classList.add("pinned");
 }
+
+
+function raiseHand() {
+    socket.send(JSON.stringify({
+        type: "raise_hand"
+    }));
+
+    alert("Hand Raised 🙋‍♂️");
+}
+
 </script>
 
 {% endblock %}
