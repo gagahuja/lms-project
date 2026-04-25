@@ -1,13 +1,14 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 
+
 class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
-        self.room_group_name = 'chat_%s' % self.room_name
+        self.room_group_name = f'chat_{self.room_name}'
 
-        self.username = self.scope["user"].username  # ✅ ADD THIS
+        self.username = self.scope["user"].username
 
         await self.channel_layer.group_add(
             self.room_group_name,
@@ -33,11 +34,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 {
                     "type": "chat_message",
                     "message": data.get("message"),
-                    "user": self.scope["user"].username,
+                    "user": self.username,
                 }
             )
 
-        # ❌ KICK
+        # ❌ KICK USER
         elif msg_type == "kick_user":
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -47,7 +48,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 }
             )
 
-        # 👤 USER JOIN
+        # 👤 USER JOIN (for name mapping)
         elif msg_type == "user_join":
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -57,14 +58,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "username": data.get("username"),
                 }
             )
-        
-
-
-    async def mute_command(self, event):
-        await self.send(text_data=json.dumps({
-            "type": "mute_user",
-            "target": event["target"]
-        }))
 
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
@@ -73,16 +66,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "user": event["user"],
         }))
 
-    async def raise_hand_event(self, event):
-        await self.send(text_data=json.dumps({
-            "type": "raise_hand",
-            "user": event["user"]
-        }))
-
     async def kick_command(self, event):
         await self.send(text_data=json.dumps({
             "type": "kick_user",
-            "target": event["target"]
+            "target": event["target"],
         }))
 
     async def user_join_event(self, event):
