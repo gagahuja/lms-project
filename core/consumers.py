@@ -4,8 +4,10 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
-        self.class_id = self.scope['url_route']['kwargs']['class_id']
-        self.room_group_name = f'chat_{self.class_id}'
+        self.room_name = self.scope['url_route']['kwargs']['room_name']
+        self.room_group_name = 'chat_%s' % self.room_name
+
+        self.username = self.scope["user"].username  # ✅ ADD THIS
 
         await self.channel_layer.group_add(
             self.room_group_name,
@@ -48,13 +50,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "user": self.scope["user"].username,
                 }
             )
+        elif msg_type == "user_join":
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "user_join_event",
+                    "uid": data.get("uid"),
+                    "username": data.get("username"),
+                }
+            )
         else:
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
                     "type": "chat_message",
                     "message": data.get("message"),
-                    "user": self.scope["user"].username,
+                    "user": self.username,
                 }
             )
         
@@ -68,9 +79,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
+            "type": "chat",
             "message": event["message"],
             "user": event["user"],
-            "type": event.get("msg_type", "chat")
         }))
 
     async def raise_hand_event(self, event):
@@ -83,4 +94,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             "type": "kick_user",
             "target": event["target"]
+        }))
+
+    async def user_join_event(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "user_join",
+            "uid": event["uid"],
+            "username": event["username"],
         }))

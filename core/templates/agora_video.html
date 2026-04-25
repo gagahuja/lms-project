@@ -346,6 +346,7 @@ button:hover {
 <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
 
 <script>
+let userMap = {};
 const isTeacher = "{{ request.user.is_staff }}" === "True";
 const APP_ID = "68983e3ac34747498d839a7e4c83a9c5";  // 🔴 PUT YOUR APP ID HERE
 const CHANNEL = "class_" + "{{ live_class.id|default:'1' }}";
@@ -475,13 +476,6 @@ function stopRecording() {
 }
 
 
-function kickUser(uid) {
-    let el = document.getElementById(`user-${uid}`);
-    if (el) el.remove();
-
-    alert("User removed (UI only)");
-}
-
 function addEmoji(emoji) {
     let input = document.getElementById("chat-input");
     input.value += emoji;
@@ -587,10 +581,16 @@ socket.onclose = function() {
 };
 
 socket.onmessage = function(e) {
+    if (data.type === "user_join") {
+        userMap[data.uid] = data.username;
+        updateParticipants();
+        return;
+    }
+
     const data = JSON.parse(e.data);
 
     if (data.type === "kick_user") {
-        if (client.uid == data.target) {
+        if (String(client.uid) === String(data.target)) {
             alert("You have been removed by teacher ❌");
             leaveCall();
         }
@@ -708,6 +708,15 @@ async function joinStream() {
 
         await client.join(APP_ID, CHANNEL, null, UID);
 
+        client.uid = UID;  // (you should already have this)
+        userMap[client.uid] = "{{ request.user.username }}";  // ✅ ADD THIS
+
+        socket.send(JSON.stringify({
+            type: "user_join",
+            uid: client.uid,
+            username: "{{ request.user.username }}"
+        }));
+
         localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
 
         // CREATE LOCAL VIDEO BOX
@@ -808,7 +817,7 @@ function updateParticipants() {
         let mic = user.hasAudio ? "🎤" : "🔇";
 
         div.innerHTML = `
-            👤 User ${user.uid} ${mic}
+            👤 User ${userMap[user.uid] || "User"} ${mic}
             ${isTeacher ? `<button onclick="kickUser(${user.uid})">❌</button>` : ""}
         `;
 
@@ -848,6 +857,8 @@ function kickUser(uid) {
         target: uid
     }));
 }
+
+
 </script>
 
 {% endblock %}
