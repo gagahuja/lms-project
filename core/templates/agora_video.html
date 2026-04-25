@@ -78,6 +78,17 @@ button:hover {
     cursor: pointer;
 }
 
+.video-label {
+    position: absolute;
+    bottom: 5px;
+    left: 5px;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    padding: 3px 6px;
+    font-size: 12px;
+    border-radius: 5px;
+}
+
 .remote-video {
     width: 100%;
     height: 100%;
@@ -581,14 +592,16 @@ socket.onclose = function() {
 };
 
 socket.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+
+    // 👤 USER JOIN
     if (data.type === "user_join") {
         userMap[data.uid] = data.username;
         updateParticipants();
         return;
     }
 
-    const data = JSON.parse(e.data);
-
+    // ❌ KICK USER
     if (data.type === "kick_user") {
         if (String(client.uid) === String(data.target)) {
             alert("You have been removed by teacher ❌");
@@ -596,6 +609,13 @@ socket.onmessage = function(e) {
         }
         return;
     }
+
+    // 💬 CHAT
+    if (data.type === "chat") {
+        addMessage(data.user, data.message, "left");
+        return;
+    }
+};
 
     // ✋ RAISE HAND
     if (data.type === "raise_hand") {
@@ -631,9 +651,7 @@ socket.onmessage = function(e) {
         return;
     }
 
-    // 💬 CHAT (existing)
-    addMessage(data.user, data.message, "left");
-};
+    
 
 function sendMessage() {
     let input = document.getElementById("chat-input");
@@ -664,6 +682,16 @@ function sendMessage() {
                 player.id = "user-" + user.uid;
                 player.className = "video-box";
                 player.onclick = () => pinVideo(player);
+                let label = document.createElement("div");
+                label.className = "video-label";
+
+                let name = userMap[user.uid] || "User";
+                let mic = user.hasAudio ? "🎤" : "🔇";
+
+                label.innerText = name + " " + mic;
+
+                player.style.position = "relative";
+                player.appendChild(label);
 
                 document.getElementById("remote-player").appendChild(player);
                 user.videoTrack.play(player);
@@ -721,6 +749,12 @@ async function joinStream() {
 
         // CREATE LOCAL VIDEO BOX
         let localContainer = document.createElement("div");
+        let label = document.createElement("div");
+        label.className = "video-label";
+        label.innerText = "{{ request.user.username }} 🎤";
+
+        localContainer.style.position = "relative";
+        localContainer.appendChild(label);
         localContainer.className = "video-box";
         localContainer.onclick = () => pinVideo(localContainer);
         localContainer.id = "local-user";
@@ -822,6 +856,21 @@ function updateParticipants() {
         `;
 
         list.appendChild(div);
+    });
+
+
+    document.querySelectorAll(".video-box").forEach(box => {
+        let uid = box.id.replace("user-", "");
+
+        let label = box.querySelector(".video-label");
+        if (!label) return;
+
+        let name = userMap[uid] || "User";
+
+        let user = client.remoteUsers.find(u => String(u.uid) === uid);
+        let mic = user && user.hasAudio ? "🎤" : "🔇";
+
+        label.innerText = name + " " + mic;
     });
 }
 

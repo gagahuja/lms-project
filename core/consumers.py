@@ -26,46 +26,35 @@ class ChatConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         msg_type = data.get("type")
 
-        if msg_type == "kick_user":
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    "type": "kick_command",
-                    "target": data.get("target"),
-                }
-            )
-        elif msg_type == "mute_user":
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    "type": "mute_command",
-                    "target": data.get("target"),
-                }
-            )
-        elif msg_type == "raise_hand":
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    "type": "raise_hand_event",
-                    "user": self.scope["user"].username,
-                }
-            )
-        elif msg_type == "user_join":
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    "type": "user_join_event",
-                    "uid": data.get("uid"),
-                    "username": data.get("username"),
-                }
-            )
-        else:
+        # 💬 CHAT
+        if msg_type == "chat":
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
                     "type": "chat_message",
                     "message": data.get("message"),
-                    "user": self.username,
+                    "user": self.scope["user"].username,
+                }
+            )
+
+        # ❌ KICK
+        elif msg_type == "kick_user":
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "kick_command",
+                    "target": str(data.get("target")),
+                }
+            )
+
+        # 👤 USER JOIN
+        elif msg_type == "user_join":
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "user_join_event",
+                    "uid": str(data.get("uid")),
+                    "username": data.get("username"),
                 }
             )
         
