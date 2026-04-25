@@ -1253,3 +1253,19 @@ def ai_help(request):
     answer = "This is AI response to: " + question
 
     return JsonResponse({"answer": answer})
+
+
+from django.http import JsonResponse
+from .models import ChatFile
+
+def upload_file(request):
+    if request.method == "POST":
+        file = request.FILES.get("file")
+        obj = ChatFile.objects.create(
+            user=request.user,
+            file=file
+        )
+        return JsonResponse({
+            "url": obj.file.url,
+            "name": file.name
+        })

@@ -227,3 +227,8 @@ class CallAnswer(models.Model):
 class IceCandidate(models.Model):
     candidate = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+class ChatFile(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    file = models.FileField(upload_to="chat_files/")
+    uploaded_at = models.DateTimeField(auto_now_add=True)

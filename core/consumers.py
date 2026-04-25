@@ -6,15 +6,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
-        self.room_group_name = f'chat_{self.room_name}'
-
+        self.room_group_name = f'room_{self.room_name}'
         self.username = self.scope["user"].username
 
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
-
         await self.accept()
 
     async def disconnect(self, close_code):
@@ -27,7 +25,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         msg_type = data.get("type")
 
-        # 💬 CHAT
         if msg_type == "chat":
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -38,43 +35,63 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 }
             )
 
-        # ❌ KICK USER
-        elif msg_type == "kick_user":
+        elif msg_type == "kick":
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
-                    "type": "kick_command",
-                    "target": str(data.get("target")),
+                    "type": "kick_user",
+                    "target": str(data.get("target"))
                 }
             )
 
-        # 👤 USER JOIN (for name mapping)
-        elif msg_type == "user_join":
+        elif msg_type == "mute_all":
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {"type": "mute_all_event"}
+            )
+
+        elif msg_type == "draw":
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
-                    "type": "user_join_event",
-                    "uid": str(data.get("uid")),
-                    "username": data.get("username"),
+                    "type": "draw_event",
+                    "x": data.get("x"),
+                    "y": data.get("y")
                 }
+            )
+
+        elif msg_type == "end_class":
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {"type": "end_class_event"}
             )
 
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
             "type": "chat",
-            "message": event["message"],
             "user": event["user"],
+            "message": event["message"]
         }))
 
-    async def kick_command(self, event):
+    async def kick_user(self, event):
         await self.send(text_data=json.dumps({
-            "type": "kick_user",
-            "target": event["target"],
+            "type": "kick",
+            "target": event["target"]
         }))
 
-    async def user_join_event(self, event):
+    async def mute_all_event(self, event):
         await self.send(text_data=json.dumps({
-            "type": "user_join",
-            "uid": event["uid"],
-            "username": event["username"],
+            "type": "mute_all"
+        }))
+
+    async def end_class_event(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "end_class"
+        }))
+
+    async def draw_event(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "draw",
+            "x": event["x"],
+            "y": event["y"]
         }))

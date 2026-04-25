@@ -59,6 +59,7 @@ urlpatterns = [
     path('send-message/<int:class_id>/', views.send_message),
     path('get-messages/<int:class_id>/', views.get_messages),
     path('ai-help/', views.ai_help),
+    path("upload-file/", views.upload_file, name="upload_file"),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
