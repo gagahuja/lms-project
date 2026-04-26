@@ -42,12 +42,22 @@
         }
 
         .video-box {
-            position: relative;
             background: black;
             width: 100%;
-            height: 300px;  /* 🔥 THIS IS THE FIX */
+            height: 200px;  /* 🔥 THIS IS THE FIX */
             border-radius: 10px;
             overflow: hidden;
+        }
+
+        /* MAIN VIDEO BOX */
+        .main-video .video-box {
+            width: 90%;
+            height: 80%;
+        }
+
+        /* ACTIVE SPEAKER */
+        .active-speaker {
+            border: 3px solid #22c55e; /* green */
         }
 
         .video-label {
@@ -57,6 +67,29 @@
             background:rgba(0,0,0,0.6);
             padding:3px 6px;
             font-size:12px;
+        }
+
+        .video-layout {
+            display: flex;
+            height: 100%;
+        }
+
+        /* MAIN VIDEO */
+        .main-video {
+            flex: 3;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* SIDE GRID */
+        .side-videos {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px;
+            overflow-y: auto;
         }
 
         /* CHAT PANEL */
@@ -127,9 +160,15 @@
 
     <div class="main">
 
-    <!-- VIDEO AREA -->
-    <div class="video-section">
-        <div id="video-container" class="video-grid"></div>
+        <!-- VIDEO AREA -->
+        <div class="video-layout">
+
+        <!-- MAIN VIDEO -->
+        <div id="main-video" class="main-video"></div>
+
+        <!-- SIDE GRID -->
+        <div id="side-videos" class="side-videos"></div>
+
     </div>
 
     <!-- RIGHT PANEL -->
@@ -158,6 +197,8 @@
     <button onclick="join()">Join</button>
     <button onclick="toggleMic()">Mic</button>
     <button onclick="toggleCam()">Cam</button>
+    <button onclick="setGrid()">Grid</button>
+    <button onclick="setSpotlight()">Spotlight</button>
     <button onclick="shareScreen()">Share</button>
 
     {% if request.user.is_staff %}
@@ -178,6 +219,8 @@ let localTracks = [];
 let socket;
 let userMap = {};
 let isTeacher = "{{ request.user.is_staff }}" === "True";
+let users = {};
+let activeUser = null;
 
 // SOCKET
 let wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
@@ -227,11 +270,14 @@ async function join(){
     localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
 
     let box = createVideoBox(UID, "{{ request.user.username }}");
+
+    document.getElementById("main-video").appendChild(box);
+
     localTracks[1].play("user-" + UID);
 
-    await client.publish(localTracks);
+    activeUser = UID;
 
-    updateParticipants();
+    await client.publish(localTracks);
 }
 
 // REMOTE
@@ -240,14 +286,15 @@ client.on("user-published", async(user, mediaType)=>{
 
     let box = createVideoBox(user.uid, "User");
 
+    document.getElementById("side-videos").appendChild(box);
+
     if(mediaType==="video"){
-        user.videoTrack.play(box);
+        user.videoTrack.play("user-" + user.uid);
     }
+
     if(mediaType==="audio"){
         user.audioTrack.play();
     }
-
-    updateParticipants();
 });
 
 // VIDEO BOX
@@ -262,9 +309,9 @@ function createVideoBox(uid, name){
 
     box.appendChild(label);
 
-    document.getElementById("video-container").appendChild(box);
+    users[uid] = box;
 
-    return box.id; // 🔥 IMPORTANT: return ID not element
+    return box;
 }
 
 // CHAT
@@ -403,6 +450,65 @@ document.getElementById("chat-input").addEventListener("keypress", function(e){
         sendMessage();
     }
 });
+
+
+document.addEventListener("click", function(e){
+    let box = e.target.closest(".video-box");
+    if(!box) return;
+
+    let uid = box.id.replace("user-", "");
+
+    setMainVideo(uid);
+});
+
+
+function setMainVideo(uid){
+
+    let main = document.getElementById("main-video");
+    let side = document.getElementById("side-videos");
+
+    let selected = users[uid];
+
+    if(!selected) return;
+
+    // remove previous active border
+    document.querySelectorAll(".video-box").forEach(b => b.classList.remove("active-speaker"));
+
+    selected.classList.add("active-speaker");
+
+    main.innerHTML = "";
+    main.appendChild(selected);
+
+    activeUser = uid;
+}
+
+
+client.enableAudioVolumeIndicator();
+
+client.on("volume-indicator", volumes => {
+    volumes.forEach(v => {
+        if(v.level > 5){ // speaking threshold
+            setMainVideo(v.uid);
+        }
+    });
+});
+
+
+function setGrid(){
+    let main = document.getElementById("main-video");
+    let side = document.getElementById("side-videos");
+
+    side.innerHTML = "";
+
+    Object.values(users).forEach(box=>{
+        main.appendChild(box);
+    });
+}
+
+function setSpotlight(){
+    // restore layout
+    location.reload();
+}
 
 </script>
 
