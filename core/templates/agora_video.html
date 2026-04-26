@@ -183,6 +183,7 @@
             overflow-y: auto;
             border-top: 1px solid #333;
             padding: 10px;
+            font-size: 14px;
         }
 
     </style>
@@ -297,6 +298,9 @@ async function join(){
 
     let box = createVideoBox(UID, "{{ request.user.username }}");
 
+    users[UID] = true;
+    updateParticipants();
+
     document.getElementById("main-video").appendChild(box);
 
     localTracks[1].play("user-" + UID);
@@ -304,13 +308,18 @@ async function join(){
     activeUser = UID;
 
     await client.publish(localTracks);
+    
 }
+
 
 // REMOTE
 client.on("user-published", async(user, mediaType)=>{
     await client.subscribe(user, mediaType);
 
     let box = createVideoBox(user.uid, "User");
+
+    users[user.uid] = true;
+    updateParticipants();
 
     document.getElementById("side-videos").appendChild(box);
 
@@ -392,16 +401,26 @@ function addMessage(user, msg){
 
 // PARTICIPANTS
 function updateParticipants(){
-    let div=document.getElementById("participants");
-    div.innerHTML="";
+    let div = document.getElementById("participants");
 
-    client.remoteUsers.forEach(u=>{
-        div.innerHTML+=`
-            <div>
-                User ${u.uid}
-                ${isTeacher ? `<button onclick="kick(${u.uid})">❌</button>`:""}
-            </div>
+    if(!div) return;
+
+    div.innerHTML = "";
+
+    Object.keys(users).forEach(uid => {
+
+        let item = document.createElement("div");
+
+        item.style.display = "flex";
+        item.style.justifyContent = "space-between";
+        item.style.marginBottom = "5px";
+
+        item.innerHTML = `
+            <span>User ${uid}</span>
+            ${isTeacher ? `<button onclick="kick(${uid})">❌</button>` : ""}
         `;
+
+        div.appendChild(item);
     });
 }
 
@@ -492,15 +511,15 @@ document.addEventListener("click", function(e){
 
 function setMainVideo(uid){
 
-    let main = document.getElementById("main-video");
-    let side = document.getElementById("side-videos");
+    if(activeUser == uid) return; // 🔥 IMPORTANT
 
+    let main = document.getElementById("main-video");
     let selected = users[uid];
 
     if(!selected) return;
 
-    // remove previous active border
-    document.querySelectorAll(".video-box").forEach(b => b.classList.remove("active-speaker"));
+    document.querySelectorAll(".video-box")
+        .forEach(b => b.classList.remove("active-speaker"));
 
     selected.classList.add("active-speaker");
 
@@ -513,11 +532,20 @@ function setMainVideo(uid){
 
 client.enableAudioVolumeIndicator();
 
+let lastSwitch = 0;
+
 client.on("volume-indicator", volumes => {
     volumes.forEach(v => {
-        if(v.level > 5){ // speaking threshold
-            setMainVideo(v.uid);
+
+        if(v.level > 5){
+            let now = Date.now();
+
+            if(now - lastSwitch > 2000){ // 🔥 2 sec delay
+                setMainVideo(v.uid);
+                lastSwitch = now;
+            }
         }
+
     });
 });
 
@@ -537,6 +565,16 @@ function setSpotlight(){
     // restore layout
     location.reload();
 }
+
+client.on("user-left", user => {
+
+    delete users[user.uid];
+
+    let el = document.getElementById("user-" + user.uid);
+    if(el) el.remove();
+
+    updateParticipants();
+});
 
 </script>
 
