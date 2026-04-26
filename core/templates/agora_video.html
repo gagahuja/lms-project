@@ -30,6 +30,7 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 10px;
+            height: 100%;
         }
 
         .video-area {
@@ -40,7 +41,14 @@
             padding:10px;
         }
 
-        .video-box { position:relative; background:black; }
+        .video-box {
+            position: relative;
+            background: black;
+            width: 100%;
+            height: 300px;  /* 🔥 THIS IS THE FIX */
+            border-radius: 10px;
+            overflow: hidden;
+        }
 
         .video-label {
             position:absolute;
@@ -219,7 +227,7 @@ async function join(){
     localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
 
     let box = createVideoBox(UID, "{{ request.user.username }}");
-    localTracks[1].play(box);
+    localTracks[1].play("user-" + UID);
 
     await client.publish(localTracks);
 
@@ -245,18 +253,18 @@ client.on("user-published", async(user, mediaType)=>{
 // VIDEO BOX
 function createVideoBox(uid, name){
     let box = document.createElement("div");
-    box.className="video-box";
-    box.id="user-"+uid;
+    box.className = "video-box";
+    box.id = "user-" + uid;
 
     let label = document.createElement("div");
-    label.className="video-label";
-    label.innerText=name+" 🎤";
+    label.className = "video-label";
+    label.innerText = name;
 
     box.appendChild(label);
 
     document.getElementById("video-container").appendChild(box);
 
-    return box;
+    return box.id; // 🔥 IMPORTANT: return ID not element
 }
 
 // CHAT
