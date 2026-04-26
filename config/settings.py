@@ -169,8 +169,13 @@ RAZORPAY_SECRET = os.environ.get("RAZORPAY_SECRET")
 
 ASGI_APPLICATION = 'config.asgi.application'
 
+import os
+
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [os.environ.get("https://lms-project-luio.onrender.com")],
+        },
     },
 }

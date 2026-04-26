@@ -105,8 +105,10 @@ let userMap = {};
 let isTeacher = "{{ request.user.is_staff }}" === "True";
 
 // SOCKET
-let protocol = location.protocol === "https:" ? "wss://" : "ws://";
-socket = new WebSocket(protocol + window.location.host + "/ws/chat/{{ live_class.id }}/");
+let wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+socket = new WebSocket(
+    wsScheme + "://" + window.location.host + "/ws/chat/{{ live_class.id }}/"
+);
 
 socket.onmessage = e => {
     let data = JSON.parse(e.data);
@@ -295,7 +297,7 @@ async function uploadFile(){
     formData.append("file", fileInput.files[0]);
 
     try{
-        let res = await fetch("/upload-file/", {
+        let res = await fetch(window.location.origin + "/upload-file/", {
             method: "POST",
             body: formData
         });
