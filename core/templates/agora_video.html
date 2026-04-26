@@ -10,10 +10,15 @@
     <style>
         body { margin:0; font-family: Arial; background:#111; color:white; }
 
-        .main { display:flex; height:100vh; }
+        .main {
+            display: flex;
+            height: 100vh;
+        }
+
+
 
         .video-area {
-            flex:3;
+            flex:4;
             display:grid;
             grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
             gap:10px;
@@ -58,7 +63,6 @@
 
     <div id="video-container" class="video-area"></div>
 
-    <canvas id="board" width="800" height="500" style="background:white;"></canvas>
 
     <div class="side">
         <div id="chat-box" class="chat"></div>
@@ -107,13 +111,16 @@ socket = new WebSocket(protocol + window.location.host + "/ws/chat/{{ live_class
 socket.onmessage = e => {
     let data = JSON.parse(e.data);
 
-    if (data.type === "draw") {
-        ctx.fillRect(data.x, data.y, 2, 2);
-        return;
-    }
 
     if(data.type==="chat"){
-        addMessage(data.user, data.message);
+        let user = data.user;
+
+        // mark own messages
+        if(user === "{{ request.user.username }}"){
+            user = "You";
+        }
+
+        addMessage(user, data.message);
     }
 
     if(data.type==="kick"){
@@ -185,19 +192,38 @@ function createVideoBox(uid, name){
 
 // CHAT
 function sendMessage(){
-    let msg = document.getElementById("chat-input").value;
+    let input = document.getElementById("chat-input");
+    let msg = input.value.trim();
+
+    if(!msg) return; // prevent empty
 
     socket.send(JSON.stringify({
         type:"chat",
         message:msg
     }));
 
-    addMessage("You", msg);
+    input.value = "";
 }
 
 function addMessage(user, msg){
-    let box=document.getElementById("chat-box");
-    box.innerHTML += `<div><b>${user}:</b> ${msg}</div>`;
+    let box = document.getElementById("chat-box");
+
+    let div = document.createElement("div");
+    div.style.marginBottom = "6px";
+
+    let name = document.createElement("b");
+    name.innerText = user + ": ";
+
+    let text = document.createElement("span");
+    text.innerHTML = msg; // allow links
+
+    div.appendChild(name);
+    div.appendChild(text);
+
+    box.appendChild(div);
+
+    // auto scroll
+    box.scrollTop = box.scrollHeight;
 }
 
 // PARTICIPANTS
@@ -265,28 +291,13 @@ async function uploadFile(){
 }
 
 
-let canvas = document.getElementById("board");
-let ctx = canvas.getContext("2d");
-
-let drawing = false;
-
-canvas.onmousedown = () => drawing = true;
-canvas.onmouseup = () => drawing = false;
-
-canvas.onmousemove = e => {
-    if(!drawing) return;
-
-    let x = e.offsetX;
-    let y = e.offsetY;
-
-    ctx.fillRect(x, y, 2, 2);
-
-    socket.send(JSON.stringify({
-        type:"draw",
-        x:x,
-        y:y
-    }));
-};
+// ENTER key to send message
+document.getElementById("chat-input").addEventListener("keypress", function(e){
+    if(e.key === "Enter"){
+        e.preventDefault(); // prevents newline / form issues
+        sendMessage();
+    }
+});
 
 </script>
 

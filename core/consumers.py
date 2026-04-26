@@ -26,14 +26,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
         msg_type = data.get("type")
 
         if msg_type == "chat":
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    "type": "chat_message",
-                    "message": data.get("message"),
-                    "user": self.username,
-                }
-            )
+            message = data.get("message", "").strip()
+
+            if message:  # prevent empty
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        "type": "chat_message",
+                        "message": message,
+                        "user": self.username,
+                    }
+                )
 
         elif msg_type == "kick":
             await self.channel_layer.group_send(
@@ -50,15 +53,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 {"type": "mute_all_event"}
             )
 
-        elif msg_type == "draw":
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    "type": "draw_event",
-                    "x": data.get("x"),
-                    "y": data.get("y")
-                }
-            )
 
         elif msg_type == "end_class":
             await self.channel_layer.group_send(
@@ -89,9 +83,4 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "type": "end_class"
         }))
 
-    async def draw_event(self, event):
-        await self.send(text_data=json.dumps({
-            "type": "draw",
-            "x": event["x"],
-            "y": event["y"]
-        }))
+    
