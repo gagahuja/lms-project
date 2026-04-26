@@ -289,6 +289,7 @@ socket.onmessage = e => {
 
 // JOIN
 async function join(){
+
     let UID = Math.floor(Math.random()*10000);
     client.uid = UID;
 
@@ -302,14 +303,15 @@ async function join(){
 
     localTracks[1].play("user-" + UID);
 
+    users[UID] = "{{ request.user.username }}";  // ✅ FIX
+    updateParticipants();
+
     activeUser = UID;
 
     await client.publish(localTracks);
-    
 }
 
-users[UID] = true;
-updateParticipants();
+
 
 
 // REMOTE
@@ -318,20 +320,20 @@ client.on("user-published", async(user, mediaType)=>{
     await client.subscribe(user, mediaType);
 
     if(mediaType === "video"){
-        let box = createVideoBox(user.uid, "User");
 
-        users[UID] = "{{ request.user.username }}";
-        updateParticipants();
+        let box = createVideoBox(user.uid, "User");
 
         document.getElementById("side-videos").appendChild(box);
 
         user.videoTrack.play("user-" + user.uid);
+
+        users[user.uid] = "User";
+        updateParticipants();
     }
 
     if(mediaType === "audio"){
         user.audioTrack.play();
     }
-
 });
 
 // VIDEO BOX
@@ -343,7 +345,7 @@ function createVideoBox(uid, name){
 
     let label = document.createElement("div");
     label.className = "video-label";
-    label.innerText = name + " 🎤"; // 🔥 mic indicator
+    label.innerText = name + " 🎤";
 
     box.appendChild(label);
 
