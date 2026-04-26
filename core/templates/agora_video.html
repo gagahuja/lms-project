@@ -20,10 +20,17 @@
             height: 100vh;
         }
 
+        .main-container {
+            display: flex;
+            height: 100vh;
+        }
+
         /* VIDEO */
         .video-section {
-            flex: 3;
-            padding: 10px;
+            flex: 4;  /* 🔥 MORE SPACE */
+            display: flex;
+            flex-direction: column;
+            background: #0f172a;
         }
 
         .video-grid {
@@ -41,19 +48,21 @@
             padding:10px;
         }
 
+        /* VIDEO BOX */
         .video-box {
             background: black;
-            width: 100%;
-            height: 200px;  /* 🔥 THIS IS THE FIX */
             border-radius: 10px;
             overflow: hidden;
+            position: relative;
         }
 
-        /* MAIN VIDEO BOX */
+        /* MAIN VIDEO SIZE */
         .main-video .video-box {
             width: 90%;
-            height: 80%;
+            height: 90%;
         }
+
+
 
         /* ACTIVE SPEAKER */
         .active-speaker {
@@ -76,20 +85,25 @@
 
         /* MAIN VIDEO */
         .main-video {
-            flex: 3;
+            flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
         }
 
-        /* SIDE GRID */
+        /* SIDE VIDEOS */
         .side-videos {
-            flex: 1;
+            height: 120px;
             display: flex;
-            flex-direction: column;
             gap: 10px;
             padding: 10px;
-            overflow-y: auto;
+            overflow-x: auto;
+        }
+
+        /* SIDE VIDEO SIZE */
+        .side-videos .video-box {
+            width: 160px;
+            height: 100px;
         }
 
         /* CHAT PANEL */
@@ -99,6 +113,14 @@
             flex-direction: column;
             background: #111827;
             border-left: 1px solid #333;
+        }
+
+        /* CHAT SECTION */
+        .chat-section {
+            flex: 1;  /* 🔥 SMALLER */
+            display: flex;
+            flex-direction: column;
+            background: #111827;
         }
 
         /* CHAT BOX */
@@ -112,14 +134,11 @@
         .chat-input-area {
             display: flex;
             padding: 10px;
-            border-top: 1px solid #333;
         }
 
         .chat-input-area input {
             flex: 1;
             padding: 8px;
-            border-radius: 6px;
-            border: none;
         }
 
         .chat-input-area button {
@@ -129,7 +148,6 @@
         /* FILE */
         .file-upload {
             padding: 10px;
-            border-top: 1px solid #333;
         }
 
 
@@ -151,45 +169,45 @@
         .side { flex:1; display:flex; flex-direction:column; }
 
         .chat { flex:1; overflow:auto; padding:10px; }
-        .participants { flex:1; overflow:auto; padding:10px; border-top:1px solid #444; }
+
+        .participants {
+            height: 120px;
+            overflow-y: auto;
+            border-top: 1px solid #333;
+            padding: 10px;
+        }
 
     </style>
 
 
 <div class="main">
 
-    <div class="main">
+    <div class="main-container">
 
         <!-- VIDEO AREA -->
-        <div class="video-layout">
+        <div class="video-section">
 
-        <!-- MAIN VIDEO -->
-        <div id="main-video" class="main-video"></div>
+            <div id="main-video" class="main-video"></div>
 
-        <!-- SIDE GRID -->
-        <div id="side-videos" class="side-videos"></div>
+            <div id="side-videos" class="side-videos"></div>
 
-    </div>
-
-    <!-- RIGHT PANEL -->
-    <div class="right-panel">
+        </div>
 
         <!-- CHAT -->
-        <div id="chat-box" class="chat-box"></div>
+        <div class="chat-section">
+            <div id="chat-box" class="chat-box"></div>
 
-        <!-- INPUT -->
-        <div class="chat-input-area">
-            <input id="chat-input" placeholder="Type message..." />
-            <button onclick="sendMessage()">Send</button>
+            <div class="chat-input-area">
+                <input id="chat-input" placeholder="Type message..." />
+                <button onclick="sendMessage()">Send</button>
+            </div>
+
+            <div class="file-upload">
+                <input type="file" id="fileInput">
+                <button onclick="uploadFile()">📎</button>
+            </div>
+            <div id="participants" class="participants"></div>
         </div>
-
-        <!-- FILE -->
-        <div class="file-upload">
-            <input type="file" id="fileInput">
-            <button onclick="uploadFile()">📎 Upload</button>
-        </div>
-
-    </div>
 
 </div>
 
@@ -287,6 +305,8 @@ client.on("user-published", async(user, mediaType)=>{
     let box = createVideoBox(user.uid, "User");
 
     document.getElementById("side-videos").appendChild(box);
+
+    user.videoTrack.play("user-" + user.uid);
 
     if(mediaType==="video"){
         user.videoTrack.play("user-" + user.uid);
