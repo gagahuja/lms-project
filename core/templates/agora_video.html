@@ -298,9 +298,6 @@ async function join(){
 
     let box = createVideoBox(UID, "{{ request.user.username }}");
 
-    users[UID] = true;
-    updateParticipants();
-
     document.getElementById("main-video").appendChild(box);
 
     localTracks[1].play("user-" + UID);
@@ -311,15 +308,15 @@ async function join(){
     
 }
 
+users[UID] = true;
+updateParticipants();
+
 
 // REMOTE
 client.on("user-published", async(user, mediaType)=>{
     await client.subscribe(user, mediaType);
 
     let box = createVideoBox(user.uid, "User");
-
-    users[user.uid] = true;
-    updateParticipants();
 
     document.getElementById("side-videos").appendChild(box);
 
@@ -332,6 +329,9 @@ client.on("user-published", async(user, mediaType)=>{
     if(mediaType==="audio"){
         user.audioTrack.play();
     }
+
+    users[user.uid] = true;
+    updateParticipants();
 });
 
 // VIDEO BOX
