@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from django.conf import settings
 from django.conf.urls.static import static
+from .views import upload_file
 
 urlpatterns = [
     path('', views.login_view, name='login'),
@@ -59,7 +60,7 @@ urlpatterns = [
     path('send-message/<int:class_id>/', views.send_message),
     path('get-messages/<int:class_id>/', views.get_messages),
     path('ai-help/', views.ai_help),
-    path("upload-file/", views.upload_file, name="upload_file"),
+    path("upload-file/", upload_file),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

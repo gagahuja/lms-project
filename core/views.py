@@ -1255,17 +1255,30 @@ def ai_help(request):
     return JsonResponse({"answer": answer})
 
 
+import os
 from django.http import JsonResponse
-from .models import ChatFile
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
 
+@csrf_exempt
 def upload_file(request):
-    if request.method == "POST":
-        file = request.FILES.get("file")
-        obj = ChatFile.objects.create(
-            user=request.user,
-            file=file
-        )
+    if request.method == "POST" and request.FILES.get("file"):
+
+        file = request.FILES["file"]
+
+        # 🔒 basic validation
+        if file.size > 10 * 1024 * 1024:  # 10MB limit
+            return JsonResponse({"error": "File too large"}, status=400)
+
+        file_path = os.path.join(settings.MEDIA_ROOT, file.name)
+
+        with open(file_path, "wb+") as destination:
+            for chunk in file.chunks():
+                destination.write(chunk)
+
         return JsonResponse({
-            "url": obj.file.url,
+            "url": settings.MEDIA_URL + file.name,
             "name": file.name
         })
+
+    return JsonResponse({"error": "Invalid request"}, status=400)

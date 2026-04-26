@@ -209,20 +209,32 @@ function addMessage(user, msg){
     let box = document.getElementById("chat-box");
 
     let div = document.createElement("div");
-    div.style.marginBottom = "6px";
 
     let name = document.createElement("b");
     name.innerText = user + ": ";
 
-    let text = document.createElement("span");
-    text.innerHTML = msg; // allow links
+    let content = document.createElement("span");
+
+    // ✅ detect file message
+    if(msg.startsWith("📎 FILE:")){
+        let parts = msg.replace("📎 FILE:", "").split("|");
+        let url = parts[0];
+        let fname = parts[1];
+
+        let link = document.createElement("a");
+        link.href = url;
+        link.target = "_blank";
+        link.innerText = "📎 " + fname;
+
+        content.appendChild(link);
+    } else {
+        content.innerText = msg;
+    }
 
     div.appendChild(name);
-    div.appendChild(text);
+    div.appendChild(content);
 
     box.appendChild(div);
-
-    // auto scroll
     box.scrollTop = box.scrollHeight;
 }
 
@@ -274,20 +286,36 @@ function leave(){
 async function uploadFile(){
     let fileInput = document.getElementById("fileInput");
 
+    if(!fileInput.files.length){
+        alert("Select a file first");
+        return;
+    }
+
     let formData = new FormData();
     formData.append("file", fileInput.files[0]);
 
-    let res = await fetch("/upload-file/", {
-        method: "POST",
-        body: formData
-    });
+    try{
+        let res = await fetch("/upload-file/", {
+            method: "POST",
+            body: formData
+        });
 
-    let data = await res.json();
+        let data = await res.json();
 
-    socket.send(JSON.stringify({
-        type:"chat",
-        message:`📎 <a href="${data.url}" target="_blank">${data.name}</a>`
-    }));
+        if(data.error){
+            alert(data.error);
+            return;
+        }
+
+        socket.send(JSON.stringify({
+            type:"chat",
+            message:`📎 FILE:${data.url}|${data.name}`
+        }));
+
+    }catch(err){
+        alert("Upload failed");
+        console.error(err);
+    }
 }
 
 
