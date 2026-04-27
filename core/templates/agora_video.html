@@ -252,7 +252,7 @@ let activeUser = null;
 // SOCKET
 let wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
 socket = new WebSocket(
-    wsScheme + "://" + window.location.host + "/ws/chat/{{ live_class.id }}/"
+    wsScheme + "://" + window.location.host + "/ws/chat/{{ live_class.id }}/" + roomName + "/"
 );
 
 socket.onmessage = e => {
