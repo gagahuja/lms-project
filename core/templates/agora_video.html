@@ -252,7 +252,8 @@ let activeUser = null;
 // SOCKET
 let wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
 
-let roomName = "{{ live_class.id }}";
+// 🔥 HARDCODE TEMP FOR DEBUG (VERY IMPORTANT)
+let roomName = "4";  
 
 socket = new WebSocket(
     wsScheme + "://" + window.location.host + "/ws/chat/" + roomName + "/"
