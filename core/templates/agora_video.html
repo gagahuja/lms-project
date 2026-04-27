@@ -256,6 +256,7 @@ socket = new WebSocket(
 );
 
 socket.onmessage = e => {
+    console.log("RECEIVED:", e.data);
     let data = JSON.parse(e.data);
 
 
@@ -354,17 +355,22 @@ function createVideoBox(uid, name){
 
 // CHAT
 function sendMessage(){
-    let input = document.getElementById("chat-input");
-    let msg = input.value.trim();
 
-    if(!msg) return; // prevent empty
+    let msg = document.getElementById("chat-input").value;
+
+    console.log("Sending:", msg);
+
+    if(!socket || socket.readyState !== 1){
+        console.error("WebSocket NOT CONNECTED");
+        return;
+    }
 
     socket.send(JSON.stringify({
-        type:"chat",
-        message:msg
+        type: "chat",
+        message: msg
     }));
 
-    input.value = "";
+    document.getElementById("chat-input").value = "";
 }
 
 function addMessage(user, msg){
