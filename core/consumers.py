@@ -5,23 +5,17 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
+        print("🔥 CONNECT HIT")
 
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = f'room_{self.room_name}'
 
-        user = self.scope.get("user")
-
-        if user and user.is_authenticated:
-            self.username = user.username
-        else:
-            self.username = "Guest"
+        self.username = "Guest"  # TEMP SAFE
 
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
-
-        print("🔥 CONNECT CALLED")
 
         await self.accept()
 
