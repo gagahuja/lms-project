@@ -251,9 +251,24 @@ let activeUser = null;
 
 // SOCKET
 let wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+
+let roomName = "{{ live_class.id }}";
+
 socket = new WebSocket(
-    wsScheme + "://" + window.location.host + "/ws/chat/{{ live_class.id }}/" + roomName + "/"
+    wsScheme + "://" + window.location.host + "/ws/chat/" + roomName + "/"
 );
+
+socket.onopen = function(){
+    console.log("✅ WebSocket CONNECTED");
+};
+
+socket.onerror = function(e){
+    console.error("❌ WebSocket ERROR", e);
+};
+
+socket.onclose = function(){
+    console.log("❌ WebSocket CLOSED");
+};
 
 socket.onmessage = e => {
     console.log("RECEIVED:", e.data);
