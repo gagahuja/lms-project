@@ -16,8 +16,21 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.http import HttpResponse
+
+def home(request):
+    return HttpResponse("OK - Server Running")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('core.urls')),
+
+    # fallback route (optional safety)
+    path('health/', home),
+
 ]
+
+
+
+
+
