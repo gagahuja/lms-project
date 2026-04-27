@@ -171,11 +171,17 @@ ASGI_APPLICATION = 'config.asgi.application'
 
 import os
 
+#CHANNEL_LAYERS = {
+#    "default": {
+#        "BACKEND": "channels_redis.core.RedisChannelLayer",
+#        "CONFIG": {
+#            "hosts": [os.environ.get("REDIS_URL")],
+#        },
+#    },
+#}
+
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [os.environ.get("REDIS_URL")],
-        },
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
     },
 }
