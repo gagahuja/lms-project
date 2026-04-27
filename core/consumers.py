@@ -5,6 +5,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
+        print("🔥 WebSocket CONNECT HIT")
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = f'room_{self.room_name}'
         self.username = self.scope["user"].username
