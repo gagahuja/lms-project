@@ -21,7 +21,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
 
-        print("🔥 WebSocket CONNECTED BACKEND")
+        print("🔥 CONNECT CALLED")
 
         await self.accept()
 
