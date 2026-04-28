@@ -114,22 +114,20 @@
 
         /* Chat Container */
         #chat-container {
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        /* CHAT PANEL */
+        #right-panel {
             position: absolute;
             right: 10px;
             bottom: 10px;
             width: 320px;
-            background: #0f172a;
-            border-radius: 10px;
-            padding: 10px;
-        }
-
-        /* CHAT PANEL */
-        .right-panel {
-            flex: 1;
             display: flex;
             flex-direction: column;
-            background: #111827;
-            border-left: 1px solid #333;
+            gap: 10px;
         }
 
         /* CHAT SECTION */
@@ -144,7 +142,7 @@
 
         /* Chat Box */
         #chat-box {
-            height: 250px;
+            height: 220px;
             overflow-y: auto;
             margin-bottom: 10px;
         }
@@ -159,13 +157,17 @@
             font-size: 14px;
         }
 
-        /* Input */
+        /* Input row */
+        #chat-input-row {
+            display: flex;
+            gap: 5px;
+        }
+
         #chat-message-input {
             flex: 1;
             padding: 6px;
             border-radius: 6px;
             border: none;
-            outline: none;
         }
 
         /* Username */
@@ -211,6 +213,27 @@
             padding: 4px;
         }
 
+        /* Emoji row BELOW input */
+        #emoji-row {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        #emoji-row button {
+            background: #1e293b;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        /* File row */
+        #file-row {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
 
         /* File Upload */
         #file-upload {
@@ -247,6 +270,17 @@
             font-size: 14px;
         }
 
+        /* Participants BELOW chat */
+        #participants-panel {
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        #participants-panel h4 {
+            margin: 0 0 5px 0;
+        }
+
     </style>
 
 
@@ -263,36 +297,38 @@
 
         </div>
 
-        <!-- CHAT -->
-        <div class="chat-section">
-            <div id="chat-box" class="chat-box"></div>
+        <div id="right-panel">
 
+            <!-- CHAT -->
             <div id="chat-container">
-
                 <div id="chat-box"></div>
 
-                <div id="chat-controls">
-        
+                <div id="chat-input-row">
                     <input id="chat-message-input" placeholder="Type message..." />
-
-                    <div id="emoji-bar">
-                        <button onclick="addEmoji('😊')">😊</button>
-                        <button onclick="addEmoji('😂')">😂</button>
-                        <button onclick="addEmoji('👍')">👍</button>
-                        <button onclick="addEmoji('🙏')">🙏</button>
-                    </div>
-
                     <button onclick="sendMessage()">Send</button>
                 </div>
 
-                <div id="file-upload">
+                <div id="emoji-row">
+                    <button onclick="addEmoji('😊')">😊</button>
+                    <button onclick="addEmoji('😂')">😂</button>
+                    <button onclick="addEmoji('👍')">👍</button>
+                    <button onclick="addEmoji('🙏')">🙏</button>
+                </div>
+
+                <div id="file-row">
                     <input type="file" id="fileInput">
                     <button onclick="uploadFile()">📎</button>
                 </div>
-
             </div>
-        <div id="participants" class="participants"></div>
-    
+
+            <!-- PARTICIPANTS (NOW BELOW CHAT ✅) -->
+            <div id="participants-panel">
+                <h4>Participants</h4>
+                <div id="participants-list"></div>
+            </div>
+
+        </div>
+    </div>
 
 </div>
 
@@ -462,22 +498,28 @@ function createVideoBox(uid, name){
 
 // CHAT
 function sendMessage(){
+    let input = document.getElementById("chat-message-input");
 
-    let msg = document.getElementById("chat-input").value;
+    if(!input){
+        console.error("Input not found");
+        return;
+    }
 
-    console.log("Sending:", msg);
+    let message = input.value.trim();
+
+    if(!message) return;
 
     if(!socket || socket.readyState !== 1){
-        console.error("WebSocket NOT CONNECTED");
+        alert("Chat not connected");
         return;
     }
 
     socket.send(JSON.stringify({
         type: "chat",
-        message: msg
+        message: message
     }));
 
-    document.getElementById("chat-input").value = "";
+    input.value = "";
 }
 
 function addMessage(user, msg){
@@ -701,14 +743,8 @@ window.onload = () => {
 
 
 function addEmoji(emoji){
-    const input = document.getElementById("chat-message-input");
-
-    if(!input){
-        console.error("Input not found");
-        return;
-    }
-
-    input.value = input.value + emoji;
+    let input = document.getElementById("chat-message-input");
+    input.value += emoji;
     input.focus();
 }
 
