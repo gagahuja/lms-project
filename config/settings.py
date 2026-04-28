@@ -85,7 +85,7 @@ if DATABASE_URL:
     DATABASES = {
         'default': dj_database_url.config(
             default=os.environ.get("DATABASE_URL"),
-            conn_max_age=600,
+            conn_max_age=0,   # 🔥 IMPORTANT
             ssl_require=True
         )
     }
@@ -97,6 +97,11 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+
+import os
+
+if os.environ.get("RENDER"):
+    DATABASES['default']['CONN_MAX_AGE'] = 0
 
 
 # Password validation
