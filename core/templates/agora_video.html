@@ -285,30 +285,34 @@ function connectSocket(retry = 0){
 
     socket.onmessage = e => {
         console.log("RECEIVED:", e.data);
+
         let data = JSON.parse(e.data);
 
-        if(data.type==="chat"){
-            let user = data.user;
+        if(data.type === "chat"){
 
+            let user = data.user || "User";
+
+            // mark your own messages
             if(user === "{{ request.user.username }}"){
                 user = "You";
             }
 
+            // 🔥 THIS IS THE LINE YOU WERE ASKING ABOUT
             addMessage(user, data.message);
         }
 
-        if(data.type==="kick"){
-            if(String(client.uid)===String(data.target)){
+        if(data.type === "kick"){
+            if(String(client.uid) === String(data.target)){
                 alert("Kicked by teacher");
                 leave();
             }
         }
 
-        if(data.type==="mute_all"){
+        if(data.type === "mute_all"){
             if(localTracks[0]) localTracks[0].setEnabled(false);
         }
 
-        if(data.type==="end_class"){
+        if(data.type === "end_class"){
             alert("Class Ended");
             leave();
         }
