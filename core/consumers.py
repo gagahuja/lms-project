@@ -8,10 +8,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = f'room_{self.room_name}'
 
-        # safe fallback (no auth issues)
-        self.username = "Guest"
+        # 🔥 get username properly
+        if self.scope["user"].is_authenticated:
+            self.username = self.scope["user"].username
+        else:
+            self.username = "Guest"
 
-        print("🔥 CONNECT HIT", self.room_name)
+        print("🔥 CONNECT HIT:", self.room_name, self.username)
 
         await self.channel_layer.group_add(
             self.room_group_name,
@@ -29,12 +32,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
+
         msg_type = data.get("type")
 
         if msg_type == "chat":
             message = data.get("message", "").strip()
 
-            if message:  # prevent empty
+            if message:
                 await self.channel_layer.group_send(
                     self.room_group_name,
                     {
@@ -58,7 +62,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 self.room_group_name,
                 {"type": "mute_all_event"}
             )
-
 
         elif msg_type == "end_class":
             await self.channel_layer.group_send(
