@@ -112,6 +112,17 @@
             height: 100px;
         }
 
+        /* Chat Container */
+        #chat-container {
+            position: absolute;
+            right: 10px;
+            bottom: 10px;
+            width: 320px;
+            background: #0f172a;
+            border-radius: 10px;
+            padding: 10px;
+        }
+
         /* CHAT PANEL */
         .right-panel {
             flex: 1;
@@ -131,32 +142,43 @@
             background: #111827;
         }
 
-        /* CHAT BOX */
-        .chat-box {
-            flex: 1;
+        /* Chat Box */
+        #chat-box {
+            height: 250px;
             overflow-y: auto;
-            padding: 10px;
-            background: #0f172a;
-            color: #fff;
-            height: 300px;
-            overflow-y: auto;
-            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        /* Message Bubble */
+        .chat-msg {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 8px 10px;
             border-radius: 8px;
+            margin-bottom: 6px;
             font-size: 14px;
         }
 
-        /* Message bubble */
-        .chat-msg {
-            margin-bottom: 8px;
-            padding: 6px 10px;
+        /* Input */
+        #chat-message-input {
+            flex: 1;
+            padding: 6px;
             border-radius: 6px;
-            background: #1e293b;
+            border: none;
+            outline: none;
         }
 
         /* Username */
         .chat-user {
-            font-weight: bold;
             color: #38bdf8;
+            font-weight: 600;
+        }
+
+        /* Controls Row */
+        #chat-controls {
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
         /* INPUT */
@@ -174,9 +196,27 @@
             margin-left: 5px;
         }
 
-        /* FILE */
-        .file-upload {
-            padding: 10px;
+        /* Emoji Bar */
+        #emoji-bar {
+            display: flex;
+            gap: 4px;
+        }
+
+        /* Emoji Buttons */
+        #emoji-bar button {
+            background: #1e293b;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+
+        /* File Upload */
+        #file-upload {
+            margin-top: 6px;
+            display: flex;
+            gap: 5px;
         }
 
 
@@ -227,22 +267,32 @@
         <div class="chat-section">
             <div id="chat-box" class="chat-box"></div>
 
-            <div class="chat-input-area">
-                <input id="chat-input" placeholder="Type message..." />
-                
-                <button onclick="addEmoji('😊')">😊</button>
-                <button onclick="addEmoji('😂')">😂</button>
-                <button onclick="addEmoji('👍')">👍</button>
-                <button onclick="addEmoji('🙏')">🙏</button>
-                <button onclick="sendMessage()">Send</button>
-            </div>
+            <div id="chat-container">
 
-            <div class="file-upload">
-                <input type="file" id="fileInput">
-                <button onclick="uploadFile()">📎</button>
+                <div id="chat-box"></div>
+
+                <div id="chat-controls">
+        
+                    <input id="chat-message-input" placeholder="Type message..." />
+
+                    <div id="emoji-bar">
+                        <button onclick="addEmoji('😊')">😊</button>
+                        <button onclick="addEmoji('😂')">😂</button>
+                        <button onclick="addEmoji('👍')">👍</button>
+                        <button onclick="addEmoji('🙏')">🙏</button>
+                    </div>
+
+                    <button onclick="sendMessage()">Send</button>
+                </div>
+
+                <div id="file-upload">
+                    <input type="file" id="fileInput">
+                    <button onclick="uploadFile()">📎</button>
+                </div>
+
             </div>
-            <div id="participants" class="participants"></div>
-        </div>
+        <div id="participants" class="participants"></div>
+    </div>
 
 </div>
 
@@ -465,6 +515,7 @@ function addMessage(user, msg){
     box.scrollTop = box.scrollHeight;
 }
 
+
 // PARTICIPANTS
 function updateParticipants(){
     let div = document.getElementById("participants");
@@ -650,8 +701,14 @@ window.onload = () => {
 
 
 function addEmoji(emoji){
-    let input = document.getElementById("chat-message-input");
-    input.value += emoji;
+    const input = document.getElementById("chat-message-input");
+
+    if(!input){
+        console.error("Input not found");
+        return;
+    }
+
+    input.value = input.value + emoji;
     input.focus();
 }
 
