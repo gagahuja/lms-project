@@ -16,7 +16,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             self.channel_name
         )
-
+        print("🔥 CONNECT HIT")
         await self.accept()
 
     async def disconnect(self, close_code):
