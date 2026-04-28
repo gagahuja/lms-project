@@ -243,7 +243,7 @@ const CHANNEL = "class_{{ live_class.id }}";
 
 let client = AgoraRTC.createClient({mode:"rtc", codec:"vp8"});
 let localTracks = [];
-let socket;
+
 let userMap = {};
 let isTeacher = "{{ request.user.is_staff }}" === "True";
 let users = {};
@@ -252,24 +252,18 @@ let activeUser = null;
 // SOCKET
 let wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
 
-// 🔥 HARDCODE TEMP FOR DEBUG (VERY IMPORTANT)
-let roomName = "4";  
+// 🔥 FORCE from URL instead of template
+let roomName = window.location.pathname.split("/").filter(Boolean).pop();
 
-socket = new WebSocket(
+console.log("ROOM FIXED:", roomName);
+
+let socket = new WebSocket(
     wsScheme + "://" + window.location.host + "/ws/chat/" + roomName + "/"
 );
 
-socket.onopen = function(){
-    console.log("✅ WebSocket CONNECTED");
-};
-
-socket.onerror = function(e){
-    console.error("❌ WebSocket ERROR", e);
-};
-
-socket.onclose = function(){
-    console.log("❌ WebSocket CLOSED");
-};
+socket.onopen = () => console.log("✅ WebSocket CONNECTED");
+socket.onerror = (e) => console.log("❌ ERROR", e);
+socket.onclose = () => console.log("❌ CLOSED");
 
 socket.onmessage = e => {
     console.log("RECEIVED:", e.data);
