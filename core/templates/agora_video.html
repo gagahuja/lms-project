@@ -250,53 +250,70 @@ let users = {};
 let activeUser = null;
 
 // SOCKET
-let wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+let socket;
 
-// 🔥 FORCE from URL instead of template
-let roomName = window.location.pathname.split("/").filter(Boolean).pop();
+function connectSocket(retry = 0){
 
-console.log("ROOM FIXED:", roomName);
+    let wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+    let roomName = window.location.pathname.split("/").filter(Boolean).pop();
 
-let socket = new WebSocket(
-    wsScheme + "://" + window.location.host + "/ws/chat/" + roomName + "/"
-);
+    console.log("Connecting WS to room:", roomName);
 
-socket.onopen = () => console.log("✅ WebSocket CONNECTED");
-socket.onerror = (e) => console.log("❌ ERROR", e);
-socket.onclose = () => console.log("❌ CLOSED");
+    socket = new WebSocket(
+        wsScheme + "://" + window.location.host + "/ws/chat/" + roomName + "/"
+    );
 
-socket.onmessage = e => {
-    console.log("RECEIVED:", e.data);
-    let data = JSON.parse(e.data);
+    socket.onopen = () => {
+        console.log("✅ WebSocket CONNECTED");
+    };
 
+    socket.onerror = (e) => {
+        console.log("❌ WS ERROR", e);
+    };
 
-    if(data.type==="chat"){
-        let user = data.user;
+    socket.onclose = () => {
+        console.log("❌ WS CLOSED");
 
-        // mark own messages
-        if(user === "{{ request.user.username }}"){
-            user = "You";
+        // 🔥 RETRY LOGIC (VERY IMPORTANT)
+        if(retry < 5){
+            setTimeout(() => {
+                console.log("🔁 Retrying WS...", retry+1);
+                connectSocket(retry + 1);
+            }, 2000);
+        }
+    };
+
+    socket.onmessage = e => {
+        console.log("RECEIVED:", e.data);
+        let data = JSON.parse(e.data);
+
+        if(data.type==="chat"){
+            let user = data.user;
+
+            if(user === "{{ request.user.username }}"){
+                user = "You";
+            }
+
+            addMessage(user, data.message);
         }
 
-        addMessage(user, data.message);
-    }
+        if(data.type==="kick"){
+            if(String(client.uid)===String(data.target)){
+                alert("Kicked by teacher");
+                leave();
+            }
+        }
 
-    if(data.type==="kick"){
-        if(String(client.uid)===String(data.target)){
-            alert("Kicked by teacher");
+        if(data.type==="mute_all"){
+            if(localTracks[0]) localTracks[0].setEnabled(false);
+        }
+
+        if(data.type==="end_class"){
+            alert("Class Ended");
             leave();
         }
-    }
-
-    if(data.type==="mute_all"){
-        if(localTracks[0]) localTracks[0].setEnabled(false);
-    }
-
-    if(data.type==="end_class"){
-        alert("Class Ended");
-        leave();
-    }
-};
+    };
+}
 
 // JOIN
 async function join(){
@@ -600,6 +617,10 @@ client.on("user-left", user => {
 
     updateParticipants();
 });
+
+window.onload = () => {
+    connectSocket();
+};
 
 </script>
 
