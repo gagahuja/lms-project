@@ -136,6 +136,27 @@
             flex: 1;
             overflow-y: auto;
             padding: 10px;
+            background: #0f172a;
+            color: #fff;
+            height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        /* Message bubble */
+        .chat-msg {
+            margin-bottom: 8px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            background: #1e293b;
+        }
+
+        /* Username */
+        .chat-user {
+            font-weight: bold;
+            color: #38bdf8;
         }
 
         /* INPUT */
@@ -208,6 +229,11 @@
 
             <div class="chat-input-area">
                 <input id="chat-input" placeholder="Type message..." />
+                
+                <button onclick="addEmoji('😊')">😊</button>
+                <button onclick="addEmoji('😂')">😂</button>
+                <button onclick="addEmoji('👍')">👍</button>
+                <button onclick="addEmoji('🙏')">🙏</button>
                 <button onclick="sendMessage()">Send</button>
             </div>
 
@@ -408,13 +434,14 @@ function addMessage(user, msg){
     let box = document.getElementById("chat-box");
 
     let div = document.createElement("div");
+    div.className = "chat-msg";
 
-    let name = document.createElement("b");
+    let name = document.createElement("span");
+    name.className = "chat-user";
     name.innerText = user + ": ";
 
     let content = document.createElement("span");
 
-    // ✅ detect file message
     if(msg.startsWith("📎 FILE:")){
         let parts = msg.replace("📎 FILE:", "").split("|");
         let url = parts[0];
@@ -424,6 +451,7 @@ function addMessage(user, msg){
         link.href = url;
         link.target = "_blank";
         link.innerText = "📎 " + fname;
+        link.style.color = "#4ade80";
 
         content.appendChild(link);
     } else {
@@ -502,36 +530,30 @@ function leave(){
 
 async function uploadFile(){
     let fileInput = document.getElementById("fileInput");
+    let file = fileInput.files[0];
 
-    if(!fileInput.files.length){
-        alert("Select a file first");
+    if(!file){
+        alert("Select file first");
         return;
     }
 
     let formData = new FormData();
-    formData.append("file", fileInput.files[0]);
+    formData.append("file", file);
 
-    try{
-        let res = await fetch(window.location.origin + "/upload-file/", {
-            method: "POST",
-            body: formData
-        });
+    let res = await fetch("/upload/", {
+        method: "POST",
+        body: formData
+    });
 
-        let data = await res.json();
+    let data = await res.json();
 
-        if(data.error){
-            alert(data.error);
-            return;
-        }
-
+    if(data.url){
         socket.send(JSON.stringify({
-            type:"chat",
-            message:`📎 FILE:${data.url}|${data.name}`
+            type: "chat",
+            message: `📎 FILE:${data.url}|${data.name}`
         }));
-
-    }catch(err){
+    } else {
         alert("Upload failed");
-        console.error(err);
     }
 }
 
@@ -625,6 +647,13 @@ client.on("user-left", user => {
 window.onload = () => {
     connectSocket();
 };
+
+
+function addEmoji(emoji){
+    let input = document.getElementById("chat-message-input");
+    input.value += emoji;
+    input.focus();
+}
 
 </script>
 
