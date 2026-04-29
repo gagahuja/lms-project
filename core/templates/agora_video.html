@@ -123,38 +123,37 @@
         #right-panel {
             position: absolute;
             right: 10px;
-            bottom: 10px;
-            width: 320px;
+            top: 80px;
+            width: 340px;
+            height: calc(100vh - 100px);
             display: flex;
             flex-direction: column;
-            gap: 10px;
         }
 
         /* CHAT SECTION */
-        .chat-section {
-            width: 300px;        /* fixed width */
-            min-width: 250px;
-            max-width: 350px;
+        #chat-section {
+            height: 70%;
+            background: #ffffff;
+            border-radius: 10px;
             display: flex;
             flex-direction: column;
-            background: #111827;
+            padding: 10px;
         }
 
         /* Chat Box */
         #chat-box {
-            height: 220px;
+            flex: 1;
             overflow-y: auto;
-            margin-bottom: 10px;
+            color: #000;
+            font-size: 14px;
         }
 
         /* Message Bubble */
         .chat-msg {
-            background: #1e293b;
-            color: #e2e8f0;
-            padding: 8px 10px;
-            border-radius: 8px;
-            margin-bottom: 6px;
-            font-size: 14px;
+            padding: 6px 8px;
+            margin-bottom: 5px;
+            border-radius: 6px;
+            background: #f1f5f9;
         }
 
         /* Input row */
@@ -167,13 +166,20 @@
             flex: 1;
             padding: 6px;
             border-radius: 6px;
-            border: none;
+            border: 1px solid #ccc;
+        }
+
+        /* TOOLS */
+        #chat-tools {
+            margin-top: 6px;
+            display: flex;
+            justify-content: space-between;
         }
 
         /* Username */
         .chat-user {
-            color: #38bdf8;
-            font-weight: 600;
+            font-weight: bold;
+            color: #2563eb;
         }
 
         /* Controls Row */
@@ -184,9 +190,10 @@
         }
 
         /* INPUT */
-        .chat-input-area {
+        #chat-input-area {
             display: flex;
-            padding: 10px;
+            gap: 5px;
+            margin-top: 8px;
         }
 
         .chat-input-area input {
@@ -206,9 +213,9 @@
 
         /* Emoji Buttons */
         #emoji-bar button {
-            background: #1e293b;
             border: none;
-            border-radius: 6px;
+            background: #e2e8f0;
+            border-radius: 5px;
             cursor: pointer;
             padding: 4px;
         }
@@ -263,11 +270,20 @@
         .chat { flex:1; overflow:auto; padding:10px; }
 
         .participants {
-            height: 120px;
-            overflow-y: auto;
-            border-top: 1px solid #333;
+            padding: 5px;
+            background: #fde68a;
+            border-radius: 6px;
+            margin-bottom: 4px;
+        }
+
+        /* PARTICIPANTS = 30% */
+        #participants-section {
+            height: 30%;
+            margin-top: 8px;
+            background: #f3f4f6;
+            border-radius: 10px;
             padding: 10px;
-            font-size: 14px;
+            overflow-y: auto;
         }
 
         /* Participants BELOW chat */
@@ -278,7 +294,8 @@
         }
 
         #participants-panel h4 {
-            margin: 0 0 5px 0;
+            margin-bottom: 6px;
+            color: #b45309;
         }
 
     </style>
@@ -299,30 +316,31 @@
 
         <div id="right-panel">
 
-            <!-- CHAT -->
-            <div id="chat-container">
+            <!-- CHAT (70%) -->
+            <div id="chat-section">
                 <div id="chat-box"></div>
 
-                <div id="chat-input-row">
+                <div id="chat-input-area">
                     <input id="chat-message-input" placeholder="Type message..." />
                     <button onclick="sendMessage()">Send</button>
                 </div>
 
-                <div id="emoji-row">
-                    <button onclick="addEmoji('😊')">😊</button>
-                    <button onclick="addEmoji('😂')">😂</button>
-                    <button onclick="addEmoji('👍')">👍</button>
-                    <button onclick="addEmoji('🙏')">🙏</button>
-                </div>
+                <div id="chat-tools">
+                    <div id="emoji-bar">
+                        <button onclick="addEmoji('😊')">😊</button>
+                        <button onclick="addEmoji('😂')">😂</button>
+                        <button onclick="addEmoji('👍')">👍</button>
+                        <button onclick="addEmoji('🙏')">🙏</button>
+                    </div>
 
-                <div id="file-row">
-                    <input type="file" id="fileInput">
-                    <button onclick="uploadFile()">📎</button>
+                    <div id="file-bar">
+                        <input type="file" id="fileInput">
+                    </div>
                 </div>
             </div>
 
-            <!-- PARTICIPANTS (NOW BELOW CHAT ✅) -->
-            <div id="participants-panel">
+            <!-- PARTICIPANTS (30%) -->
+            <div id="participants-section">
                 <h4>Participants</h4>
                 <div id="participants-list"></div>
             </div>
@@ -499,27 +517,47 @@ function createVideoBox(uid, name){
 // CHAT
 function sendMessage(){
     let input = document.getElementById("chat-message-input");
-
-    if(!input){
-        console.error("Input not found");
-        return;
-    }
+    let fileInput = document.getElementById("fileInput");
 
     let message = input.value.trim();
-
-    if(!message) return;
+    let file = fileInput.files[0];
 
     if(!socket || socket.readyState !== 1){
         alert("Chat not connected");
         return;
     }
 
-    socket.send(JSON.stringify({
-        type: "chat",
-        message: message
-    }));
+    // 📎 FILE PRIORITY
+    if(file){
+        let formData = new FormData();
+        formData.append("file", file);
 
-    input.value = "";
+        fetch("/upload/", {
+            method: "POST",
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.url){
+                socket.send(JSON.stringify({
+                    type: "chat",
+                    message: `📎 FILE:${data.url}|${data.name}`
+                }));
+            }
+        });
+
+        fileInput.value = "";
+    }
+
+    // 💬 TEXT / EMOJI
+    if(message){
+        socket.send(JSON.stringify({
+            type: "chat",
+            message: message
+        }));
+
+        input.value = "";
+    }
 }
 
 function addMessage(user, msg){
