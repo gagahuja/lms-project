@@ -28,11 +28,13 @@
 
         /* VIDEO */
         .video-section {
-            flex: 1;  /* 🔥 MORE SPACE */
-            min-width: 0;
+            flex: 1;
+            margin-left: 220px;   /* sidebar space */
+            margin-right: 360px;  /* 🔥 reserve space for right panel */
+            margin-top: 90px;     /* header space */
+            margin-bottom: 80px;  /* controls space */
             display: flex;
             flex-direction: column;
-            background: #0f172a;
         }
 
         .video-grid {
@@ -54,17 +56,16 @@
         .video-box {
             width: 100%;
             height: 100%;
-            max-width: 900px;
-            max-height: 600px;
             background: black;
             border-radius: 12px;
             overflow: hidden;
+            position: relative;
         }
 
         /* MAIN VIDEO SIZE */
         .main-video .video-box {
-            width: 90%;
-            height: 90%;
+            width: 100%;
+            height: 100%;
         }
 
 
@@ -92,9 +93,7 @@
         .main-video {
             flex: 1;
             width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            height: 100%;
         }
 
         /* SIDE VIDEOS */
@@ -121,13 +120,15 @@
 
         /* CHAT PANEL */
         #right-panel {
-            position: absolute;
-            right: 10px;
-            top: 80px;
+            position: fixed;
+            right: 15px;
+            top: 100px; /* 🔥 push below header */
             width: 340px;
-            height: calc(100vh - 100px);
+            height: calc(100vh - 120px);
             display: flex;
             flex-direction: column;
+            gap: 10px;
+            z-index: 10;
         }
 
         /* CHAT SECTION */
@@ -598,7 +599,7 @@ function addMessage(user, msg){
 
 // PARTICIPANTS
 function updateParticipants(){
-    let div = document.getElementById("participants");
+    let div = document.getElementById("participants-list");
 
     if(!div) return;
 
