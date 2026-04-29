@@ -22,19 +22,19 @@
 
         .main-container {
             display: flex;
-            height: calc(100vh - 80px); /* adjust for header */
-            width: 100%;
+            height: calc(100vh - 80px);
+            margin-left: 220px;   /* sidebar */
+            gap: 15px;
+            padding: 10px;
         }
 
         /* VIDEO */
         .video-section {
             flex: 1;
-            margin-left: 220px;   /* sidebar space */
-            margin-right: 360px;  /* 🔥 reserve space for right panel */
-            margin-top: 90px;     /* header space */
-            margin-bottom: 80px;  /* controls space */
             display: flex;
             flex-direction: column;
+            margin-top: 90px;
+            margin-bottom: 80px;
         }
 
         .video-grid {
@@ -96,6 +96,11 @@
             height: 100%;
         }
 
+        #main-video {
+            width: 100%;
+            height: 100%;
+        }
+
         /* SIDE VIDEOS */
         .side-videos {
             height: 120px;
@@ -120,15 +125,12 @@
 
         /* CHAT PANEL */
         #right-panel {
-            position: fixed;
-            right: 15px;
-            top: 100px; /* 🔥 push below header */
-            width: 340px;
-            height: calc(100vh - 120px);
+            width: 350px;
             display: flex;
             flex-direction: column;
             gap: 10px;
-            z-index: 10;
+            margin-top: 90px;   /* below header */
+            margin-bottom: 80px; /* above controls */
         }
 
         /* CHAT SECTION */
@@ -139,6 +141,7 @@
             display: flex;
             flex-direction: column;
             padding: 10px;
+            overflow: hidden;
         }
 
         /* Chat Box */
@@ -193,17 +196,19 @@
         /* INPUT */
         #chat-input-area {
             display: flex;
-            gap: 5px;
+            gap: 8px;
             margin-top: 8px;
         }
+
 
         .chat-input-area input {
             flex: 1;
             padding: 8px;
         }
 
-        .chat-input-area button {
-            margin-left: 5px;
+        #chat-input-area button {
+            background: #2563eb;
+            color: white;
         }
 
         /* Emoji Bar */
@@ -280,7 +285,6 @@
         /* PARTICIPANTS = 30% */
         #participants-section {
             height: 30%;
-            margin-top: 8px;
             background: #f3f4f6;
             border-radius: 10px;
             padding: 10px;
