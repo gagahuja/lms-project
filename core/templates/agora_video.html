@@ -74,19 +74,32 @@
             border: 3px solid #22c55e; /* green */
         }
 
-        .video-label {
-            position:absolute;
-            bottom:5px;
-            left:5px;
-            background:rgba(0,0,0,0.6);
-            padding:3px 6px;
-            font-size:12px;
-        }
 
         .video-layout {
             display: flex;
             height: 100%;
             width: 100%;
+        }
+
+        .video-label {
+            position: absolute;
+            bottom: 6px;
+            left: 6px;
+            background: rgba(0,0,0,0.6);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .user-name {
+            font-weight: 500;
+        }
+
+        .mic-icon {
+            font-size: 14px;
         }
 
         /* MAIN VIDEO */
@@ -516,7 +529,10 @@ function createVideoBox(uid, name){
 
     let label = document.createElement("div");
     label.className = "video-label";
-    label.innerText = name + " 🎤";
+    label.innerHTML = `
+        <span class="user-name">${name}</span>
+        <span class="mic-icon" id="mic-${uid}">🎤</span>
+    `;
 
     box.appendChild(label);
 
@@ -638,7 +654,11 @@ function toggleMic(){
 
         let label = document.querySelector("#user-" + client.uid + " .video-label");
         if(label){
-            label.innerText = "{{ request.user.username }}" + (enabled ? " 🎤" : " 🔇");
+            let micIcon = document.getElementById("mic-" + client.uid);
+
+            if(micIcon){
+                micIcon.innerText = enabled ? "🎤" : "🔇";
+            }
         }
     }
 }
@@ -647,8 +667,62 @@ function toggleCam(){
     if(localTracks[1]) localTracks[1].setEnabled(!localTracks[1].enabled);
 }
 
-function shareScreen(){
-    alert("Screen share basic version active");
+let screenTrack = null;
+let isScreenSharing = false;
+
+async function shareScreen(){
+
+    try {
+
+        if(!isScreenSharing){
+
+            // CREATE SCREEN TRACK
+            screenTrack = await AgoraRTC.createScreenVideoTrack();
+
+            // UNPUBLISH CAMERA VIDEO
+            if(localTracks[1]){
+                await client.unpublish(localTracks[1]);
+            }
+
+            // PUBLISH SCREEN
+            await client.publish(screenTrack);
+
+            // SHOW SCREEN IN MAIN
+            let box = document.createElement("div");
+            box.className = "video-box";
+            box.id = "screen-share";
+
+            document.getElementById("main-video").innerHTML = "";
+            document.getElementById("main-video").appendChild(box);
+
+            screenTrack.play("screen-share");
+
+            isScreenSharing = true;
+
+            console.log("🖥️ Screen sharing started");
+
+        } else {
+
+            // STOP SCREEN
+            await client.unpublish(screenTrack);
+            screenTrack.stop();
+            screenTrack.close();
+
+            // RESTORE CAMERA
+            await client.publish(localTracks[1]);
+
+            // RELOAD VIDEO UI
+            location.reload();
+
+            isScreenSharing = false;
+
+            console.log("🛑 Screen sharing stopped");
+        }
+
+    } catch(err){
+        console.error("Screen share error:", err);
+        alert("Screen share failed");
+    }
 }
 
 function muteAll(){
