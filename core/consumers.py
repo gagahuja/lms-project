@@ -6,15 +6,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
-        self.room_group_name = f'room_{self.room_name}'
+        self.room_group_name = f"chat_{self.room_name}"
 
-        # 🔥 get username properly
-        if self.scope["user"].is_authenticated:
-            self.username = self.scope["user"].username
-        else:
-            self.username = "Guest"
-
-        print("🔥 CONNECT HIT:", self.room_name, self.username)
+        self.username = self.scope["user"].username if self.scope["user"].is_authenticated else "Guest"
 
         await self.channel_layer.group_add(
             self.room_group_name,
@@ -22,6 +16,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
+
+        print(f"✅ {self.username} connected to {self.room_group_name}")
 
     async def disconnect(self, close_code):
         if hasattr(self, "room_group_name"):

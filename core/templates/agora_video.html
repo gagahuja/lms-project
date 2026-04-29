@@ -479,13 +479,15 @@ async function join(){
 
     await client.join(APP_ID, CHANNEL, null, UID);
 
+    userMap[UID] = "{{ request.user.username }}";
+
     localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
 
     let box = createVideoBox(UID, "{{ request.user.username }}");
 
     document.getElementById("main-video").appendChild(box);
 
-    localTracks[1].play("user-" + UID);
+    localTracks[1].play("player-" + UID);
 
     users[UID] = "{{ request.user.username }}";  // ✅ FIX
     updateParticipants();
@@ -501,6 +503,8 @@ async function join(){
 // REMOTE
 client.on("user-published", async(user, mediaType)=>{
 
+    userMap[user.uid] = "Student " + user.uid;
+
     await client.subscribe(user, mediaType);
 
     if(mediaType === "video"){
@@ -509,7 +513,7 @@ client.on("user-published", async(user, mediaType)=>{
 
         document.getElementById("side-videos").appendChild(box);
 
-        user.videoTrack.play("user-" + user.uid);
+        user.videoTrack.play("player-" + user.uid);
 
         users[user.uid] = "User";
         updateParticipants();
@@ -521,20 +525,21 @@ client.on("user-published", async(user, mediaType)=>{
 });
 
 // VIDEO BOX
-function createVideoBox(uid, name){
+function createVideoBox(uid){
+
+    let name = userMap[uid] || ("User " + uid);
 
     let box = document.createElement("div");
     box.className = "video-box";
-    box.id = "user-" + uid;
+    box.id = "video-" + uid;
 
-    let label = document.createElement("div");
-    label.className = "video-label";
-    label.innerHTML = `
-        <span class="user-name">${name}</span>
-        <span class="mic-icon" id="mic-${uid}">🎤</span>
+    box.innerHTML = `
+        <div id="player-${uid}" style="width:100%;height:100%;"></div>
+        <div class="video-label">
+            <span>${name}</span>
+            <span id="mic-${uid}">🎤</span>
+        </div>
     `;
-
-    box.appendChild(label);
 
     return box;
 }
@@ -647,19 +652,13 @@ function updateParticipants(){
 }
 
 // CONTROLS
-function toggleMic(){
-    if(localTracks[0]){
-        let enabled = !localTracks[0].enabled;
-        localTracks[0].setEnabled(enabled);
+async function toggleMic(){
+    let enabled = localTracks[0].enabled;
+    await localTracks[0].setEnabled(!enabled);
 
-        let label = document.querySelector("#user-" + client.uid + " .video-label");
-        if(label){
-            let micIcon = document.getElementById("mic-" + client.uid);
-
-            if(micIcon){
-                micIcon.innerText = enabled ? "🎤" : "🔇";
-            }
-        }
+    let micIcon = document.getElementById("mic-" + client.uid);
+    if(micIcon){
+        micIcon.innerText = enabled ? "🔇" : "🎤";
     }
 }
 
@@ -676,30 +675,28 @@ async function shareScreen(){
 
         if(!isScreenSharing){
 
-            // CREATE SCREEN TRACK
             screenTrack = await AgoraRTC.createScreenVideoTrack();
 
-            // UNPUBLISH CAMERA VIDEO
-            if(localTracks[1]){
-                await client.unpublish(localTracks[1]);
-            }
+            // REMOVE CAMERA FROM MAIN
+            await client.unpublish(localTracks[1]);
 
-            // PUBLISH SCREEN
-            await client.publish(screenTrack);
+            // MOVE CAMERA TO SIDE
+            let camBox = document.getElementById("video-" + client.uid);
+            document.getElementById("side-videos").appendChild(camBox);
 
-            // SHOW SCREEN IN MAIN
-            let box = document.createElement("div");
-            box.className = "video-box";
-            box.id = "screen-share";
+            // CREATE SCREEN BOX
+            let screenBox = document.createElement("div");
+            screenBox.className = "video-box";
+            screenBox.id = "screen-box";
 
             document.getElementById("main-video").innerHTML = "";
-            document.getElementById("main-video").appendChild(box);
+            document.getElementById("main-video").appendChild(screenBox);
 
-            screenTrack.play("screen-share");
+            screenTrack.play("screen-box");
+
+            await client.publish(screenTrack);
 
             isScreenSharing = true;
-
-            console.log("🖥️ Screen sharing started");
 
         } else {
 
@@ -708,19 +705,22 @@ async function shareScreen(){
             screenTrack.stop();
             screenTrack.close();
 
-            // RESTORE CAMERA
+            // REMOVE SCREEN BOX
+            let screenBox = document.getElementById("screen-box");
+            if(screenBox) screenBox.remove();
+
+            // RESTORE CAMERA TO MAIN
+            document.getElementById("main-video").appendChild(
+                document.getElementById("video-" + client.uid)
+            );
+
             await client.publish(localTracks[1]);
 
-            // RELOAD VIDEO UI
-            location.reload();
-
             isScreenSharing = false;
-
-            console.log("🛑 Screen sharing stopped");
         }
 
     } catch(err){
-        console.error("Screen share error:", err);
+        console.error(err);
         alert("Screen share failed");
     }
 }
