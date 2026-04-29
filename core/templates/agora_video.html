@@ -24,17 +24,16 @@
             display: flex;
             height: calc(100vh - 80px);
             margin-left: 220px;   /* sidebar */
-            gap: 15px;
             padding: 10px;
+            gap: 15px;
         }
 
         /* VIDEO */
         .video-section {
-            flex: 1;
+            flex: 1; /* 🔥 THIS is key */
             display: flex;
             flex-direction: column;
-            margin-top: 90px;
-            margin-bottom: 80px;
+            height: 100%;
         }
 
         .video-grid {
@@ -56,10 +55,9 @@
         .video-box {
             width: 100%;
             height: 100%;
-            background: black;
             border-radius: 12px;
             overflow: hidden;
-            position: relative;
+            background: black;
         }
 
         /* MAIN VIDEO SIZE */
@@ -125,12 +123,11 @@
 
         /* CHAT PANEL */
         #right-panel {
-            width: 350px;
+            width: 350px;       /* fixed width */
+            flex-shrink: 0;     /* 🔥 prevents shrinking */
             display: flex;
             flex-direction: column;
             gap: 10px;
-            margin-top: 90px;   /* below header */
-            margin-bottom: 80px; /* above controls */
         }
 
         /* CHAT SECTION */
@@ -141,7 +138,6 @@
             display: flex;
             flex-direction: column;
             padding: 10px;
-            overflow: hidden;
         }
 
         /* Chat Box */
@@ -288,7 +284,6 @@
             background: #f3f4f6;
             border-radius: 10px;
             padding: 10px;
-            overflow-y: auto;
         }
 
         /* Participants BELOW chat */
