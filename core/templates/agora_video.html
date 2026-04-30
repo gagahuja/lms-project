@@ -322,6 +322,12 @@
             color: #b45309;
         }
 
+        .screen-share {
+            width: 100%;
+            height: 100%;
+            background: black;
+        }
+
     </style>
 
 
@@ -514,16 +520,40 @@ client.on("user-published", async(user, mediaType)=>{
 
     await client.subscribe(user, mediaType);
 
-    if(mediaType === "video"){
+    if (mediaType === "video") {
 
-        let box = createVideoBox(user.uid, "User");
+        // 🔥 Detect screen share
+        if (user.videoTrack && user.videoTrack.trackMediaType === "screen") {
 
-        document.getElementById("side-videos").appendChild(box);
+            console.log("🖥 Screen shared by:", user.uid);
 
-        user.videoTrack.play("player-" + user.uid);
+            isScreenSharing = true;
+            screenUid = user.uid;
 
-        users[user.uid] = "User";
-        updateParticipants();
+            // Clear main
+            let main = document.getElementById("main-video");
+            main.innerHTML = "";
+
+            // Create screen container
+            let screenBox = document.createElement("div");
+            screenBox.id = "video-" + user.uid;
+            screenBox.className = "video-box screen-share";
+
+            main.appendChild(screenBox);
+
+            user.videoTrack.play(screenBox);
+
+        } else {
+
+            // 🎥 NORMAL CAMERA VIDEO
+            createVideoBox(user.uid);
+
+            // If NOT screen sharing → normal behavior
+            if (!isScreenSharing) {
+                if (!activeUser) setMainVideo(user.uid);
+            }
+
+        }
     }
 
     if(mediaType === "audio"){
@@ -534,21 +564,21 @@ client.on("user-published", async(user, mediaType)=>{
 // VIDEO BOX
 function createVideoBox(uid){
 
-    let name = userMap[uid] || ("User " + uid);
+    let side = document.getElementById("side-videos");
 
     let box = document.createElement("div");
-    box.className = "video-box";
     box.id = "video-" + uid;
+    box.className = "video-box";
 
-    box.innerHTML = `
-        <div id="player-${uid}" style="width:100%;height:100%;"></div>
-        <div class="video-label">
-            <span>${name}</span>
-            <span id="mic-${uid}">🎤</span>
-        </div>
-    `;
+    // label
+    let label = document.createElement("div");
+    label.className = "video-label";
+    label.innerText = users[uid] || "User";
 
-    return box;
+    box.appendChild(label);
+
+    side.appendChild(box);
+
 }
 
 // CHAT
@@ -850,16 +880,29 @@ client.enableAudioVolumeIndicator();
 let lastSwitch = 0;
 
 client.on("volume-indicator", volumes => {
+
     volumes.forEach(v => {
 
-        if(v.level > 6){  // 🔥 threshold tuned
+        if(v.level > 6){
 
-            if(activeUser != v.uid){
-                setMainVideo(v.uid);
+            if(isScreenSharing){
+                // 🔥 ONLY highlight in grid
+                document.querySelectorAll(".video-box")
+                    .forEach(b => b.classList.remove("active-speaker"));
+
+                let box = document.getElementById("video-" + v.uid);
+                if(box) box.classList.add("active-speaker");
+
+            } else {
+                // normal behavior
+                if(activeUser != v.uid){
+                    setMainVideo(v.uid);
+                }
             }
         }
 
     });
+
 });
 
 
@@ -899,6 +942,34 @@ function addEmoji(emoji){
     input.value += emoji;
     input.focus();
 }
+
+client.on("user-unpublished", (user) => {
+
+    if (user.uid === screenUid) {
+
+        console.log("🛑 Screen share stopped");
+
+        isScreenSharing = false;
+        screenUid = null;
+
+        let main = document.getElementById("main-video");
+        let side = document.getElementById("side-videos");
+
+        main.innerHTML = "";
+
+        // Move all videos back to side first
+        let allVideos = document.querySelectorAll(".video-box");
+
+        allVideos.forEach(v => {
+            side.appendChild(v);
+        });
+
+        // Restore speaker view
+        if (activeUser) {
+            setMainVideo(activeUser);
+        }
+    }
+});
 
 </script>
 
