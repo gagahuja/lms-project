@@ -113,9 +113,7 @@
         .main-video {
             flex: 1;
             height: 100%;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
+            display: block;
         }
 
         #main-video {
@@ -408,7 +406,7 @@ const CHANNEL = "class_{{ live_class.id }}";
 
 let client = AgoraRTC.createClient({mode:"rtc", codec:"vp8"});
 let localTracks = [];
-
+let screenUid = null;
 let userMap = {};
 let isTeacher = "{{ request.user.is_staff }}" === "True";
 let users = {};
@@ -498,8 +496,11 @@ async function join(){
 
     let box = createVideoBox(UID, "{{ request.user.username }}");
 
+    // move to main
+    document.getElementById("main-video").innerHTML = "";
     document.getElementById("main-video").appendChild(box);
 
+    // play video
     localTracks[1].play("player-" + UID);
 
     users[UID] = "{{ request.user.username }}";  // ✅ FIX
@@ -546,7 +547,9 @@ client.on("user-published", async(user, mediaType)=>{
         } else {
 
             // 🎥 NORMAL CAMERA VIDEO
-            createVideoBox(user.uid);
+            let box = createVideoBox(user.uid, userMap[user.uid] || "User");
+
+            user.videoTrack.play("player-" + user.uid);
 
             // If NOT screen sharing → normal behavior
             if (!isScreenSharing) {
@@ -562,7 +565,7 @@ client.on("user-published", async(user, mediaType)=>{
 });
 
 // VIDEO BOX
-function createVideoBox(uid){
+function createVideoBox(uid, name="User"){
 
     let side = document.getElementById("side-videos");
 
@@ -570,15 +573,23 @@ function createVideoBox(uid){
     box.id = "video-" + uid;
     box.className = "video-box";
 
-    // label
+    // 🎥 PLAYER DIV (THIS WAS MISSING ❗)
+    let player = document.createElement("div");
+    player.id = "player-" + uid;
+    player.style.width = "100%";
+    player.style.height = "100%";
+
+    // 🏷 Label
     let label = document.createElement("div");
     label.className = "video-label";
-    label.innerText = users[uid] || "User";
+    label.innerHTML = `<span class="user-name">${name}</span>`;
 
+    box.appendChild(player);
     box.appendChild(label);
 
     side.appendChild(box);
 
+    return box;
 }
 
 // CHAT
