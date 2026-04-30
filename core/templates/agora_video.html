@@ -737,7 +737,7 @@ async function shareScreen(){
         } 
         else {
 
-            // STOP SCREEN SHARE
+            // 🔻 STOP SCREEN TRACK
             await client.unpublish(screenTrack);
             screenTrack.stop();
             screenTrack.close();
@@ -748,25 +748,26 @@ async function shareScreen(){
             let main = document.getElementById("main-video");
             let side = document.getElementById("side-videos");
 
-            // remove screen
+            // 🧹 REMOVE SCREEN BOX ONLY
             let screenBox = document.getElementById("screen-box");
             if(screenBox) screenBox.remove();
 
-            // restore camera
+            // 🎥 RESTORE CAMERA STREAM
             await client.publish(localTracks[1]);
 
-            // clear containers
+            // 🧹 CLEAR BOTH PANELS
             main.innerHTML = "";
             side.innerHTML = "";
 
-            // 🔥 RESTORE MAIN USER (EXACT SAME)
+            // 🔥 RESTORE MAIN (EXACT USER)
             let mainBox = document.getElementById("video-" + layoutBeforeScreen.main);
+
             if(mainBox){
                 main.appendChild(mainBox);
                 activeUser = layoutBeforeScreen.main;
             }
 
-            // 🔥 RESTORE SIDE USERS (EXACT ORDER)
+            // 🔥 RESTORE SIDE (EXACT ORDER)
             layoutBeforeScreen.side.forEach(uid => {
                 let box = document.getElementById("video-" + uid);
                 if(box){
@@ -774,27 +775,12 @@ async function shareScreen(){
                 }
             });
 
-            // 🔥 REPLAY CAMERA
+            // 🔁 FORCE VIDEO RENDER (VERY IMPORTANT)
             setTimeout(() => {
                 localTracks[1].play("player-" + client.uid);
             }, 100);
 
-            // 🔥 SET MAIN VIDEO PROPERLY
-            let hostBox = document.getElementById("video-" + client.uid);
-
-            if (hostBox) {
-                main.appendChild(hostBox);
-                activeUser = client.uid;
-            } else {
-                // fallback → first available user
-                let first = document.querySelector(".video-box");
-                if (first) {
-                    main.appendChild(first);
-                    activeUser = first.id.replace("video-", "");
-                }
-            }
-
-            console.log("✅ Screen share stopped → layout restored");
+            console.log("✅ EXACT layout restored");
         }
 
     } catch(err){
@@ -982,14 +968,14 @@ client.on("user-unpublished", async (user) => {
         main.innerHTML = "";
         side.innerHTML = "";
 
-        // restore main
+        // 🔥 restore main
         let mainBox = document.getElementById("video-" + layoutBeforeScreen.main);
         if(mainBox){
             main.appendChild(mainBox);
             activeUser = layoutBeforeScreen.main;
         }
 
-        // restore side
+        // 🔥 restore side
         layoutBeforeScreen.side.forEach(uid => {
             let box = document.getElementById("video-" + uid);
             if(box){
@@ -997,7 +983,7 @@ client.on("user-unpublished", async (user) => {
             }
         });
 
-        console.log("✅ EXACT layout restored");
+        console.log("✅ Remote layout restored EXACTLY");
     }
 });
 
