@@ -746,15 +746,16 @@ async function shareScreen(){
 
             isScreenSharing = true;
 
-        } else {
+        } 
+        else {
 
+            // 🔻 STOP SCREEN TRACK
             await client.unpublish(screenTrack);
             screenTrack.stop();
             screenTrack.close();
+            screenTrack = null;
 
-            // remove screen
-            let screenBox = document.getElementById("screen-box");
-            if(screenBox) screenBox.remove();
+            isScreenSharing = false;
 
             let main = document.getElementById("main-video");
             let side = document.getElementById("side-videos");
@@ -762,24 +763,36 @@ async function shareScreen(){
             // 🔥 CLEAR MAIN
             main.innerHTML = "";
 
-            // 🔥 MOVE ALL VIDEOS BACK
+            // 🔥 MOVE ALL VIDEOS BACK TO SIDE
             let allVideos = document.querySelectorAll(".video-box");
 
             allVideos.forEach(box => {
                 side.appendChild(box);
             });
 
-            // 🔥 SET HOST BACK AS MAIN VIDEO
+            // 🔥 RESTORE CAMERA FIRST
+            await client.publish(localTracks[1]);
+            // 🔥 FORCE VIDEO RENDER AFTER RESTORE
+            setTimeout(() => {
+                localTracks[1].play("player-" + client.uid);
+            }, 200);
+
+            // 🔥 SET MAIN VIDEO PROPERLY
             let hostBox = document.getElementById("video-" + client.uid);
 
-            if(hostBox){
+            if (hostBox) {
                 main.appendChild(hostBox);
+                activeUser = client.uid;
+            } else {
+                // fallback → first available user
+                let first = document.querySelector(".video-box");
+                if (first) {
+                    main.appendChild(first);
+                    activeUser = first.id.replace("video-", "");
+                }
             }
 
-            // 🔥 RESTORE CAMERA
-            await client.publish(localTracks[1]);
-
-            isScreenSharing = false;
+            console.log("✅ Screen share stopped → layout restored");
         }
 
     } catch(err){
@@ -954,11 +967,11 @@ function addEmoji(emoji){
     input.focus();
 }
 
-client.on("user-unpublished", (user) => {
+client.on("user-unpublished", async (user) => {
 
     if (user.uid === screenUid) {
 
-        console.log("🛑 Screen share stopped");
+        console.log("🛑 Remote screen share stopped");
 
         isScreenSharing = false;
         screenUid = null;
@@ -968,17 +981,20 @@ client.on("user-unpublished", (user) => {
 
         main.innerHTML = "";
 
-        // Move all videos back to side first
+        // Move all back
         let allVideos = document.querySelectorAll(".video-box");
 
         allVideos.forEach(v => {
             side.appendChild(v);
         });
 
-        // Restore speaker view
+        // 🔥 restore main speaker
         if (activeUser) {
-            setMainVideo(activeUser);
+            let activeBox = document.getElementById("video-" + activeUser);
+            if (activeBox) main.appendChild(activeBox);
         }
+
+        console.log("✅ Remote layout restored");
     }
 });
 
