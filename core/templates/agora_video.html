@@ -406,6 +406,10 @@ const CHANNEL = "class_{{ live_class.id }}";
 
 let client = AgoraRTC.createClient({mode:"rtc", codec:"vp8"});
 let localTracks = [];
+let layoutBeforeScreen = {
+    main: null,
+    side: []
+};
 let screenUid = null;
 let userMap = {};
 let isTeacher = "{{ request.user.is_staff }}" === "True";
@@ -696,6 +700,17 @@ async function shareScreen(){
 
         if(!isScreenSharing){
 
+            // 🧠 SAVE CURRENT LAYOUT BEFORE SCREEN SHARE
+            layoutBeforeScreen.main = activeUser;
+
+            layoutBeforeScreen.side = [];
+
+            document.querySelectorAll("#side-videos .video-box").forEach(v => {
+                layoutBeforeScreen.side.push(v.id.replace("video-", ""));
+            });
+
+            console.log("📦 Layout Saved:", layoutBeforeScreen);
+
             screenTrack = await AgoraRTC.createScreenVideoTrack();
 
             // REMOVE CAMERA FROM MAIN
@@ -733,28 +748,33 @@ async function shareScreen(){
             let main = document.getElementById("main-video");
             let side = document.getElementById("side-videos");
 
-            // remove screen box only
+            // remove screen
             let screenBox = document.getElementById("screen-box");
             if(screenBox) screenBox.remove();
 
             // restore camera
             await client.publish(localTracks[1]);
 
-            // clear main
+            // clear containers
             main.innerHTML = "";
+            side.innerHTML = "";
 
-            // put ALL users in side first
-            let all = document.querySelectorAll("[id^='video-']");
-            all.forEach(v => side.appendChild(v));
-
-            // bring active speaker to main
-            let mainBox = document.getElementById("video-" + client.uid);
+            // 🔥 RESTORE MAIN USER (EXACT SAME)
+            let mainBox = document.getElementById("video-" + layoutBeforeScreen.main);
             if(mainBox){
                 main.appendChild(mainBox);
-                activeUser = client.uid;
+                activeUser = layoutBeforeScreen.main;
             }
 
-            // replay camera (important)
+            // 🔥 RESTORE SIDE USERS (EXACT ORDER)
+            layoutBeforeScreen.side.forEach(uid => {
+                let box = document.getElementById("video-" + uid);
+                if(box){
+                    side.appendChild(box);
+                }
+            });
+
+            // 🔥 REPLAY CAMERA
             setTimeout(() => {
                 localTracks[1].play("player-" + client.uid);
             }, 100);
@@ -951,9 +971,7 @@ function addEmoji(emoji){
 
 client.on("user-unpublished", async (user) => {
 
-    if (user.uid === screenUid) {
-
-        console.log("🛑 Remote screen share stopped");
+    if(user.uid === screenUid){
 
         isScreenSharing = false;
         screenUid = null;
@@ -962,21 +980,24 @@ client.on("user-unpublished", async (user) => {
         let side = document.getElementById("side-videos");
 
         main.innerHTML = "";
+        side.innerHTML = "";
 
-        // Move all back
-        let allVideos = document.querySelectorAll(".video-box");
-
-        allVideos.forEach(v => {
-            side.appendChild(v);
-        });
-
-        // 🔥 restore main speaker
-        if (activeUser) {
-            let activeBox = document.getElementById("video-" + activeUser);
-            if (activeBox) main.appendChild(activeBox);
+        // restore main
+        let mainBox = document.getElementById("video-" + layoutBeforeScreen.main);
+        if(mainBox){
+            main.appendChild(mainBox);
+            activeUser = layoutBeforeScreen.main;
         }
 
-        console.log("✅ Remote layout restored");
+        // restore side
+        layoutBeforeScreen.side.forEach(uid => {
+            let box = document.getElementById("video-" + uid);
+            if(box){
+                side.appendChild(box);
+            }
+        });
+
+        console.log("✅ EXACT layout restored");
     }
 });
 
