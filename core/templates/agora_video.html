@@ -745,37 +745,17 @@ async function shareScreen(){
 
             isScreenSharing = false;
 
-            let main = document.getElementById("main-video");
-            let side = document.getElementById("side-videos");
-
-            // 🧹 REMOVE SCREEN BOX ONLY
+            // remove screen only
             let screenBox = document.getElementById("screen-box");
             if(screenBox) screenBox.remove();
 
-            // 🎥 RESTORE CAMERA STREAM
+            // restore camera
             await client.publish(localTracks[1]);
 
-            // 🧹 CLEAR BOTH PANELS
-            main.innerHTML = "";
-            side.innerHTML = "";
+            // 🔥 USE SAFE RESTORE
+            restoreLayoutExact();
 
-            // 🔥 RESTORE MAIN (EXACT USER)
-            let mainBox = document.getElementById("video-" + layoutBeforeScreen.main);
-
-            if(mainBox){
-                main.appendChild(mainBox);
-                activeUser = layoutBeforeScreen.main;
-            }
-
-            // 🔥 RESTORE SIDE (EXACT ORDER)
-            layoutBeforeScreen.side.forEach(uid => {
-                let box = document.getElementById("video-" + uid);
-                if(box){
-                    side.appendChild(box);
-                }
-            });
-
-            // 🔁 FORCE VIDEO RENDER (VERY IMPORTANT)
+            // 🔥 FORCE VIDEO REPLAY
             setTimeout(() => {
                 localTracks[1].play("player-" + client.uid);
             }, 100);
@@ -986,6 +966,36 @@ client.on("user-unpublished", async (user) => {
         console.log("✅ Remote layout restored EXACTLY");
     }
 });
+
+
+function restoreLayoutExact(){
+
+    let main = document.getElementById("main-video");
+    let side = document.getElementById("side-videos");
+
+    // 🔥 MOVE CURRENT MAIN TO SIDE FIRST
+    let currentMain = main.querySelector(".video-box");
+    if(currentMain){
+        side.appendChild(currentMain);
+    }
+
+    // 🔥 RESTORE MAIN USER
+    let mainBox = document.getElementById("video-" + layoutBeforeScreen.main);
+    if(mainBox){
+        main.appendChild(mainBox);
+        activeUser = layoutBeforeScreen.main;
+    }
+
+    // 🔥 FIX SIDE ORDER
+    layoutBeforeScreen.side.forEach(uid => {
+        let box = document.getElementById("video-" + uid);
+        if(box){
+            side.appendChild(box);
+        }
+    });
+
+    console.log("✅ Layout restored WITHOUT destroying DOM");
+}
 
 </script>
 
