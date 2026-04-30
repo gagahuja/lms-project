@@ -565,31 +565,21 @@ client.on("user-published", async(user, mediaType)=>{
 });
 
 // VIDEO BOX
-function createVideoBox(uid, name="User"){
+function createVideoBox(uid, name) {
+    const container = document.createElement("div");
+    container.className = "video-box";
 
-    let side = document.getElementById("side-videos");
+    const player = document.createElement("div");
+    player.id = "player-" + uid;   // ✅ THIS IS THE KEY FIX
 
-    let box = document.createElement("div");
-    box.id = "video-" + uid;
-    box.className = "video-box";
+    const label = document.createElement("div");
+    label.className = "user-name";
+    label.innerText = name || "User";
 
-    // 🎥 PLAYER DIV (THIS WAS MISSING ❗)
-    let player = document.createElement("div");
-    player.id = "player-" + uid;
-    player.style.width = "100%";
-    player.style.height = "100%";
+    container.appendChild(player);
+    container.appendChild(label);
 
-    // 🏷 Label
-    let label = document.createElement("div");
-    label.className = "video-label";
-    label.innerHTML = `<span class="user-name">${name}</span>`;
-
-    box.appendChild(player);
-    box.appendChild(label);
-
-    side.appendChild(box);
-
-    return box;
+    return container;
 }
 
 // CHAT
