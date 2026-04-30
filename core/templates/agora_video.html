@@ -530,7 +530,7 @@ client.on("user-unpublished", async (user) => {
         let side = document.getElementById("side-videos");
 
         // remove screen
-        main.innerHTML = "";
+        //main.innerHTML = "";
 
         // move all to side
         let all = document.querySelectorAll("[id^='video-']");
@@ -539,7 +539,7 @@ client.on("user-unpublished", async (user) => {
         // restore main speaker
         let box = document.getElementById("video-" + activeUser);
         if(box){
-            main.appendChild(box);
+            //main.appendChild(box);
         }
     }
 });
@@ -861,7 +861,7 @@ function setMainVideo(uid){
 
     // set new main
     main.innerHTML = "";
-    //main.appendChild(selected);
+    main.appendChild(selected);
 
     activeUser = uid;
 }
@@ -951,7 +951,7 @@ client.on("user-unpublished", async (user) => {
         // 🔥 restore main
         let mainBox = document.getElementById("video-" + layoutBeforeScreen.main);
         if(mainBox){
-            main.appendChild(mainBox);
+            //main.appendChild(mainBox);
             activeUser = layoutBeforeScreen.main;
         }
 
