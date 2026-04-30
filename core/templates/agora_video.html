@@ -565,21 +565,31 @@ client.on("user-published", async(user, mediaType)=>{
 });
 
 // VIDEO BOX
-function createVideoBox(uid, name) {
-    const container = document.createElement("div");
-    container.className = "video-box";
+function createVideoBox(uid, name="User"){
 
-    const player = document.createElement("div");
-    player.id = "player-" + uid;   // ✅ THIS IS THE KEY FIX
+    let side = document.getElementById("side-videos");
 
-    const label = document.createElement("div");
-    label.className = "user-name";
-    label.innerText = name || "User";
+    let box = document.createElement("div");
+    box.id = "video-" + uid;
+    box.className = "video-box";
 
-    container.appendChild(player);
-    container.appendChild(label);
+    // 🎥 PLAYER DIV (THIS WAS MISSING ❗)
+    let player = document.createElement("div");
+    player.id = "player-" + uid;
+    player.style.width = "100%";
+    player.style.height = "100%";
 
-    return container;
+    // 🏷 Label
+    let label = document.createElement("div");
+    label.className = "video-label";
+    label.innerHTML = `<span class="user-name">${name}</span>`;
+
+    box.appendChild(player);
+    box.appendChild(label);
+
+    side.appendChild(box);
+
+    return box;
 }
 
 // CHAT
@@ -765,7 +775,7 @@ async function shareScreen(){
             // 🔥 FORCE VIDEO RENDER AFTER RESTORE
             setTimeout(() => {
                 localTracks[1].play("player-" + client.uid);
-            }, 200);
+        }, 200);
 
             // 🔥 SET MAIN VIDEO PROPERLY
             let hostBox = document.getElementById("video-" + client.uid);
