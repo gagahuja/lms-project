@@ -515,79 +515,52 @@ async function join(){
 
 
 // REMOTE
-client.on("user-published", async(user, mediaType)=>{
+client.on("user-unpublished", async (user) => {
 
-    userMap[user.uid] = "Student " + user.uid;
+    if(user.uid === screenUid){
 
-    await client.subscribe(user, mediaType);
+        isScreenSharing = false;
+        screenUid = null;
 
-    if (mediaType === "video") {
+        let main = document.getElementById("main-video");
+        let side = document.getElementById("side-videos");
 
-        // 🔥 Detect screen share
-        if (user.videoTrack && user.videoTrack.trackMediaType === "screen") {
+        // remove screen
+        main.innerHTML = "";
 
-            console.log("🖥 Screen shared by:", user.uid);
+        // move all to side
+        let all = document.querySelectorAll("[id^='video-']");
+        all.forEach(v => side.appendChild(v));
 
-            isScreenSharing = true;
-            screenUid = user.uid;
-
-            // Clear main
-            let main = document.getElementById("main-video");
-            main.innerHTML = "";
-
-            // Create screen container
-            let screenBox = document.createElement("div");
-            screenBox.id = "video-" + user.uid;
-            screenBox.className = "video-box screen-share";
-
-            main.appendChild(screenBox);
-
-            user.videoTrack.play(screenBox);
-
-        } else {
-
-            // 🎥 NORMAL CAMERA VIDEO
-            let box = createVideoBox(user.uid, userMap[user.uid] || "User");
-
-            user.videoTrack.play("player-" + user.uid);
-
-            // If NOT screen sharing → normal behavior
-            if (!isScreenSharing) {
-                if (!activeUser) setMainVideo(user.uid);
-            }
-
+        // restore main speaker
+        let box = document.getElementById("video-" + activeUser);
+        if(box){
+            main.appendChild(box);
         }
-    }
-
-    if(mediaType === "audio"){
-        user.audioTrack.play();
     }
 });
 
 // VIDEO BOX
 function createVideoBox(uid, name="User"){
 
-    let side = document.getElementById("side-videos");
-
     let box = document.createElement("div");
     box.id = "video-" + uid;
     box.className = "video-box";
 
-    // 🎥 PLAYER DIV (THIS WAS MISSING ❗)
     let player = document.createElement("div");
     player.id = "player-" + uid;
     player.style.width = "100%";
     player.style.height = "100%";
 
-    // 🏷 Label
     let label = document.createElement("div");
     label.className = "video-label";
-    label.innerHTML = `<span class="user-name">${name}</span>`;
+    label.innerHTML = `
+        <span class="user-name">${name}</span>
+        <span id="mic-${uid}" class="mic-icon">🎤</span>
+    `;
 
     box.appendChild(player);
     box.appendChild(label);
-
-    side.appendChild(box);
 
     return box;
 }
@@ -749,7 +722,7 @@ async function shareScreen(){
         } 
         else {
 
-            // 🔻 STOP SCREEN TRACK
+            // STOP SCREEN SHARE
             await client.unpublish(screenTrack);
             screenTrack.stop();
             screenTrack.close();
@@ -760,22 +733,31 @@ async function shareScreen(){
             let main = document.getElementById("main-video");
             let side = document.getElementById("side-videos");
 
-            // 🔥 CLEAR MAIN
+            // remove screen box only
+            let screenBox = document.getElementById("screen-box");
+            if(screenBox) screenBox.remove();
+
+            // restore camera
+            await client.publish(localTracks[1]);
+
+            // clear main
             main.innerHTML = "";
 
-            // 🔥 MOVE ALL VIDEOS BACK TO SIDE
-            let allVideos = document.querySelectorAll(".video-box");
+            // put ALL users in side first
+            let all = document.querySelectorAll("[id^='video-']");
+            all.forEach(v => side.appendChild(v));
 
-            allVideos.forEach(box => {
-                side.appendChild(box);
-            });
+            // bring active speaker to main
+            let mainBox = document.getElementById("video-" + client.uid);
+            if(mainBox){
+                main.appendChild(mainBox);
+                activeUser = client.uid;
+            }
 
-            // 🔥 RESTORE CAMERA FIRST
-            await client.publish(localTracks[1]);
-            // 🔥 FORCE VIDEO RENDER AFTER RESTORE
+            // replay camera (important)
             setTimeout(() => {
                 localTracks[1].play("player-" + client.uid);
-        }, 200);
+            }, 100);
 
             // 🔥 SET MAIN VIDEO PROPERLY
             let hostBox = document.getElementById("video-" + client.uid);
