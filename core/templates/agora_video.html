@@ -483,6 +483,15 @@ function connectSocket(retry = 0){
             alert("Class Ended");
             leave();
         }
+
+        if(data.type === "mic_status"){
+
+            let micIcon = document.getElementById("mic-" + data.uid);
+
+            if(micIcon){
+                micIcon.innerText = data.status === "on" ? "🎤" : "🔇";
+            }
+        }
     };
 }
 
@@ -667,12 +676,22 @@ function updateParticipants(){
 // CONTROLS
 async function toggleMic(){
     let enabled = localTracks[0].enabled;
-    await localTracks[0].setEnabled(!enabled);
+    let newState = !enabled;
 
+    await localTracks[0].setEnabled(newState);
+
+    // 🔥 update your own UI instantly
     let micIcon = document.getElementById("mic-" + client.uid);
     if(micIcon){
-        micIcon.innerText = enabled ? "🔇" : "🎤";
+        micIcon.innerText = newState ? "🎤" : "🔇";
     }
+
+    // 🔥 send to others
+    socket.send(JSON.stringify({
+        type: "mic_status",
+        uid: client.uid,
+        status: newState ? "on" : "off"
+    }));
 }
 
 function toggleCam(){

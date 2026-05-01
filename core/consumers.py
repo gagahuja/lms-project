@@ -65,6 +65,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 {"type": "end_class_event"}
             )
 
+        elif msg_type == "mic_status":
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "mic_status_event",
+                    "uid": str(data.get("uid")),
+                    "status": data.get("status"),
+                }
+            )
+
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
             "type": "chat",
@@ -86,6 +96,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def end_class_event(self, event):
         await self.send(text_data=json.dumps({
             "type": "end_class"
+        }))
+
+    async def mic_status_event(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "mic_status",
+            "uid": event["uid"],
+            "status": event["status"]
         }))
 
     
