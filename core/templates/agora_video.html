@@ -330,6 +330,16 @@
             background: black;
         }
 
+        .hand-icon {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: yellow;
+            color: black;
+            padding: 4px;
+            border-radius: 50%;
+            font-size: 14px;
+        }
     </style>
 
 
@@ -394,6 +404,7 @@
     <button onclick="setGrid()">Grid</button>
     <button onclick="setSpotlight()">Spotlight</button>
     <button onclick="shareScreen()">Share</button>
+    <button onclick="toggleRaiseHand()">✋ Raise Hand</button>
 
     {% if request.user.is_staff %}
     <button onclick="muteAll()">Mute All</button>
@@ -421,6 +432,7 @@ let users = {};
 let activeUser = null;
 let pinnedUser = null;
 let lastSwitchTime = 0;
+let raisedHands = {};
 
 // SOCKET
 let socket;
@@ -497,6 +509,18 @@ function connectSocket(retry = 0){
             if(micIcon){
                 micIcon.innerText = data.status === "on" ? "🎤" : "🔇";
             }
+        }
+
+        if(data.type === "raise_hand"){
+
+            if(data.action === "raise"){
+                raisedHands[data.uid] = data.username;
+            } else {
+                delete raisedHands[data.uid];
+            }
+
+            updateRaisedHandsUI();
+            updateVideoHandIcon(data.uid);
         }
     };
 }
@@ -665,6 +689,7 @@ function updateParticipants(){
     Object.keys(users).forEach(uid => {
 
         let item = document.createElement("div");
+        let hand = raisedHands[uid] ? " ✋" : "";
 
         item.style.display = "flex";
         item.style.justifyContent = "space-between";
@@ -673,6 +698,7 @@ function updateParticipants(){
         item.innerHTML = `
             <span>${users[uid]}</span>
             ${isTeacher ? `<button onclick="kick(${uid})">❌</button>` : ""}
+            <span>${users[uid]} ${hand}</span>
         `;
 
         div.appendChild(item);
@@ -1032,6 +1058,41 @@ function restoreLayoutExact(){
     });
 
     console.log("✅ Layout restored EXACTLY (no grid issue)");
+}
+
+function toggleRaiseHand(){
+
+    let isRaised = raisedHands[client.uid];
+
+    let action = isRaised ? "lower" : "raise";
+
+    socket.send(JSON.stringify({
+        type: "raise_hand",
+        uid: client.uid,
+        username: userMap[client.uid],
+        action: action
+    }));
+}
+
+function updateVideoHandIcon(uid){
+
+    let box = document.getElementById("video-" + uid);
+    if(!box) return;
+
+    let existing = box.querySelector(".hand-icon");
+
+    if(raisedHands[uid]){
+
+        if(!existing){
+            let icon = document.createElement("div");
+            icon.className = "hand-icon";
+            icon.innerText = "✋";
+            box.appendChild(icon);
+        }
+
+    } else {
+        if(existing) existing.remove();
+    }
 }
 
 </script>

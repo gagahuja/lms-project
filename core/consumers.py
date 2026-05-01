@@ -75,6 +75,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 }
             )
 
+        elif msg_type == "raise_hand":
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "raise_hand_event",
+                    "uid": str(data.get("uid")),
+                    "username": data.get("username"),
+                    "action": data.get("action")  # "raise" or "lower"
+                }
+            )
+
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
             "type": "chat",
@@ -105,4 +116,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "status": event["status"]
         }))
 
-    
+    async def raise_hand_event(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "raise_hand",
+            "uid": event["uid"],
+            "username": event["username"],
+            "action": event["action"]
+        }))
