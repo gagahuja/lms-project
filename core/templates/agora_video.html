@@ -422,6 +422,10 @@
             }
         }
 
+        .video-box.spotlight {
+            border: 3px solid #facc15;
+            box-shadow: 0 0 15px #facc15;
+        }
         
     </style>
 
@@ -520,6 +524,7 @@ let activeUser = null;
 let pinnedUser = null;
 let lastSwitchTime = 0;
 let raisedHands = {};
+let spotlightUser = null;
 
 // SOCKET
 let socket;
@@ -612,6 +617,26 @@ function connectSocket(retry = 0){
 
         if(data.type === "reaction"){
             showReaction(data.uid, data.emoji);
+        }
+
+        if(data.type === "spotlight"){
+
+            document.querySelectorAll(".video-box")
+            .forEach(b => b.classList.remove("spotlight"));
+
+            if(data.action === "on"){
+                spotlightUser = data.uid;
+
+                document.getElementById("video-" + data.uid)
+                    ?.classList.add("spotlight");
+
+
+                // 🔥 FORCE MAIN VIDEO
+                setMainVideo(data.uid);
+
+            } else {
+                spotlightUser = null;
+            }
         }
     };
 }
@@ -970,24 +995,47 @@ document.addEventListener("click", function(e){
 
     let uid = box.id.replace("video-", "");
 
-    // 🔥 TOGGLE PIN
+    // 🔥 TEACHER → SPOTLIGHT
+    if(isTeacher){
+
+        if(spotlightUser === uid){
+            spotlightUser = null;
+
+            socket.send(JSON.stringify({
+                type: "spotlight",
+                uid: uid,
+                action: "off"
+            }));
+
+            console.log("🎯 Spotlight OFF");
+
+        } else {
+            spotlightUser = uid;
+
+            socket.send(JSON.stringify({
+                type: "spotlight",
+                uid: uid,
+                action: "on"
+            }));
+
+            console.log("🎯 Spotlight ON:", uid);
+        }
+
+        return;
+    }
+
+    // 👤 STUDENT → normal pin
     if(pinnedUser === uid){
         pinnedUser = null;
-        console.log("📌 Unpinned");
     } else {
         pinnedUser = uid;
-        console.log("📌 Pinned:", uid);
         setMainVideo(uid);
-    }
-    document.querySelectorAll(".video-box").forEach(b => b.classList.remove("pinned"));
-
-    if(pinnedUser){
-        document.getElementById("video-" + pinnedUser)?.classList.add("pinned");
     }
 });
 
 
 function setMainVideo(uid){
+    if(spotlightUser && uid !== spotlightUser) return;
 
     if(pinnedUser && uid !== pinnedUser) return;
 
@@ -1042,7 +1090,10 @@ let lastSwitch = 0;
 
 client.on("volume-indicator", volumes => {
 
+
     volumes.forEach(v => {
+
+        if(spotlightUser) return;
 
         if(v.level > 6){
 

@@ -96,6 +96,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 }
             )
 
+        elif msg_type == "spotlight":
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "spotlight_event",
+                    "uid": str(data.get("uid")),
+                    "action": data.get("action")  # "on" or "off"
+                }
+            )
+
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
             "type": "chat",
@@ -139,4 +149,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "type": "reaction",
             "uid": event["uid"],
             "emoji": event["emoji"]
+        }))
+
+    async def spotlight_event(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "spotlight",
+            "uid": event["uid"],
+            "action": event["action"]
         }))
