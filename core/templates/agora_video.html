@@ -375,20 +375,27 @@
 
         .reaction {
             position: absolute;
-            bottom: 30px;
+            bottom: 40px;
             right: 20px;
-            font-size: 28px;
-            animation: floatUp 2s ease forwards;
+            font-size: 32px; /* slightly bigger */
+            animation: floatUp 3.5s ease-out forwards;
+            pointer-events: none;
         }
 
         @keyframes floatUp {
             0% {
                 opacity: 1;
-                transform: translateY(0);
+                transform: translateY(0) scale(1);
+            }
+            30% {
+                transform: translateY(-80px) scale(1.1);
+            }
+            60% {
+                transform: translateY(-160px) scale(1.05);
             }
             100% {
                 opacity: 0;
-                transform: translateY(-60px);
+                transform: translateY(-260px) scale(0.95);
             }
         }
     </style>
@@ -1191,7 +1198,7 @@ function showReaction(uid, emoji){
 
     setTimeout(() => {
         el.remove();
-    }, 2000);
+    }, 3500);
 }
 
 </script>
