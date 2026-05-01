@@ -1,5 +1,8 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+from asgiref.sync import sync_to_async
+from .models import Attendance
+from django.utils import timezone
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -16,6 +19,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
+
+        # 🔥 CREATE ATTENDANCE ENTRY
+        if self.scope["user"].is_authenticated:
+            self.attendance = await sync_to_async(Attendance.objects.create)(
+                user=self.scope["user"],
+                room=self.room_name
+            )
 
         print(f"✅ {self.username} connected to {self.room_group_name}")
 
@@ -157,3 +167,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "uid": event["uid"],
             "action": event["action"]
         }))
+
+    def _mark_leave(self):
+        self.attendance.leave_time = timezone.now()
+        self.attendance.save()

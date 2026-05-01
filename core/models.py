@@ -48,13 +48,19 @@ class LiveClass(models.Model):
     whiteboard_link = models.URLField(null=True, blank=True)
 
 
-class Attendance(models.Model):
-    student = models.ForeignKey(User, on_delete=models.CASCADE)
-    live_class = models.ForeignKey(LiveClass, on_delete=models.CASCADE)
-    attended = models.BooleanField(default=True)
+from django.db import models
+from django.conf import settings
 
-    def __str__(self):
-        return f"{self.student.username} - {self.live_class.title}"
+class Attendance(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    room = models.CharField(max_length=100)
+    join_time = models.DateTimeField(auto_now_add=True)
+    leave_time = models.DateTimeField(null=True, blank=True)
+
+    def duration(self):
+        if self.leave_time:
+            return self.leave_time - self.join_time
+        return None
     
 
 class Module(models.Model):

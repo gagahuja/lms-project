@@ -11,6 +11,7 @@ from .models import Handout
 from .models import Recording
 from .models import CourseRequest
 from .models import Subscription
+from .models import Attendance
 
 
 
@@ -66,3 +67,4 @@ admin.site.register(StudentAnswer)
 admin.site.register(QuizResult)
 admin.site.register(Recording)
 admin.site.register(CourseRequest)
+admin.site.register(Attendance)
