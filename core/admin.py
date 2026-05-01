@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from .models import User
 from .models import Course
 from .models import Enrollment
-from .models import LiveClass, Attendance
+from .models import LiveClass
 from .models import Module, Lesson, Assignment, Submission
 from .models import Quiz, Question, StudentAnswer
 from .models import QuizResult
@@ -67,4 +67,3 @@ admin.site.register(StudentAnswer)
 admin.site.register(QuizResult)
 admin.site.register(Recording)
 admin.site.register(CourseRequest)
-admin.site.register(Attendance)
