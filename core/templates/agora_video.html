@@ -376,10 +376,11 @@
         .reaction {
             position: absolute;
             bottom: 40px;
-            right: 20px;
-            font-size: 32px; /* slightly bigger */
-            animation: floatUp 3.5s ease-out forwards;
+            left: 50%;
+            font-size: 32px;
+            animation: floatAdvanced 4s ease-out forwards;
             pointer-events: none;
+            opacity: 0;
         }
 
         @keyframes floatUp {
@@ -398,6 +399,30 @@
                 transform: translateY(-260px) scale(0.95);
             }
         }
+
+        /* 🔥 ADVANCED FLOAT (smooth + drift + scale) */
+        @keyframes floatAdvanced {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, 0) scale(0.8);
+            }
+            10% {
+                opacity: 1;
+                transform: translate(-50%, -40px) scale(1.1);
+            }
+            40% {
+                transform: translate(calc(-50% + 20px), -140px) scale(1.05);
+            }
+            70% {
+                transform: translate(calc(-50% - 20px), -240px) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -320px) scale(0.9);
+            }
+        }
+
+        
     </style>
 
 
@@ -1190,15 +1215,32 @@ function showReaction(uid, emoji){
     let box = document.getElementById("video-" + uid);
     if(!box) return;
 
-    let el = document.createElement("div");
-    el.className = "reaction";
-    el.innerText = emoji;
+    // 🔥 burst count (2–3 reactions)
+    let count = Math.floor(Math.random() * 2) + 2;
 
-    box.appendChild(el);
+    for(let i = 0; i < count; i++){
 
-    setTimeout(() => {
-        el.remove();
-    }, 3500);
+        let el = document.createElement("div");
+        el.className = "reaction";
+        el.innerText = emoji;
+
+        // 🔥 random horizontal position
+        let randomX = Math.random() * 60 - 30; // -30px to +30px
+
+        // 🔥 random delay for stagger
+        let delay = i * 150;
+
+        el.style.left = "50%";
+        el.style.transform = `translateX(${randomX}px)`;
+        el.style.animationDuration = (3.5 + Math.random()).toFixed(2) + "s";
+        el.style.animationDelay = delay + "ms";
+
+        box.appendChild(el);
+
+        setTimeout(() => {
+            el.remove();
+        }, 4000);
+    }
 }
 
 </script>
