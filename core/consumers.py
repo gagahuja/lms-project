@@ -22,14 +22,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.accept()
 
         # 🔥 CREATE ATTENDANCE ENTRY
-        user = self.scope.get("user")
+        try:
+            from django.contrib.auth.models import AnonymousUser
+            user = self.scope.get("user")
 
-        if user and not isinstance(user, AnonymousUser):
+            if user and not isinstance(user, AnonymousUser):
 
-            self.attendance = await sync_to_async(Attendance.objects.create)(
-                user=user,
-                room=self.room_name
-            )
+                self.attendance = await sync_to_async(Attendance.objects.create)(
+                    user=user,
+                    room=self.room_name
+                )
+
+                print("🔥 CONNECT STARTED")
+
+        except Exception as e:
+            print("❌ Attendance error:", e)
+            
 
         print(f"✅ {self.username} connected to {self.room_group_name}")
 
