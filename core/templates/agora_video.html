@@ -101,6 +101,10 @@
             font-weight: 600;
         }
 
+        .video-box.pinned {
+            border: 3px solid gold;
+        }
+
         .user-name {
             font-weight: 500;
         }
@@ -415,6 +419,8 @@ let userMap = {};
 let isTeacher = "{{ request.user.is_staff }}" === "True";
 let users = {};
 let activeUser = null;
+let pinnedUser = null;
+let lastSwitchTime = 0;
 
 // SOCKET
 let socket;
@@ -833,18 +839,41 @@ document.getElementById("chat-message-input").addEventListener("keypress", funct
 
 
 document.addEventListener("click", function(e){
+
     let box = e.target.closest(".video-box");
     if(!box) return;
 
     let uid = box.id.replace("video-", "");
 
-    setMainVideo(uid);
+    // 🔥 TOGGLE PIN
+    if(pinnedUser === uid){
+        pinnedUser = null;
+        console.log("📌 Unpinned");
+    } else {
+        pinnedUser = uid;
+        console.log("📌 Pinned:", uid);
+        setMainVideo(uid);
+    }
+    document.querySelectorAll(".video-box").forEach(b => b.classList.remove("pinned"));
+
+    if(pinnedUser){
+        document.getElementById("video-" + pinnedUser)?.classList.add("pinned");
+    }
 });
 
 
 function setMainVideo(uid){
 
+    if(pinnedUser && uid !== pinnedUser) return;
+
     if(activeUser == uid) return;
+
+    let now = Date.now();
+
+    // 🔥 prevent fast switching
+    if(now - lastSwitchTime < 1500) return;
+
+    lastSwitchTime = now;
 
     let main = document.getElementById("main-video");
     let side = document.getElementById("side-videos");
