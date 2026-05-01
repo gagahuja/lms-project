@@ -86,6 +86,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 }
             )
 
+        elif msg_type == "reaction":
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "reaction_event",
+                    "uid": str(data.get("uid")),
+                    "emoji": data.get("emoji"),
+                }
+            )
+
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
             "type": "chat",
@@ -122,4 +132,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "uid": event["uid"],
             "username": event["username"],
             "action": event["action"]
+        }))
+
+    async def reaction_event(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "reaction",
+            "uid": event["uid"],
+            "emoji": event["emoji"]
         }))

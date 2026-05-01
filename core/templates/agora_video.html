@@ -372,6 +372,25 @@
             border-radius: 50%;
             font-size: 14px;
         }
+
+        .reaction {
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            font-size: 28px;
+            animation: floatUp 2s ease forwards;
+        }
+
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-60px);
+            }
+        }
     </style>
 
 
@@ -437,6 +456,10 @@
     <button onclick="setSpotlight()">Spotlight</button>
     <button onclick="shareScreen()">Share</button>
     <button onclick="toggleRaiseHand()">✋ Raise Hand</button>
+    <button onclick="sendReaction('👍')">👍</button>
+    <button onclick="sendReaction('👏')">👏</button>
+    <button onclick="sendReaction('❤️')">❤️</button>
+    <button onclick="sendReaction('🔥')">🔥</button>
 
     {% if request.user.is_staff %}
     <button onclick="muteAll()">Mute All</button>
@@ -553,6 +576,10 @@ function connectSocket(retry = 0){
 
             updateRaisedHandsUI();
             updateVideoHandIcon(data.uid);
+        }
+
+        if(data.type === "reaction"){
+            showReaction(data.uid, data.emoji);
         }
     };
 }
@@ -1141,6 +1168,30 @@ function updateVideoHandIcon(uid){
     } else {
         if(existing) existing.remove();
     }
+}
+
+function sendReaction(emoji){
+    socket.send(JSON.stringify({
+        type: "reaction",
+        uid: client.uid,
+        emoji: emoji
+    }));
+}
+
+function showReaction(uid, emoji){
+
+    let box = document.getElementById("video-" + uid);
+    if(!box) return;
+
+    let el = document.createElement("div");
+    el.className = "reaction";
+    el.innerText = emoji;
+
+    box.appendChild(el);
+
+    setTimeout(() => {
+        el.remove();
+    }, 2000);
 }
 
 </script>
