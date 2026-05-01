@@ -3,6 +3,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
 from .models import Attendance
 from django.utils import timezone
+from django.contrib.auth.models import AnonymousUser
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -21,9 +22,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.accept()
 
         # 🔥 CREATE ATTENDANCE ENTRY
-        if self.scope["user"].is_authenticated:
+        user = self.scope.get("user")
+
+        if user and not isinstance(user, AnonymousUser):
+
             self.attendance = await sync_to_async(Attendance.objects.create)(
-                user=self.scope["user"],
+                user=user,
                 room=self.room_name
             )
 
@@ -31,6 +35,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         if hasattr(self, "room_group_name"):
+
+            # 🔥 MARK LEAVE TIME
+            if hasattr(self, "attendance"):
+                await sync_to_async(self._safe_leave)()
+
             await self.channel_layer.group_discard(
                 self.room_group_name,
                 self.channel_name
@@ -171,3 +180,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def _mark_leave(self):
         self.attendance.leave_time = timezone.now()
         self.attendance.save()
+
+    def _safe_leave(self):
+        if self.attendance:
+            from django.utils import timezone
+            self.attendance.leave_time = timezone.now()
+            self.attendance.save()
