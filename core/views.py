@@ -255,11 +255,14 @@ def enroll(request, course_id):
 from django.shortcuts import render, get_object_or_404
 from .models import LiveClass
 
-def live_class(request, class_id):
-    live_class = get_object_or_404(LiveClass, id=class_id)
+def live_class(request, pk):
+    try:
+        room = LiveClass.objects.get(id=pk)
+    except:
+        return HttpResponse("Invalid class")
 
     return render(request, "agora_video.html", {
-        "live_class": live_class
+        "room_name": str(room.id)
     })
 
 def join_class(request, class_id):

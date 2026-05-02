@@ -509,6 +509,7 @@
 
 const APP_ID = "68983e3ac34747498d839a7e4c83a9c5";
 const CHANNEL = "class_{{ live_class.id }}";
+const roomName = "{{ room_name|default:'default' }}"
 
 let client = AgoraRTC.createClient({mode:"rtc", codec:"vp8"});
 let localTracks = [];
