@@ -1,18 +1,20 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
-from .models import Attendance
+
 from django.utils import timezone
 from django.contrib.auth.models import AnonymousUser
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
 
-    async def connect(self):
-        self.room_name = self.scope['url_route']['kwargs']['room_name']
-        self.room_group_name = f"chat_{self.room_name}"
+    from asgiref.sync import sync_to_async
 
-        self.username = self.scope["user"].username if self.scope["user"].is_authenticated else "Guest"
+    async def connect(self):
+
+        self.room_name = self.scope['url_route']['kwargs']['room_name']
+        self.room_group_name = f'room_{self.room_name}'
+        self.username = self.scope["user"].username
 
         await self.channel_layer.group_add(
             self.room_group_name,
@@ -21,9 +23,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.accept()
 
-        # 🔥 CREATE ATTENDANCE ENTRY
+        # 🔥 LAZY IMPORT (FIX)
         try:
             from django.contrib.auth.models import AnonymousUser
+            from .models import Attendance
+
             user = self.scope.get("user")
 
             if user and not isinstance(user, AnonymousUser):
@@ -33,13 +37,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     room=self.room_name
                 )
 
-                print("🔥 CONNECT STARTED")
-
         except Exception as e:
             print("❌ Attendance error:", e)
-            
-
-        print(f"✅ {self.username} connected to {self.room_group_name}")
 
     async def disconnect(self, close_code):
         if hasattr(self, "room_group_name"):
@@ -190,7 +189,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.attendance.save()
 
     def _safe_leave(self):
+        from django.utils import timezone
+
         if self.attendance:
-            from django.utils import timezone
             self.attendance.leave_time = timezone.now()
             self.attendance.save()
