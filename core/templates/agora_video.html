@@ -508,7 +508,7 @@
 <script>
 
 const APP_ID = "68983e3ac34747498d839a7e4c83a9c5";
-const CHANNEL = "class_{{ live_class.id }}";
+const CHANNEL = roomName;
 const roomName = "{{ room_name|default:'default' }}"
 const userName = "{{ user_name|default:'Guest' }}"
 
@@ -676,18 +676,52 @@ async function join(){
 
 
 // REMOTE
-client.on("user-unpublished", async (user) => {
+client.on("user-published", async (user, mediaType) => {
 
-    if(user.uid === screenUid){
+    console.log("REMOTE USER:", user.uid, mediaType);
 
-        isScreenSharing = false;
-        screenUid = null;
+    await client.subscribe(user, mediaType);
 
-        restoreLayoutExact();
+    // 🔥 ADD USER TO MAP
+    users[user.uid] = "User-" + user.uid;
+    updateParticipants();
 
-        console.log("✅ Remote screen restore fixed");
+    let box = document.getElementById("video-" + user.uid);
+
+    if(!box){
+        box = createVideoBox(user.uid, "User-" + user.uid);
+        document.getElementById("side-videos").appendChild(box);
+    }
+
+    if(mediaType === "video"){
+        user.videoTrack.play("player-" + user.uid);
+    }
+
+    if(mediaType === "audio"){
+        user.audioTrack.play();
+    }
+
+    if(mediaType === "video" && user.uid !== client.uid){
+
+        // detect screen share (usually high UID or separate logic)
+        if(user.videoTrack.label && user.videoTrack.label.includes("screen")){
+
+            console.log("📺 Remote screen detected");
+
+            screenUid = user.uid;
+
+            let main = document.getElementById("main-video");
+            main.innerHTML = "";
+
+            let screenBox = createVideoBox(user.uid, "Screen");
+            main.appendChild(screenBox);
+
+            user.videoTrack.play("player-" + user.uid);
+        }
     }
 });
+
+
 
 // VIDEO BOX
 function createVideoBox(uid, name="User"){
@@ -1124,10 +1158,14 @@ function setGrid(){
     let main = document.getElementById("main-video");
     let side = document.getElementById("side-videos");
 
+    main.innerHTML = "";
     side.innerHTML = "";
 
-    Object.values(users).forEach(box=>{
-        main.appendChild(box);
+    Object.keys(users).forEach(uid => {
+        let box = document.getElementById("video-" + uid);
+        if(box){
+            main.appendChild(box);
+        }
     });
 }
 
@@ -1140,7 +1178,7 @@ client.on("user-left", user => {
 
     delete users[user.uid];
 
-    let el = document.getElementById("user-" + user.uid);
+    let el = document.getElementById("video-" + user.uid);
     if(el) el.remove();
 
     updateParticipants();
@@ -1157,37 +1195,7 @@ function addEmoji(emoji){
     input.focus();
 }
 
-client.on("user-unpublished", async (user) => {
 
-    if(user.uid === screenUid){
-
-        isScreenSharing = false;
-        screenUid = null;
-
-        let main = document.getElementById("main-video");
-        let side = document.getElementById("side-videos");
-
-        main.innerHTML = "";
-        side.innerHTML = "";
-
-        // 🔥 restore main
-        let mainBox = document.getElementById("video-" + layoutBeforeScreen.main);
-        if(mainBox){
-            //main.appendChild(mainBox);
-            activeUser = layoutBeforeScreen.main;
-        }
-
-        // 🔥 restore side
-        layoutBeforeScreen.side.forEach(uid => {
-            let box = document.getElementById("video-" + uid);
-            if(box){
-                side.appendChild(box);
-            }
-        });
-
-        console.log("✅ Remote layout restored EXACTLY");
-    }
-});
 
 
 function restoreLayoutExact(){
