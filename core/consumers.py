@@ -12,9 +12,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
 
-        self.room_name = self.scope['url_route']['kwargs']['room_name']
+        self.room_name = self.scope['url_route']['kwargs'].get('room_name', 'default')
         self.room_group_name = f'room_{self.room_name}'
-        self.username = self.scope["user"].username
+        user = self.scope.get("user")
+
+        if user and user.is_authenticated:
+            self.username = user.username
+        else:
+            self.username = "Guest"
 
         await self.channel_layer.group_add(
             self.room_group_name,
@@ -37,8 +42,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     room=self.room_name
                 )
 
+                print("🔥 USER:", self.scope.get("user"))
+                print("🔥 ROOM:", self.room_name)
+
         except Exception as e:
             print("❌ Attendance error:", e)
+
+        
 
     async def disconnect(self, close_code):
         if hasattr(self, "room_group_name"):
