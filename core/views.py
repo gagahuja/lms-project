@@ -252,17 +252,21 @@ def enroll(request, course_id):
     return redirect('dashboard')
 
 
-from django.shortcuts import render, get_object_or_404
-from .models import LiveClass
+from django.shortcuts import render
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
 
+@login_required
 def live_class(request, pk):
+
     try:
-        room = LiveClass.objects.get(id=pk)
-    except:
-        return HttpResponse("Invalid class")
+        room_id = str(pk)
+    except Exception as e:
+        return HttpResponse(f"Invalid room: {e}")
 
     return render(request, "agora_video.html", {
-        "room_name": str(room.id)
+        "room_name": room_id,
+        "user_name": request.user.username
     })
 
 def join_class(request, class_id):
