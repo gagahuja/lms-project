@@ -621,6 +621,12 @@ function connectSocket(retry = 0){
             showReaction(data.uid, data.emoji);
         }
 
+        if(data.type === "user_join"){
+            userMap[data.uid] = data.username;
+            users[data.uid] = data.username;
+            updateParticipants();
+        }
+
         if(data.type === "spotlight"){
 
             document.querySelectorAll(".video-box")
@@ -672,6 +678,12 @@ async function join(){
     await client.publish(localTracks);
 }
 
+socket.send(JSON.stringify({
+    type: "user_join",
+    uid: UID,
+    username: "{{ request.user.username }}"
+}));
+
 
 
 
@@ -682,46 +694,34 @@ client.on("user-published", async (user, mediaType) => {
 
     await client.subscribe(user, mediaType);
 
-    // 🔥 ADD USER TO MAP
-    users[user.uid] = "User-" + user.uid;
+    // ✅ ensure user is tracked
+    users[user.uid] = userMap[user.uid] || ("User-" + user.uid);
     updateParticipants();
 
     let box = document.getElementById("video-" + user.uid);
 
     if(!box){
-        box = createVideoBox(user.uid, "User-" + user.uid);
+        box = createVideoBox(user.uid, users[user.uid]);
         document.getElementById("side-videos").appendChild(box);
     }
 
     if(mediaType === "video"){
         user.videoTrack.play("player-" + user.uid);
+
+        // 🔥 👉 THIS IS THE CORRECT PLACE
+        if(isScreenSharing){
+            // do nothing (screen is main)
+        } else {
+            setMainVideo(user.uid);
+        }
     }
 
     if(mediaType === "audio"){
         user.audioTrack.play();
     }
-
-    if(mediaType === "video" && user.uid !== client.uid){
-
-        // detect screen share (usually high UID or separate logic)
-        if(user.videoTrack.label && user.videoTrack.label.includes("screen")){
-
-            console.log("📺 Remote screen detected");
-
-            screenUid = user.uid;
-
-            let main = document.getElementById("main-video");
-            main.innerHTML = "";
-
-            let screenBox = createVideoBox(user.uid, "Screen");
-            main.appendChild(screenBox);
-
-            user.videoTrack.play("player-" + user.uid);
-        }
-    }
 });
 
-
+console.log("Users map:", users);
 
 // VIDEO BOX
 function createVideoBox(uid, name="User"){
@@ -903,6 +903,9 @@ async function shareScreen(){
             console.log("📦 Layout Saved:", layoutBeforeScreen);
 
             screenTrack = await AgoraRTC.createScreenVideoTrack();
+
+            let screenUid = client.uid + "_screen";
+            await client.join(APP_ID, CHANNEL, null, screenUid);
 
             // REMOVE CAMERA FROM MAIN
             await client.unpublish(localTracks[1]);
@@ -1177,6 +1180,7 @@ function setSpotlight(){
 client.on("user-left", user => {
 
     delete users[user.uid];
+    delete userMap[user.uid];
 
     let el = document.getElementById("video-" + user.uid);
     if(el) el.remove();
