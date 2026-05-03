@@ -532,6 +532,20 @@ let pinnedUser = null;
 let lastSwitchTime = 0;
 let raisedHands = {};
 let spotlightUser = null;
+let lastSwitch = 0;
+
+function safeUpdateMain(){
+
+    let now = Date.now();
+
+    if(now - lastSwitch < 1000){
+        return; // 🚫 block rapid switching
+    }
+
+    lastSwitch = now;
+
+    updateMainView();
+}
 
 // SOCKET
 let socket;
@@ -710,8 +724,9 @@ client.on("user-published", async (user, mediaType) => {
     if(mediaType === "video"){
         user.videoTrack.play("player-" + user.uid);
 
-        if(!isScreenSharing && !isReacting && !spotlightUser && !pinnedUser){
-            setMainVideo(user.uid);
+        if(!activeUser){
+            activeUser = user.uid;
+            updateMainView();
         }
     }
 
@@ -872,6 +887,11 @@ function toggleCam(){
 
 
 async function shareScreen(){
+
+    isScreenSharing = true;
+    screenUid = "screen";
+
+    updateMainView();
 
     if(isScreenSharing){
         stopScreenShare();
@@ -1066,18 +1086,17 @@ client.on("volume-indicator", volumes => {
 
         if(v.level > 5){
 
-            if(isScreenSharing || isReacting || spotlightUser || pinnedUser){
-                return;
-            }
-
             if(activeUser !== v.uid){
+
                 activeUser = v.uid;
-                setMainVideo(v.uid);
+
+                // 🔥 DO NOT SWITCH DIRECTLY
+                safeUpdateMain();
             }
         }
     });
-});
 
+});
 
 function setGrid(){
     let main = document.getElementById("main-video");
@@ -1211,7 +1230,8 @@ function showReaction(uid, emoji){
     // 🔥 FORCE MAIN
     isReacting = true;
     reactionUid = uid;
-    setMainVideo(uid);
+
+    updateMainView();
 
     setTimeout(() => {
         r.remove();
@@ -1222,11 +1242,12 @@ function showReaction(uid, emoji){
             setMainVideo(screenUid);
         } else if(spotlightUser){
             setMainVideo(spotlightUser);
-        } else {
-            setMainVideo(activeUser);
-        }
-
+        } 
     }, 4000);
+    isReacting = false;
+    reactionUid = null;
+
+    updateMainView();
 }
 
 function moveAllToSide(){
@@ -1243,6 +1264,11 @@ function moveAllToSide(){
 
 async function stopScreenShare(){
 
+    isScreenSharing = false;
+    screenUid = null;
+
+    updateMainView();
+
     if(!isScreenSharing) return;
 
     isScreenSharing = false;
@@ -1256,7 +1282,7 @@ async function stopScreenShare(){
 
     // RESTORE MAIN
     if(activeUser){
-        setMainVideo(activeUser);
+        
     }
 
     moveAllToSide();
@@ -1273,6 +1299,32 @@ function renderExistingUsers(){
         }
 
     });
+}
+
+function updateMainView(){
+
+    let target = null;
+
+    // 🎯 PRIORITY SYSTEM
+    if(isReacting && reactionUid){
+        target = reactionUid;
+
+    } else if(isScreenSharing && screenUid){
+        target = screenUid;
+
+    } else if(spotlightUser){
+        target = spotlightUser;
+
+    } else if(pinnedUser){
+        target = pinnedUser;
+
+    } else if(activeUser){
+        target = activeUser;
+    }
+
+    if(target){
+        setMainVideo(target);
+    }
 }
 
 </script>
