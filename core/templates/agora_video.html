@@ -513,6 +513,8 @@ const CHANNEL = roomName;
 const userName = "{{ user_name|default:'Guest' }}"
 
 let client = AgoraRTC.createClient({mode:"rtc", codec:"vp8"});
+let screenClient = AgoraRTC.createClient({mode:"rtc", codec:"vp8"});
+let screenTrack;
 let localTracks = [];
 let layoutBeforeScreen = {
     main: null,
@@ -628,6 +630,7 @@ function connectSocket(retry = 0){
             userMap[data.uid] = data.username;
             users[data.uid] = data.username;
             updateParticipants();
+            renderExistingUsers();
         }
 
         if(data.type === "spotlight"){
@@ -679,25 +682,21 @@ async function join(){
     activeUser = UID;
 
     await client.publish(localTracks);
+
+    
+    socket.send(JSON.stringify({
+        type: "user_join",
+        uid: UID,
+        username: "{{ request.user.username }}"
+    }));
 }
-
-socket.send(JSON.stringify({
-    type: "user_join",
-    uid: UID,
-    username: "{{ request.user.username }}"
-}));
-
-
 
 
 // REMOTE
 client.on("user-published", async (user, mediaType) => {
 
-    console.log("REMOTE USER:", user.uid, mediaType);
-
     await client.subscribe(user, mediaType);
 
-    // ✅ ensure user is tracked
     users[user.uid] = userMap[user.uid] || ("User-" + user.uid);
     updateParticipants();
 
@@ -711,7 +710,6 @@ client.on("user-published", async (user, mediaType) => {
     if(mediaType === "video"){
         user.videoTrack.play("player-" + user.uid);
 
-        // ONLY set if nothing else active
         if(!isScreenSharing && !isReacting && !spotlightUser && !pinnedUser){
             setMainVideo(user.uid);
         }
@@ -833,28 +831,17 @@ function addMessage(user, msg){
 
 // PARTICIPANTS
 function updateParticipants(){
-    let div = document.getElementById("participants-list");
 
-    if(!div) return;
-
-    div.innerHTML = "";
+    let list = document.getElementById("participants-list");
+    list.innerHTML = "";
 
     Object.keys(users).forEach(uid => {
 
-        let item = document.createElement("div");
-        let hand = raisedHands[uid] ? " ✋" : "";
+        let div = document.createElement("div");
+        div.className = "participants";
+        div.innerText = users[uid];
 
-        item.style.display = "flex";
-        item.style.justifyContent = "space-between";
-        item.style.marginBottom = "5px";
-
-        item.innerHTML = `
-            <span>${users[uid]}</span>
-            ${isTeacher ? `<button onclick="kick(${uid})">❌</button>` : ""}
-            <span>${users[uid]} ${hand}</span>
-        `;
-
-        div.appendChild(item);
+        list.appendChild(div);
     });
 }
 
@@ -883,8 +870,6 @@ function toggleCam(){
     if(localTracks[1]) localTracks[1].setEnabled(!localTracks[1].enabled);
 }
 
-let screenTrack = null;
-
 
 async function shareScreen(){
 
@@ -894,37 +879,30 @@ async function shareScreen(){
     }
 
     try{
-        const screenTrack = await AgoraRTC.createScreenVideoTrack();
 
-        screenUid = client.uid + "_screen";
+        screenTrack = await AgoraRTC.createScreenVideoTrack();
+
+        await screenClient.join(APP_ID, CHANNEL, null, client.uid + "_screen");
+
+        await screenClient.publish([screenTrack]);
+
         isScreenSharing = true;
 
-        // 🔥 SAVE CURRENT LAYOUT
-        layoutBeforeScreen.main = document.getElementById("main-video").innerHTML;
-
-        // 🔥 CLEAR MAIN
+        // MAIN VIEW
+        let box = createVideoBox("screen", "Screen");
         document.getElementById("main-video").innerHTML = "";
+        document.getElementById("main-video").appendChild(box);
 
-        // 🔥 CREATE SCREEN BOX
-        let screenBox = createVideoBox(screenUid, "Screen");
+        screenTrack.play("player-screen");
 
-        document.getElementById("main-video").appendChild(screenBox);
-
-        screenTrack.play("player-" + screenUid);
-
-        await client.publish(screenTrack);
-
-        // 🔥 MOVE ALL USERS TO GRID
         moveAllToSide();
 
         screenTrack.on("track-ended", () => {
             stopScreenShare();
         });
 
-        localTracks.push(screenTrack);
-
     }catch(e){
-        console.log("Screen share error", e);
+        console.log("Screen error", e);
     }
 }
 
@@ -1263,32 +1241,38 @@ function moveAllToSide(){
     });
 }
 
-function stopScreenShare(){
+async function stopScreenShare(){
+
+    if(!isScreenSharing) return;
 
     isScreenSharing = false;
 
-    // 🔥 REMOVE SCREEN BOX
-    let screenBox = document.getElementById("video-" + screenUid);
-    if(screenBox) screenBox.remove();
+    if(screenTrack){
+        screenTrack.stop();
+        screenTrack.close();
+    }
 
-    // 🔥 CLEAR MAIN
-    document.getElementById("main-video").innerHTML = "";
+    await screenClient.leave();
 
-    // 🔥 RESTORE SPEAKER
+    // RESTORE MAIN
     if(activeUser){
         setMainVideo(activeUser);
     }
 
-    // 🔥 MOVE OTHERS TO GRID
     moveAllToSide();
+}
 
-    // 🔥 UNPUBLISH SCREEN TRACK
-    let screenTrack = localTracks.find(t => t.trackMediaType === "video" && t.isScreenTrack);
+function renderExistingUsers(){
 
-    if(screenTrack){
-        client.unpublish(screenTrack);
-        screenTrack.close();
-    }
+    Object.keys(users).forEach(uid => {
+
+        if(!document.getElementById("video-" + uid)){
+
+            let box = createVideoBox(uid, users[uid]);
+            document.getElementById("side-videos").appendChild(box);
+        }
+
+    });
 }
 
 </script>
