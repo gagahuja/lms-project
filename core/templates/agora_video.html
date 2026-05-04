@@ -29,12 +29,18 @@
             box-sizing: border-box;
         }
 
+        .container {
+            display: flex;
+            height: calc(100vh - 80px);
+            width: 100%;
+        }
+
         /* VIDEO */
         .video-section {
-            flex: 1; /* 🔥 THIS is key */
             display: flex;
             flex-direction: column;
-            height: 100%;
+            flex: 1;
+            width: 100%;
         }
 
         .video-grid {
@@ -143,16 +149,15 @@
         }
 
         #main-video {
-            flex: 1;
             width: 100%;
-            height: 100%;
+            height: 70%;
             position: relative;
         }
 
         /* SIDE VIDEOS */
         #side-videos {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 10px;
             padding: 10px;
             height: 30%;
@@ -648,13 +653,13 @@ function connectSocket(retry = 0){
 
             updateParticipants();
 
-            // 🔥 update name on existing video
+            // ✅ update video label also
             let box = document.getElementById("video-" + data.uid);
 
             if(box){
-                let nameEl = box.querySelector(".user-name");
-                if(nameEl){
-                    nameEl.innerText = data.username;
+                let el = box.querySelector(".user-name");
+                if(el){
+                    el.innerText = data.username;
                 }
             }
         }
@@ -695,16 +700,19 @@ async function join(){
 
     let box = createVideoBox(UID, "{{ request.user.username }}");
 
-    // 🔥 ALWAYS add to side first
+    // ✅ ALWAYS append to side first
     document.getElementById("side-videos").appendChild(box);
 
     // play video
     localTracks[1].play("player-" + UID);
 
+    // store correct name
+    userMap[UID] = "{{ request.user.username }}";
     users[UID] = "{{ request.user.username }}";
+
     updateParticipants();
 
-    // set self as active
+    // set active
     state.activeUser = UID;
 
     updateLayout();
@@ -727,7 +735,7 @@ client.on("user-published", async (user, mediaType) => {
 
     let uid = user.uid.toString();
 
-    let name = userMap[uid] || ("User-" + uid);
+    let name = userMap[uid] || uid; // fallback
 
     users[uid] = name;
     updateParticipants();
@@ -737,7 +745,7 @@ client.on("user-published", async (user, mediaType) => {
     if(!box){
         box = createVideoBox(uid, name);
 
-        // 🔥 ALWAYS add to side first
+        // ✅ ALWAYS SIDE FIRST
         document.getElementById("side-videos").appendChild(box);
     }
 
@@ -749,7 +757,6 @@ client.on("user-published", async (user, mediaType) => {
         user.audioTrack.play();
     }
 
-    // 🔥 set active user if none
     if(!state.activeUser){
         state.activeUser = uid;
     }
