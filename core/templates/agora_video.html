@@ -40,7 +40,6 @@
             display: flex;
             flex-direction: column;
             flex: 1;
-            width: 100%;
         }
 
         .video-grid {
@@ -151,17 +150,17 @@
         #main-video {
             width: 100%;
             height: 70%;
-            position: relative;
         }
 
         /* SIDE VIDEOS */
         #side-videos {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
             gap: 10px;
             padding: 10px;
             height: 30%;
             overflow-y: auto;
+            width: 100%;
         }
 
         #side-videos .video-box {
@@ -648,19 +647,18 @@ function connectSocket(retry = 0){
 
         if(data.type === "user_join"){
 
-            userMap[data.uid] = data.username;
-            users[data.uid] = data.username;
+            let uid = String(data.uid);
+
+            userMap[uid] = data.username;
+            users[uid] = data.username;
 
             updateParticipants();
 
-            // ✅ update video label also
-            let box = document.getElementById("video-" + data.uid);
+            // 🔥 UPDATE VIDEO NAME LIVE
+            let nameEl = document.getElementById("name-" + uid);
 
-            if(box){
-                let el = box.querySelector(".user-name");
-                if(el){
-                    el.innerText = data.username;
-                }
+            if(nameEl){
+                nameEl.innerText = data.username;
             }
         }
 
@@ -700,7 +698,7 @@ async function join(){
 
     let box = createVideoBox(UID, "{{ request.user.username }}");
 
-    // ✅ ALWAYS append to side first
+    // ❗ ALWAYS ADD TO GRID FIRST
     document.getElementById("side-videos").appendChild(box);
 
     // play video
@@ -712,9 +710,10 @@ async function join(){
 
     updateParticipants();
 
-    // set active
+    // set active speaker
     state.activeUser = UID;
 
+    // THEN layout decides main
     updateLayout();
 
     await client.publish(localTracks);
@@ -733,9 +732,10 @@ client.on("user-published", async (user, mediaType) => {
 
     await client.subscribe(user, mediaType);
 
-    let uid = user.uid.toString();
+    let uid = String(user.uid);
 
-    let name = userMap[uid] || uid; // fallback
+    // ❗ ALWAYS resolve name here
+    let name = userMap[uid] || "Connecting...";
 
     users[uid] = name;
     updateParticipants();
@@ -745,7 +745,7 @@ client.on("user-published", async (user, mediaType) => {
     if(!box){
         box = createVideoBox(uid, name);
 
-        // ✅ ALWAYS SIDE FIRST
+        // ❗ ALWAYS SIDE FIRST
         document.getElementById("side-videos").appendChild(box);
     }
 
@@ -757,6 +757,7 @@ client.on("user-published", async (user, mediaType) => {
         user.audioTrack.play();
     }
 
+    // set first speaker
     if(!state.activeUser){
         state.activeUser = uid;
     }
@@ -767,28 +768,18 @@ client.on("user-published", async (user, mediaType) => {
 console.log("Users map:", users);
 
 // VIDEO BOX
-function createVideoBox(uid, name="User"){
+function createVideoBox(uid, name){
 
-    let box = document.createElement("div");
-    box.id = "video-" + uid;
-    box.className = "video-box";
+    let div = document.createElement("div");
+    div.className = "video-box";
+    div.id = "video-" + uid;
 
-    let player = document.createElement("div");
-    player.id = "player-" + uid;
-    player.style.width = "100%";
-    player.style.height = "100%";
-
-    let label = document.createElement("div");
-    label.className = "video-label";
-    label.innerHTML = `
-        <span class="user-name">${name}</span>
-        <span id="mic-${uid}" class="mic-icon">🎤</span>
+    div.innerHTML = `
+        <div id="player-${uid}" class="player"></div>
+        <div class="user-name" id="name-${uid}">${name}</div>
     `;
 
-    box.appendChild(player);
-    box.appendChild(label);
-
-    return box;
+    return div;
 }
 
 function updateLayout(){
