@@ -713,6 +713,7 @@ async function join(){
 
     users[UID] = "{{ request.user.username }}";  // ✅ FIX
     updateParticipants();
+    renderAllVideos();
 
     state.activeUser = UID;
     updateLayout();
@@ -741,16 +742,46 @@ client.on("user-published", async (user, mediaType) => {
     }
 
     if(mediaType === "video"){
-        user.videoTrack.play("player-" + user.uid);
+
+        let uid = user.uid.toString();
+
+        // 🔥 DETECT SCREEN USER
+        if(uid.includes("_screen")){
+
+            console.log("📺 Remote screen detected:", uid);
+
+            state.isScreenSharing = true;
+            state.screenUser = uid;
+
+            let box = document.getElementById("video-" + uid);
+
+            if(!box){
+                box = createVideoBox(uid, "Screen");
+                document.getElementById("main-video").appendChild(box);
+            }
+
+            user.videoTrack.play("player-" + uid);
+
+            updateLayout();
+
+        } else {
+
+            user.videoTrack.play("player-" + user.uid);
+
+            if(!state.activeUser){
+                state.activeUser = user.uid;
+            }
+
+            updateLayout();
+        }
     }
 
     if(mediaType === "audio"){
         user.audioTrack.play();
     }
 
-    if(!state.activeUser){
-        state.activeUser = user.uid;
-    }
+    users[user.uid] = userMap[user.uid] || ("User-" + user.uid);
+    updateParticipants();
 
     updateLayout();
 });
@@ -1146,6 +1177,13 @@ client.on("user-left", user => {
     if(el) el.remove();
 
     updateParticipants();
+
+    if(String(user.uid).includes("_screen")){
+        state.isScreenSharing = false;
+        state.screenUser = null;
+
+        updateLayout();
+    }
 });
 
 window.onload = () => {
@@ -1336,6 +1374,21 @@ function updateMainView(){
     if(target){
         setMainVideo(target);
     }
+}
+
+function renderAllVideos(){
+
+    let side = document.getElementById("side-videos");
+
+    Object.keys(users).forEach(uid => {
+
+        if(!document.getElementById("video-" + uid)){
+
+            let box = createVideoBox(uid, users[uid]);
+            side.appendChild(box);
+        }
+
+    });
 }
 
 </script>
