@@ -646,20 +646,9 @@ function connectSocket(retry = 0){
         }
 
         if(data.type === "user_join"){
-
-            let uid = String(data.uid);
-
-            userMap[uid] = data.username;
-            users[uid] = data.username;
-
+            userMap[data.uid] = data.username;
+            users[data.uid] = data.username;
             updateParticipants();
-
-            // 🔥 UPDATE VIDEO NAME LIVE
-            let nameEl = document.getElementById("name-" + uid);
-
-            if(nameEl){
-                nameEl.innerText = data.username;
-            }
         }
 
         if(data.type === "spotlight"){

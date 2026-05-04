@@ -26,6 +26,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
 
+        self.users = {}
+
         await self.accept()
 
         # 🔥 LAZY IMPORT (FIX)
@@ -48,6 +50,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except Exception as e:
             print("❌ Attendance error:", e)
 
+
+
         
 
     async def disconnect(self, close_code):
@@ -64,6 +68,29 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
+
+        if data["type"] == "user_join":
+
+            # store user
+            self.users[data["uid"]] = data["username"]
+
+            # send existing users to new user
+            for uid, username in self.users.items():
+                await self.send(text_data=json.dumps({
+                    "type": "user_join",
+                    "uid": uid,
+                    "username": username
+                }))
+
+            # broadcast new user to others
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "broadcast_user_join",
+                    "uid": data["uid"],
+                    "username": data["username"],
+                }
+            )
 
         msg_type = data.get("type")
 
@@ -204,3 +231,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if self.attendance:
             self.attendance.leave_time = timezone.now()
             self.attendance.save()
+
+
+    async def broadcast_user_join(self, event):
+
+        await self.send(text_data=json.dumps({
+            "type": "user_join",
+            "uid": event["uid"],
+            "username": event["username"]
+        }))
