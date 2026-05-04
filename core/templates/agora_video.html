@@ -648,16 +648,15 @@ function connectSocket(retry = 0){
 
             updateParticipants();
 
-            // 🔥 ALSO UPDATE EXISTING VIDEO BOX LABEL
+            // 🔥 update name on existing video
             let box = document.getElementById("video-" + data.uid);
+
             if(box){
-                let nameSpan = box.querySelector(".user-name");
-                if(nameSpan){
-                    nameSpan.innerText = data.username;
+                let nameEl = box.querySelector(".user-name");
+                if(nameEl){
+                    nameEl.innerText = data.username;
                 }
             }
-
-            renderExistingUsers();
         }
 
         if(data.type === "spotlight"){
@@ -696,18 +695,18 @@ async function join(){
 
     let box = createVideoBox(UID, "{{ request.user.username }}");
 
-    // move to main
-    document.getElementById("main-video").innerHTML = "";
-    document.getElementById("main-video").appendChild(box);
+    // 🔥 ALWAYS add to side first
+    document.getElementById("side-videos").appendChild(box);
 
     // play video
     localTracks[1].play("player-" + UID);
 
-    users[UID] = "{{ request.user.username }}";  // ✅ FIX
+    users[UID] = "{{ request.user.username }}";
     updateParticipants();
-    renderAllVideos();
 
+    // set self as active
     state.activeUser = UID;
+
     updateLayout();
 
     await client.publish(localTracks);
@@ -726,55 +725,34 @@ client.on("user-published", async (user, mediaType) => {
 
     await client.subscribe(user, mediaType);
 
-    let box = document.getElementById("video-" + user.uid);
+    let uid = user.uid.toString();
+
+    let name = userMap[uid] || ("User-" + uid);
+
+    users[uid] = name;
+    updateParticipants();
+
+    let box = document.getElementById("video-" + uid);
 
     if(!box){
-        let name = userMap[user.uid] || ("User-" + user.uid);
-        box = createVideoBox(user.uid, name);
+        box = createVideoBox(uid, name);
+
+        // 🔥 ALWAYS add to side first
         document.getElementById("side-videos").appendChild(box);
     }
 
     if(mediaType === "video"){
-
-        let uid = user.uid.toString();
-
-        // 🔥 DETECT SCREEN USER
-        if(uid.includes("_screen")){
-
-            console.log("📺 Remote screen detected:", uid);
-
-            state.isScreenSharing = true;
-            state.screenUser = uid;
-
-            let box = document.getElementById("video-" + uid);
-
-            if(!box){
-                box = createVideoBox(uid, "Screen");
-                document.getElementById("main-video").appendChild(box);
-            }
-
-            user.videoTrack.play("player-" + uid);
-
-            updateLayout();
-
-        } else {
-
-            user.videoTrack.play("player-" + user.uid);
-
-            if(!state.activeUser){
-                state.activeUser = user.uid;
-            }
-
-            updateLayout();
-        }
+        user.videoTrack.play("player-" + uid);
     }
 
     if(mediaType === "audio"){
         user.audioTrack.play();
     }
 
-    users[user.uid] = userMap[user.uid] || ("User-" + user.uid);
-    updateParticipants();
+    // 🔥 set active user if none
+    if(!state.activeUser){
+        state.activeUser = uid;
+    }
 
     updateLayout();
 });
@@ -813,10 +791,8 @@ function updateLayout(){
 
     let target = null;
 
-    // 🎯 PRIORITY
     if(state.isScreenSharing && state.screenUser){
         target = state.screenUser;
-
     } else if(state.activeUser){
         target = state.activeUser;
     }
@@ -825,21 +801,25 @@ function updateLayout(){
 
     let targetBox = document.getElementById("video-" + target);
 
-    // ❌ PREVENT BLANK SCREEN
+    // ❌ prevent blank screen
     if(!targetBox){
-        console.log("⚠️ target video not ready:", target);
         return;
     }
 
-    // 🔥 NOW SAFE TO CLEAR
-    main.innerHTML = "";
+    // 🔥 move only if needed (IMPORTANT FIX)
+    if(targetBox.parentElement !== main){
+        main.innerHTML = "";
+        main.appendChild(targetBox);
+    }
 
-    main.appendChild(targetBox);
+    // 🔥 move others safely
+    document.querySelectorAll(".video-box").forEach(box => {
 
-    // 🔥 MOVE OTHERS TO GRID
-    document.querySelectorAll(".video-box").forEach(b => {
-        if(b.id !== "video-" + target){
-            side.appendChild(b);
+        if(box.id !== "video-" + target){
+
+            if(box.parentElement !== side){
+                side.appendChild(box);
+            }
         }
     });
 }
