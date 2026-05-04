@@ -150,37 +150,17 @@
         }
 
         /* SIDE VIDEOS */
-        .side-videos {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            max-width: 320px;
-            z-index: 10;
-        }
-
         #side-videos {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 10px;
-            max-width: 320px;
-            z-index: 10;
+            padding: 10px;
+            height: 30%;
+            overflow-y: auto;
         }
 
-        /* Floating thumbnails */
-        .side-videos .video-box {
-            width: 120px;
-            height: 80px;
-            border-radius: 10px;
-            overflow: hidden;
-            cursor: pointer;
-            background: black;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        #side-videos .video-box {
+            height: 120px;
         }
 
         /* Optional hover effect */
@@ -662,9 +642,21 @@ function connectSocket(retry = 0){
         }
 
         if(data.type === "user_join"){
+
             userMap[data.uid] = data.username;
             users[data.uid] = data.username;
+
             updateParticipants();
+
+            // 🔥 ALSO UPDATE EXISTING VIDEO BOX LABEL
+            let box = document.getElementById("video-" + data.uid);
+            if(box){
+                let nameSpan = box.querySelector(".user-name");
+                if(nameSpan){
+                    nameSpan.innerText = data.username;
+                }
+            }
+
             renderExistingUsers();
         }
 
@@ -737,7 +729,8 @@ client.on("user-published", async (user, mediaType) => {
     let box = document.getElementById("video-" + user.uid);
 
     if(!box){
-        box = createVideoBox(user.uid, "User");
+        let name = userMap[user.uid] || ("User-" + user.uid);
+        box = createVideoBox(user.uid, name);
         document.getElementById("side-videos").appendChild(box);
     }
 
