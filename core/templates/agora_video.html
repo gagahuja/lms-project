@@ -98,8 +98,8 @@
 
 
         .video-layout {
-            position: relative;
             display: flex;
+            flex-direction: column; /* 🔥 IMPORTANT */
             height: 100%;
             width: 100%;
         }
@@ -148,20 +148,21 @@
         }
 
         #main-video {
+            flex: 7;
             width: 100%;
-            height: 70%;
+            position: relative;
         }
 
         /* SIDE VIDEOS */
         #side-videos {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 10px;
             padding: 10px;
             height: 30%;
             overflow-y: auto;
-            width: 100%;
         }
+        
 
         #side-videos .video-box {
             height: 120px;
@@ -427,6 +428,11 @@
             border: 3px solid #facc15;
             box-shadow: 0 0 15px #facc15;
         }
+
+        .player {
+            width: 100%;
+            height: 100%;
+        }
         
     </style>
 
@@ -515,6 +521,9 @@ const userName = "{{ user_name|default:'Guest' }}"
 
 let client = AgoraRTC.createClient({mode:"rtc", codec:"vp8"});
 let screenClient = AgoraRTC.createClient({mode:"rtc", codec:"vp8"});
+client.on("user-joined", user => {
+    console.log("User joined:", user.uid);
+});
 let screenTrack;
 let localTracks = [];
 let layoutBeforeScreen = {
@@ -646,9 +655,17 @@ function connectSocket(retry = 0){
         }
 
         if(data.type === "user_join"){
+
             userMap[data.uid] = data.username;
             users[data.uid] = data.username;
+
             updateParticipants();
+
+            // 🔥 UPDATE VIDEO NAME
+            let el = document.getElementById("name-" + data.uid);
+            if(el){
+                el.innerText = data.username;
+            }
         }
 
         if(data.type === "spotlight"){
@@ -676,7 +693,7 @@ function connectSocket(retry = 0){
 // JOIN
 async function join(){
 
-    let UID = Math.floor(Math.random()*10000);
+    let UID = String(Date.now());  // stable unique id
     client.uid = UID;
 
     await client.join(APP_ID, CHANNEL, null, UID);
@@ -692,6 +709,7 @@ async function join(){
 
     // play video
     localTracks[1].play("player-" + UID);
+    await client.publish(localTracks);
 
     // store correct name
     userMap[UID] = "{{ request.user.username }}";
@@ -776,35 +794,23 @@ function updateLayout(){
     let main = document.getElementById("main-video");
     let side = document.getElementById("side-videos");
 
-    let target = null;
-
-    if(state.isScreenSharing && state.screenUser){
-        target = state.screenUser;
-    } else if(state.activeUser){
-        target = state.activeUser;
-    }
+    let target = state.isScreenSharing && state.screenUser
+        ? state.screenUser
+        : state.activeUser;
 
     if(!target) return;
 
     let targetBox = document.getElementById("video-" + target);
+    if(!targetBox) return;
 
-    // ❌ prevent blank screen
-    if(!targetBox){
-        return;
-    }
-
-    // 🔥 move only if needed (IMPORTANT FIX)
-    if(targetBox.parentElement !== main){
-        main.innerHTML = "";
+    // ❗ DO NOT CLEAR MAIN (THIS WAS BREAKING VIDEO)
+    if(!main.contains(targetBox)){
         main.appendChild(targetBox);
     }
 
-    // 🔥 move others safely
     document.querySelectorAll(".video-box").forEach(box => {
-
         if(box.id !== "video-" + target){
-
-            if(box.parentElement !== side){
+            if(!side.contains(box)){
                 side.appendChild(box);
             }
         }
