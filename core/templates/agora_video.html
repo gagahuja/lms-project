@@ -86,6 +86,7 @@
         .main-video .video-box {
             width: 100%;
             height: 100%;
+            transform: scale(1);
         }
 
 
@@ -135,6 +136,21 @@
             font-weight: 500;
         }
 
+        .video-overlay{
+            position:absolute;
+            bottom:6px;
+            left:6px;
+            right:6px;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            background:rgba(0,0,0,0.4);
+            padding:4px 8px;
+            border-radius:6px;
+            color:white;
+            font-size:13px;
+        }
+
         .mic-icon {
             font-size: 16px;
         }
@@ -166,6 +182,7 @@
 
         #side-videos .video-box {
             height: 120px;
+            transform: scale(0.95);
         }
 
         /* Optional hover effect */
@@ -433,6 +450,20 @@
             width: 100%;
             height: 100%;
         }
+
+        .camera-off .player{
+            display:none;
+        }
+
+        .camera-off::after{
+            content:"Camera Off";
+            position:absolute;
+            top:50%;
+            left:50%;
+            transform:translate(-50%, -50%);
+            color:white;
+            font-size:16px;
+        }
         
     </style>
 
@@ -536,6 +567,7 @@ let state = {
     screenUser: null,
     isScreenSharing: false
 };
+state.pinnedUser = null;
 let screenUid = null;
 let isReacting = false;
 let reactionUid = null;
@@ -630,11 +662,9 @@ function connectSocket(retry = 0){
         }
 
         if(data.type === "mic_status"){
-
-            let micIcon = document.getElementById("mic-" + data.uid);
-
-            if(micIcon){
-                micIcon.innerText = data.status === "on" ? "🎤" : "🔇";
+            let el = document.getElementById("mic-" + data.uid);
+            if(el){
+                el.innerText = data.status === "on" ? "🎤" : "🔇";
             }
         }
 
@@ -783,8 +813,23 @@ function createVideoBox(uid, name){
 
     div.innerHTML = `
         <div id="player-${uid}" class="player"></div>
-        <div class="user-name" id="name-${uid}">${name}</div>
+
+        <div class="video-overlay">
+            <span class="user-name" id="name-${uid}">${name}</span>
+            <span class="mic-icon" id="mic-${uid}">🎤</span>
+        </div>
     `;
+
+    div.onclick = () => {
+
+        if(state.pinnedUser === uid){
+            state.pinnedUser = null;
+        } else {
+            state.pinnedUser = uid;
+        }
+
+        updateLayout();
+    };
 
     return div;
 }
@@ -794,9 +839,17 @@ function updateLayout(){
     let main = document.getElementById("main-video");
     let side = document.getElementById("side-videos");
 
-    let target = state.isScreenSharing && state.screenUser
-        ? state.screenUser
-        : state.activeUser;
+    let target;
+
+    if(state.isScreenSharing && state.screenUser){
+        target = state.screenUser;
+
+    } else if(state.pinnedUser){
+        target = state.pinnedUser;
+
+    } else {
+        target = state.activeUser;
+    }
 
     if(!target) return;
 
@@ -916,28 +969,34 @@ function updateParticipants(){
 }
 
 // CONTROLS
-async function toggleMic(){
-    let enabled = localTracks[0].enabled;
-    let newState = !enabled;
+function toggleMic(){
 
-    await localTracks[0].setEnabled(newState);
+    localTracks[0].setEnabled(!localTracks[0].enabled);
 
-    // 🔥 update your own UI instantly
-    let micIcon = document.getElementById("mic-" + client.uid);
-    if(micIcon){
-        micIcon.innerText = newState ? "🎤" : "🔇";
-    }
+    let status = localTracks[0].enabled ? "on" : "off";
 
-    // 🔥 send to others
+    document.getElementById("mic-" + UID).innerText =
+        status === "on" ? "🎤" : "🔇";
+
     socket.send(JSON.stringify({
         type: "mic_status",
-        uid: client.uid,
-        status: newState ? "on" : "off"
+        uid: UID,
+        status: status
     }));
 }
 
+
 function toggleCam(){
-    if(localTracks[1]) localTracks[1].setEnabled(!localTracks[1].enabled);
+
+    localTracks[1].setEnabled(!localTracks[1].enabled);
+
+    let box = document.getElementById("video-" + UID);
+
+    if(!localTracks[1].enabled){
+        box.classList.add("camera-off");
+    } else {
+        box.classList.remove("camera-off");
+    }
 }
 
 
