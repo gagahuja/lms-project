@@ -45,22 +45,6 @@
         }
 
         
-
-        .video-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 10px;
-            height: 100%;
-        }
-
-        .video-area {
-            flex:4;
-            display:grid;
-            grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
-            gap:10px;
-            padding:10px;
-        }
-
         /* VIDEO BOX */
         .video-box {
             position: relative;
@@ -101,13 +85,6 @@
             box-shadow: 0 0 10px #22c55e;
         }
 
-
-        .video-layout {
-            display: flex;
-            flex-direction: column; /* 🔥 IMPORTANT */
-            height: 100%;
-            width: 100%;
-        }
 
         .video-label {
             position: absolute;
@@ -159,29 +136,18 @@
             font-size: 16px;
         }
 
-        /* MAIN VIDEO */
-        .main-video {
-            flex: 1;
-            height: 100%;
-            width: 100%;
-            position: relative;
-        }
-
+        
         #main-video {
-            width: 80%;
+            width: 100%;
             height: 60%;
             background: black;
             border-radius: 10px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-left: auto;
         }
 
         /* SIDE VIDEOS */
         #side-videos {
             width: 100%;
-            height: 40%;
+            height: calc(40% - 10px);
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 10px;
@@ -486,14 +452,12 @@
     </style>
 
 
-<div class="main-container">
+<div class="container">
 
     <!-- LEFT SIDE: VIDEO -->
     <div class="video-section">
 
-        <div class="video-main-row">
-            <div id="main-video"></div>
-        </div>
+        <div id="main-video"></div>
 
         <div id="side-videos"></div>
 
@@ -747,13 +711,12 @@ async function join(){
     localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
 
     if(!document.getElementById("video-" + UID)){
-        let box = createVideoBox(UID, name);
+        let box = createVideoBox(UID, "{{ request.user.username }}");
         document.getElementById("side-videos").appendChild(box);
     }
 
     // play video
     localTracks[1].play("player-" + UID);
-    await client.publish(localTracks);
 
     // store correct name
     userMap[UID] = "{{ request.user.username }}";
