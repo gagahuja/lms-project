@@ -32,14 +32,13 @@
         .container {
             display: flex;
             height: calc(100vh - 80px);
-            width: 100%;
         }
 
         /* VIDEO */
         .video-section {
             display: flex;
             flex-direction: column;
-            flex: 1;
+            flex: 3;
         }
 
         .video-grid {
@@ -164,18 +163,17 @@
         }
 
         #main-video {
-            flex: 7;
+            height: 70%;
             width: 100%;
-            position: relative;
         }
 
         /* SIDE VIDEOS */
         #side-videos {
+            height: 30%;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 10px;
             padding: 10px;
-            height: 30%;
             overflow-y: auto;
         }
         
@@ -215,6 +213,11 @@
             display: flex;
             flex-direction: column;
             padding: 10px;
+        }
+
+        /* RIGHT CHAT */
+        .chat-section {
+            flex: 1;
         }
 
         /* Chat Box */
@@ -787,7 +790,36 @@ client.on("user-published", async (user, mediaType) => {
     }
 
     if(mediaType === "video"){
+
+        let uid = String(user.uid);
+
+        let box = document.getElementById("video-" + uid);
+
+        if(!box){
+            box = createVideoBox(uid, userMap[uid] || "User");
+            document.getElementById("side-videos").appendChild(box);
+        }
+
         user.videoTrack.play("player-" + uid);
+
+        // 🔥 SCREEN SHARE DETECTION
+        if(uid.includes("_screen")){
+
+            state.isScreenSharing = true;
+            state.screenUser = uid;
+
+            // force screen to main
+            moveToMain(uid);
+
+        } else {
+
+            // normal user
+            if(!state.isScreenSharing && !state.pinnedUser){
+                state.activeUser = uid;
+            }
+
+            updateLayout();
+        }
     }
 
     if(mediaType === "audio"){
@@ -1204,6 +1236,7 @@ client.on("user-left", user => {
     updateParticipants();
 
     if(String(user.uid).includes("_screen")){
+
         state.isScreenSharing = false;
         state.screenUser = null;
 
@@ -1346,20 +1379,24 @@ function moveAllToSide(){
 
 async function stopScreenShare(){
 
-    if(!state.isScreenSharing) return;
-
-    state.isScreenSharing = false;
-
     if(screenTrack){
+
         screenTrack.stop();
         screenTrack.close();
+
+        await screenClient.unpublish([screenTrack]);
+        await screenClient.leave();
+
+        screenTrack = null;
+
+        state.isScreenSharing = false;
+        state.screenUser = null;
+
+        // 🔥 FORCE BACK TO SELF
+        state.activeUser = UID;
+
+        updateLayout();
     }
-
-    await screenClient.leave();
-
-    state.screenUser = null;
-
-    updateLayout();
 }
 
 function renderExistingUsers(){
@@ -1413,6 +1450,26 @@ function renderAllVideos(){
             side.appendChild(box);
         }
 
+    });
+}
+
+function moveToMain(uid){
+
+    let main = document.getElementById("main-video");
+    let side = document.getElementById("side-videos");
+
+    let target = document.getElementById("video-" + uid);
+    if(!target) return;
+
+    if(!main.contains(target)){
+        main.innerHTML = "";
+        main.appendChild(target);
+    }
+
+    document.querySelectorAll(".video-box").forEach(box => {
+        if(box.id !== "video-" + uid){
+            side.appendChild(box);
+        }
     });
 }
 
