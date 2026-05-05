@@ -36,9 +36,16 @@
 
         /* VIDEO */
         .video-section {
+            flex: 3;
             display: flex;
             flex-direction: column;
-            flex: 3;
+            padding: 10px;
+        }
+
+        /* MAIN VIDEO RIGHT SIDE */
+        .video-main-row {
+            display: flex;
+            justify-content: flex-end;
         }
 
         .video-grid {
@@ -163,18 +170,19 @@
         }
 
         #main-video {
-            height: 70%;
-            width: 100%;
+            width: 75%;
+            height: 60%;
+            background: black;
+            border-radius: 10px;
         }
 
         /* SIDE VIDEOS */
         #side-videos {
-            height: 30%;
+            margin-top: 10px;
+            height: 40%;
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 10px;
-            padding: 10px;
-            overflow-y: auto;
         }
         
 
@@ -333,10 +341,10 @@
 
 
         .controls {
-            position:fixed;
-            bottom:15px;
-            left:50%;
-            transform:translateX(-50%);
+            display:flex;
+            justify-content:center;
+            gap:10px;
+            margin-top:10px;
         }
 
         button {
@@ -476,15 +484,11 @@
     <!-- LEFT SIDE: VIDEO -->
     <div class="video-section">
 
-        <div class="video-layout">
-
-            <!-- MAIN VIDEO -->
+        <div class="video-main-row">
             <div id="main-video"></div>
-
-            <!-- SIDE VIDEOS -->
-            <div class="side-videos" id="side-videos"></div>
-
         </div>
+
+        <div id="side-videos"></div>
 
     </div>
 
@@ -735,10 +739,10 @@ async function join(){
 
     localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
 
-    let box = createVideoBox(UID, "{{ request.user.username }}");
-
-    // ❗ ALWAYS ADD TO GRID FIRST
-    document.getElementById("side-videos").appendChild(box);
+    if(!document.getElementById("video-" + UID)){
+        let box = createVideoBox(UID, name);
+        document.getElementById("side-videos").appendChild(box);
+    }
 
     // play video
     localTracks[1].play("player-" + UID);
@@ -775,19 +779,15 @@ client.on("user-published", async (user, mediaType) => {
     let uid = String(user.uid);
 
     // ❗ ALWAYS resolve name here
-    let name = userMap[uid] || "Connecting...";
+    let name = userMap[uid] || "User";
 
     users[uid] = name;
     updateParticipants();
 
-    let box = document.getElementById("video-" + uid);
+    if(document.getElementById("video-" + uid)) return;
 
-    if(!box){
-        box = createVideoBox(uid, name);
-
-        // ❗ ALWAYS SIDE FIRST
-        document.getElementById("side-videos").appendChild(box);
-    }
+    let box = createVideoBox(uid, name);
+    document.getElementById("side-videos").appendChild(box);
 
     if(mediaType === "video"){
 
@@ -808,9 +808,10 @@ client.on("user-published", async (user, mediaType) => {
             state.isScreenSharing = true;
             state.screenUser = uid;
 
-            // force screen to main
+            // 🔥 ONLY MOVE SCREEN TO MAIN
             moveToMain(uid);
 
+            return; // ❗ STOP further layout logic
         } else {
 
             // normal user
@@ -1461,14 +1462,16 @@ function moveToMain(uid){
     let target = document.getElementById("video-" + uid);
     if(!target) return;
 
-    if(!main.contains(target)){
-        main.innerHTML = "";
-        main.appendChild(target);
-    }
+    // clear main ONLY ONCE
+    main.innerHTML = "";
+    main.appendChild(target);
 
+    // move others to grid
     document.querySelectorAll(".video-box").forEach(box => {
         if(box.id !== "video-" + uid){
-            side.appendChild(box);
+            if(!side.contains(box)){
+                side.appendChild(box);
+            }
         }
     });
 }
