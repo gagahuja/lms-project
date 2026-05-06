@@ -1218,40 +1218,47 @@ document.addEventListener("click", function(e){
 
 
 
-let lastSpeakerSwitch = 0;
+let lastSpeaker = null;
+lastSwitchTime = 0;
 
 client.enableAudioVolumeIndicator();
 
 client.on("volume-indicator", volumes => {
 
+    // NEVER switch during screen share
     if(state.isScreenSharing) return;
 
-    let loudest = null;
-    let max = 0;
+    let loudestUser = null;
+    let highestLevel = 0;
 
     volumes.forEach(v => {
 
-        if(v.level > max){
-            max = v.level;
-            loudest = String(v.uid);
+        if(v.level > highestLevel){
+
+            highestLevel = v.level;
+
+            loudestUser = String(v.uid);
         }
     });
 
-    if(!loudest || max < 8) return;
+    // ignore weak sounds
+    if(highestLevel < 12) return;
 
     let now = Date.now();
 
     // prevent rapid switching
-    if(now - lastSpeakerSwitch < 150) return;
+    if(now - lastSwitchTime < 1500) return;
 
-    if(state.activeUser !== loudest){
+    // same speaker
+    if(lastSpeaker === loudestUser) return;
 
-        state.activeUser = loudest;
+    lastSpeaker = loudestUser;
 
-        updateLayout();
+    lastSwitchTime = now;
 
-        lastSpeakerSwitch = now;
-    }
+    state.activeUser = loudestUser;
+
+    updateLayout();
 });
 
 function setGrid(){
@@ -1287,9 +1294,19 @@ client.on("user-left", user => {
     if(String(user.uid).includes("_screen")){
 
         state.isScreenSharing = false;
+
         state.screenUser = null;
 
-        updateLayout();
+        // restore local active user
+        if(!state.activeUser){
+            state.activeUser = UID;
+        }
+
+        setTimeout(() => {
+
+            updateLayout();
+
+        }, 200);
     }
 });
 
@@ -1428,24 +1445,30 @@ function moveAllToSide(){
 
 async function stopScreenShare(){
 
-    if(screenTrack){
+    await screenClient.unpublish(screenTrack);
 
-        screenTrack.stop();
-        screenTrack.close();
+    screenTrack.close();
 
-        await screenClient.unpublish([screenTrack]);
-        await screenClient.leave();
+    state.isScreenSharing = false;
 
-        screenTrack = null;
+    state.screenUser = null;
 
-        state.isScreenSharing = false;
-        state.screenUser = null;
+    // remove screen box
+    let screenBox = document.getElementById("video-" + UID + "_screen");
 
-        // 🔥 FORCE BACK TO SELF
-        state.activeUser = UID;
+    if(screenBox){
+        screenBox.remove();
+    }
+
+    // restore speaker/local user
+    state.activeUser = UID;
+
+    // IMPORTANT
+    setTimeout(() => {
 
         updateLayout();
-    }
+
+    }, 200);
 }
 
 function renderExistingUsers(){
