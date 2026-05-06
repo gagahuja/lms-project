@@ -13,6 +13,7 @@
             font-family: Arial;
             background: #0f172a;
             color: white;
+            overflow:hidden;
         }
 
         .main {
@@ -50,7 +51,8 @@
             flex: 1;
             display:flex;
             flex-direction:column;
-            min-height:0;
+            height:100vh;
+            overflow:hidden;
         }
 
         
@@ -166,7 +168,7 @@
         
         #main-video {
             flex: 1;
-            height: 70vh;
+            height: 58vh;
             background: black;
             border-radius: 10px;
             overflow: hidden;
@@ -187,15 +189,15 @@
         #side-videos{
             width:100%;
             display:grid;
-            grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
-            gap:12px;
+            grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+            gap:10px;
             padding:10px;
-            margin-top:12px;
-            min-height:180px;
-            max-height:260px;
+            margin-top:10px;
+            min-height:160px;
+            max-height:22vh;
             overflow-y:auto;
             background:rgba(255,255,255,0.03);
-            border-radius:12px;
+            border-radius:10px;
             border:2px solid red;
         }
         
@@ -375,6 +377,8 @@
             flex-direction: column;
             gap: 6px;
             flex-shrink: 0;
+            max-height:58vh;
+            overflow-y:auto;
         }
 
         /* BUTTON STYLE */
@@ -546,10 +550,8 @@
             <div id="main-video">
                 <div id="main-slot"></div>
             </div>
-            <div id="side-videos"></div>
-
+            
         </div>
-
 
         <div id="side-videos"></div>
 
