@@ -819,8 +819,9 @@ client.on("user-published", async (user, mediaType) => {
             state.isScreenSharing = true;
             state.screenUser = uid;
 
+            updateLayout();
             // 🔥 ONLY MOVE SCREEN TO MAIN
-            moveToMain(uid);
+            //moveToMain(uid);
 
             return; // ❗ STOP further layout logic
         } else {
@@ -851,6 +852,9 @@ console.log("Users map:", users);
 // VIDEO BOX
 function createVideoBox(uid, name){
 
+    if(document.getElementById("video-" + uid)){
+        return;
+    }
     let div = document.createElement("div");
     div.className = "video-box";
     div.id = "video-" + uid;
@@ -883,30 +887,38 @@ function updateLayout(){
     let main = document.getElementById("main-video");
     let side = document.getElementById("side-videos");
 
-    let target;
+    let targetUid = null;
 
+    // PRIORITY 1 → SCREEN SHARE
     if(state.isScreenSharing && state.screenUser){
-        target = state.screenUser;
+        targetUid = state.screenUser;
 
+    // PRIORITY 2 → PINNED USER
     } else if(state.pinnedUser){
-        target = state.pinnedUser;
+        targetUid = state.pinnedUser;
 
-    } else {
-        target = state.activeUser;
+    // PRIORITY 3 → ACTIVE SPEAKER
+    } else if(state.activeUser){
+        targetUid = state.activeUser;
     }
 
-    if(!target) return;
+    if(!targetUid) return;
 
-    let targetBox = document.getElementById("video-" + target);
+    let targetBox = document.getElementById("video-" + targetUid);
+
     if(!targetBox) return;
 
-    // ❗ DO NOT CLEAR MAIN (THIS WAS BREAKING VIDEO)
+    // MOVE TARGET TO MAIN
     if(!main.contains(targetBox)){
+        main.innerHTML = "";
         main.appendChild(targetBox);
     }
 
+    // MOVE ALL OTHERS TO GRID
     document.querySelectorAll(".video-box").forEach(box => {
-        if(box.id !== "video-" + target){
+
+        if(box.id !== "video-" + targetUid){
+
             if(!side.contains(box)){
                 side.appendChild(box);
             }
@@ -1057,7 +1069,9 @@ async function shareScreen(){
     await screenClient.publish([screenTrack]);
 
     state.isScreenSharing = true;
-    state.screenUser = client.uid + "_screen";
+    state.screenUser = UID + "_screen";
+
+    updateLayout();
 
     // 🔥 CREATE MAIN SCREEN
     let main = document.getElementById("main-video");
@@ -1182,39 +1196,17 @@ client.enableAudioVolumeIndicator();
 
 client.on("volume-indicator", volumes => {
 
+    if(state.isScreenSharing) return;
+
     volumes.forEach(v => {
 
         if(v.level > 5){
 
-            // 🔥 highlight speaker only
-            document.querySelectorAll(".video-box")
-                .forEach(b => b.classList.remove("active-speaker"));
+            state.activeUser = String(v.uid);
 
-            let activeBox = document.getElementById("video-" + v.uid);
-
-            if(activeBox){
-                activeBox.classList.add("active-speaker");
-            }
-
-            // 🔥 DO NOT SWITCH MAIN IF SCREEN IS SHARED
-            if(!state.isScreenSharing){
-
-                let now = Date.now();
-
-                if(now - lastSwitch < 1500){
-
-                    return;
-                }
-
-                lastSwitch = now;
-
-                state.activeUser = v.uid;
-
-                updateLayout();
-            }
+            updateLayout();
         }
     });
-
 });
 
 function setGrid(){
