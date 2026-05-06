@@ -1477,7 +1477,7 @@ async function stopScreenShare(){
 
     // RESTORE VALID USER
     let fallbackUser = null;
-    state.shareScreen();
+    
 
     // local user first
     if(document.getElementById("video-" + UID)){
@@ -1494,6 +1494,8 @@ async function stopScreenShare(){
             fallbackUser = anyBox.id.replace("video-", "");
         }
     }
+
+    shareScreen();
 
     state.activeUser = fallbackUser;
 
