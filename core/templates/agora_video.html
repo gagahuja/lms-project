@@ -168,7 +168,7 @@
         
         #main-video {
             flex: 1;
-            height: 58vh;
+            height: 65vh;
             background: black;
             border-radius: 10px;
             overflow: hidden;
@@ -377,7 +377,7 @@
             flex-direction: column;
             gap: 6px;
             flex-shrink: 0;
-            max-height:58vh;
+            max-height:65vh;
             overflow-y:auto;
         }
 
@@ -1242,7 +1242,7 @@ client.on("volume-indicator", volumes => {
     let now = Date.now();
 
     // prevent rapid switching
-    if(now - lastSpeakerSwitch < 250) return;
+    if(now - lastSpeakerSwitch < 150) return;
 
     if(state.activeUser !== loudest){
 
