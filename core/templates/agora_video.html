@@ -810,7 +810,6 @@ client.on("user-published", async (user, mediaType) => {
     users[uid] = name;
     updateParticipants();
 
-    if(document.getElementById("video-" + uid)) return;
 
     let box = createVideoBox(uid, name);
     document.getElementById("side-videos").appendChild(box);
@@ -896,16 +895,14 @@ function updateLayout(){
 
     let targetUid = null;
 
-    // PRIORITY 1 → SCREEN SHARE
+    // PRIORITY
     if(state.isScreenSharing && state.screenUser){
         targetUid = state.screenUser;
 
-    // PRIORITY 2 → PINNED USER
     } else if(state.pinnedUser){
         targetUid = state.pinnedUser;
 
-    // PRIORITY 3 → ACTIVE SPEAKER
-    } else if(state.activeUser){
+    } else {
         targetUid = state.activeUser;
     }
 
@@ -915,16 +912,22 @@ function updateLayout(){
 
     if(!targetBox) return;
 
-    // MOVE TARGET TO MAIN
+    // move current main back
+    let currentMain = main.querySelector(".video-box");
+
+    if(currentMain && currentMain.id !== targetBox.id){
+        side.prepend(currentMain);
+    }
+
+    // move target to main
     if(!main.contains(targetBox)){
-        main.innerHTML = "";
         main.appendChild(targetBox);
     }
 
-    // MOVE ALL OTHERS TO GRID
+    // ensure ALL others in grid
     document.querySelectorAll(".video-box").forEach(box => {
 
-        if(box.id !== "video-" + targetUid){
+        if(box.id !== targetBox.id){
 
             if(!side.contains(box)){
                 side.appendChild(box);
@@ -1082,7 +1085,7 @@ async function shareScreen(){
 
     // 🔥 CREATE MAIN SCREEN
     let main = document.getElementById("main-video");
-    main.innerHTML = "";
+    
 
     let box = createVideoBox(state.screenUser, "Screen");
     main.appendChild(box);
@@ -1225,7 +1228,7 @@ client.on("volume-indicator", volumes => {
 
             state.activeUser = maxUser;
 
-            switchMainVideo(maxUser);
+            updateLayout();
         }
     }
 });
@@ -1478,29 +1481,7 @@ function renderAllVideos(){
     });
 }
 
-function switchMainVideo(uid){
 
-    let main = document.getElementById("main-video");
-
-    let side = document.getElementById("side-videos");
-
-    let target = document.getElementById("video-" + uid);
-
-    if(!target) return;
-
-    // already main
-    if(main.contains(target)) return;
-
-    // move current main back to grid
-    let currentMain = main.querySelector(".video-box");
-
-    if(currentMain){
-        side.prepend(currentMain);
-    }
-
-    // move target to main
-    main.appendChild(target);
-}
 
 </script>
 
