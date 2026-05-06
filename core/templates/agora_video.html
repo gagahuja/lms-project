@@ -36,14 +36,20 @@
             width: 100%;
         }
 
+        .player video{
+            width:100% !important;
+            height:100% !important;
+            object-fit:cover;
+        }
+
         /* VIDEO */
         .video-section {
-            flex: 3;
+            flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 10px;
             gap: 10px;
-            width: 100%;
+            padding: 10px;
+            min-width: 0;
         }
 
         
@@ -141,14 +147,16 @@
         .video-top {
             display: flex;
             gap: 10px;
+            width: 100%;
+            align-items: stretch;
         }
         
         #main-video {
-            flex: 4;
-            width: 100%;
-            height: 60%;
+            flex: 1;
+            height: 70vh;
             background: black;
             border-radius: 10px;
+            overflow: hidden;
         }
 
         /* SIDE VIDEOS */
@@ -201,9 +209,8 @@
 
         /* RIGHT CHAT */
         .chat-section {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
+            width: 320px;
+            flex-shrink: 0;
             padding: 10px;
         }
 
@@ -329,10 +336,11 @@
 
         /* CONTROLS RIGHT (VERTICAL) */
         .controls-vertical {
-            flex: 1;
+            width: 150px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
+            flex-shrink: 0;
         }
 
         /* BUTTON STYLE */
