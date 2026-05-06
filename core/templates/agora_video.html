@@ -65,6 +65,18 @@
             background: black;
             border-radius: 8px;
             overflow: hidden;
+            transition: all 0.25s ease;
+        }
+
+        .video-name{
+            position:absolute;
+            bottom:8px;
+            left:8px;
+            background:rgba(0,0,0,0.5);
+            color:white;
+            padding:4px 8px;
+            border-radius:5px;
+            font-size:13px;
         }
 
         .fade-in {
@@ -166,12 +178,14 @@
 
         /* SIDE VIDEOS */
         #side-videos {
-            width: 100%;
-            height: calc(40% - 10px);
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 10px;
-            overflow-y: auto;
+            display:grid;
+            grid-template-columns: repeat(auto-fill,minmax(180px,1fr));
+            gap:10px;
+
+            width:100%;
+            height:220px;
+
+            margin-top:10px;
         }
         
 
@@ -753,7 +767,7 @@ async function join(){
 
     if(!document.getElementById("video-" + UID)){
         let box = createVideoBox(UID, "{{ request.user.username }}");
-        document.getElementById("side-videos").appendChild(box);
+        document.getElementById("main-video").appendChild(box);
     }
 
     // play video
@@ -852,32 +866,24 @@ console.log("Users map:", users);
 // VIDEO BOX
 function createVideoBox(uid, name){
 
-    if(document.getElementById("video-" + uid)){
-        return;
-    }
+    // already exists
+    let existing = document.getElementById("video-" + uid);
+
+    if(existing) return existing;
+
     let div = document.createElement("div");
+
     div.className = "video-box";
+
     div.id = "video-" + uid;
 
     div.innerHTML = `
         <div id="player-${uid}" class="player"></div>
 
-        <div class="video-overlay">
-            <span class="user-name" id="name-${uid}">${name}</span>
-            <span class="mic-icon" id="mic-${uid}">🎤</span>
+        <div class="video-name">
+            ${name}
         </div>
     `;
-
-    div.onclick = () => {
-
-        if(state.pinnedUser === uid){
-            state.pinnedUser = null;
-        } else {
-            state.pinnedUser = uid;
-        }
-
-        updateLayout();
-    };
 
     return div;
 }
@@ -1198,15 +1204,29 @@ client.on("volume-indicator", volumes => {
 
     if(state.isScreenSharing) return;
 
+    let maxUser = null;
+
+    let maxLevel = 0;
+
     volumes.forEach(v => {
 
-        if(v.level > 5){
+        if(v.level > maxLevel){
 
-            state.activeUser = String(v.uid);
+            maxLevel = v.level;
 
-            updateLayout();
+            maxUser = String(v.uid);
         }
     });
+
+    if(maxUser && maxLevel > 5){
+
+        if(state.activeUser !== maxUser){
+
+            state.activeUser = maxUser;
+
+            switchMainVideo(maxUser);
+        }
+    }
 });
 
 function setGrid(){
@@ -1457,26 +1477,28 @@ function renderAllVideos(){
     });
 }
 
-function moveToMain(uid){
+function switchMainVideo(uid){
 
     let main = document.getElementById("main-video");
+
     let side = document.getElementById("side-videos");
 
     let target = document.getElementById("video-" + uid);
+
     if(!target) return;
 
-    // clear main ONLY ONCE
-    main.innerHTML = "";
-    main.appendChild(target);
+    // already main
+    if(main.contains(target)) return;
 
-    // move others to grid
-    document.querySelectorAll(".video-box").forEach(box => {
-        if(box.id !== "video-" + uid){
-            if(!side.contains(box)){
-                side.appendChild(box);
-            }
-        }
-    });
+    // move current main back to grid
+    let currentMain = main.querySelector(".video-box");
+
+    if(currentMain){
+        side.prepend(currentMain);
+    }
+
+    // move target to main
+    main.appendChild(target);
 }
 
 </script>
