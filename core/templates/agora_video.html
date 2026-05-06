@@ -196,6 +196,7 @@
             overflow-y:auto;
             background:rgba(255,255,255,0.03);
             border-radius:12px;
+            border:2px solid red;
         }
         
 
@@ -912,33 +913,42 @@ function updateLayout(){
 
     // PRIORITY
     if(state.isScreenSharing && state.screenUser){
+
         targetUid = state.screenUser;
 
     } else if(state.pinnedUser){
+
         targetUid = state.pinnedUser;
 
     } else {
+
         targetUid = state.activeUser;
     }
 
     if(!targetUid) return;
 
-    let targetBox = document.getElementById("video-" + targetUid);
+    // ALL VIDEO BOXES
+    let allBoxes = document.querySelectorAll(".video-box");
 
-    if(!targetBox) return;
+    allBoxes.forEach(box => {
 
-    // already main
-    if(mainSlot.contains(targetBox)) return;
+        let uid = box.id.replace("video-", "");
 
-    // current main back to grid
-    let currentMain = mainSlot.querySelector(".video-box");
+        // MAIN USER
+        if(uid === String(targetUid)){
 
-    if(currentMain){
-        side.appendChild(currentMain);
-    }
+            if(!mainSlot.contains(box)){
+                mainSlot.appendChild(box);
+            }
 
-    // target to main
-    mainSlot.appendChild(targetBox);
+        // EVERYONE ELSE → GRID
+        } else {
+
+            if(!side.contains(box)){
+                side.appendChild(box);
+            }
+        }
+    });
 }
 
 // CHAT
@@ -1229,7 +1239,7 @@ client.on("volume-indicator", volumes => {
     let now = Date.now();
 
     // prevent rapid switching
-    if(now - lastSpeakerSwitch < 450) return;
+    if(now - lastSpeakerSwitch < 250) return;
 
     if(state.activeUser !== loudest){
 
