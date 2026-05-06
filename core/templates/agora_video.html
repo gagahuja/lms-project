@@ -603,6 +603,7 @@ const roomName = "{{ room_name|default:'default' }}"
 const CHANNEL = roomName;
 const userName = "{{ user_name|default:'Guest' }}"
 
+let UID = null;
 let client = AgoraRTC.createClient({mode:"rtc", codec:"vp8"});
 let screenClient = AgoraRTC.createClient({mode:"rtc", codec:"vp8"});
 client.on("user-joined", user => {
@@ -633,18 +634,7 @@ let raisedHands = {};
 let spotlightUser = null;
 
 
-function safeUpdateMain(){
 
-    let now = Date.now();
-
-    if(now - lastSwitch < 1000){
-        return; // 🚫 block rapid switching
-    }
-
-    lastSwitch = now;
-
-    updateMainView();
-}
 
 // SOCKET
 let socket;
@@ -776,7 +766,7 @@ function connectSocket(retry = 0){
 // JOIN
 async function join(){
 
-    let UID = String(Date.now());  // stable unique id
+    UID = String(Date.now());  // stable unique id
     client.uid = UID;
 
     await client.join(APP_ID, CHANNEL, null, UID);
@@ -787,7 +777,7 @@ async function join(){
 
     if(!document.getElementById("video-" + UID)){
         let box = createVideoBox(UID, "{{ request.user.username }}");
-        document.getElementById("main-video").appendChild(box);
+        document.getElementById("main-slot").appendChild(box);
     }
 
     // play video
@@ -914,7 +904,7 @@ function updateLayout(){
 
     let targetUid = null;
 
-    // PRIORITY
+    // SCREEN SHARE PRIORITY
     if(state.isScreenSharing && state.screenUser){
 
         targetUid = state.screenUser;
@@ -923,35 +913,66 @@ function updateLayout(){
 
         targetUid = state.pinnedUser;
 
-    } else {
+    } else if(state.activeUser){
 
         targetUid = state.activeUser;
     }
 
+    // FALLBACK
+    if(!targetUid){
+
+        let firstBox = document.querySelector(".video-box");
+
+        if(firstBox){
+
+            targetUid = firstBox.id.replace("video-", "");
+        }
+    }
+
     if(!targetUid) return;
 
-    // ALL VIDEO BOXES
-    let allBoxes = document.querySelectorAll(".video-box");
+    let targetBox = document.getElementById("video-" + targetUid);
 
-    allBoxes.forEach(box => {
+    // FALLBACK AGAIN
+    if(!targetBox){
+
+        let firstGridBox = side.querySelector(".video-box");
+
+        if(firstGridBox){
+
+            targetBox = firstGridBox;
+
+            targetUid = firstGridBox.id.replace("video-", "");
+        }
+    }
+
+    if(!targetBox) return;
+
+    // move ALL non-target users to grid
+    document.querySelectorAll(".video-box").forEach(box => {
 
         let uid = box.id.replace("video-", "");
 
-        // MAIN USER
-        if(uid === String(targetUid)){
-
-            if(!mainSlot.contains(box)){
-                mainSlot.appendChild(box);
-            }
-
-        // EVERYONE ELSE → GRID
-        } else {
+        if(uid !== String(targetUid)){
 
             if(!side.contains(box)){
                 side.appendChild(box);
             }
         }
     });
+
+    // move target to main
+    if(!mainSlot.contains(targetBox)){
+
+        let currentMain = mainSlot.querySelector(".video-box");
+
+        if(currentMain){
+
+            side.appendChild(currentMain);
+        }
+
+        mainSlot.appendChild(targetBox);
+    }
 }
 
 // CHAT
@@ -1099,10 +1120,10 @@ async function shareScreen(){
     state.isScreenSharing = true;
     state.screenUser = UID + "_screen";
 
-    updateLayout();
 
     // 🔥 CREATE MAIN SCREEN
-    let main = document.getElementById("main-video");
+    let main = document.getElementById("main-slot");
+    main.appendChild(box);
     
 
     let box = createVideoBox(state.screenUser, "Screen");
@@ -1262,18 +1283,10 @@ client.on("volume-indicator", volumes => {
 });
 
 function setGrid(){
-    let main = document.getElementById("main-video");
-    let side = document.getElementById("side-videos");
 
-    main.innerHTML = "";
-    side.innerHTML = "";
+    state.pinnedUser = null;
 
-    Object.keys(users).forEach(uid => {
-        let box = document.getElementById("video-" + uid);
-        if(box){
-            main.appendChild(box);
-        }
-    });
+    updateLayout();
 }
 
 function setSpotlight(){
@@ -1297,16 +1310,18 @@ client.on("user-left", user => {
 
         state.screenUser = null;
 
-        // restore local active user
-        if(!state.activeUser){
-            state.activeUser = UID;
+        let anyBox = document.querySelector(".video-box");
+
+        if(anyBox){
+
+            state.activeUser = anyBox.id.replace("video-", "");
         }
 
         setTimeout(() => {
 
             updateLayout();
 
-        }, 200);
+        }, 300);
     }
 });
 
@@ -1415,15 +1430,15 @@ function showReaction(uid, emoji){
     updateMainView();
 
     setTimeout(() => {
+
         r.remove();
+
         isReacting = false;
 
-        // 🔥 RESTORE PRIORITY
-        if(isScreenSharing && screenUid){
-            setMainVideo(screenUid);
-        } else if(spotlightUser){
-            setMainVideo(spotlightUser);
-        } 
+        reactionUid = null;
+
+        updateLayout();
+
     }, 4000);
     isReacting = false;
     reactionUid = null;
@@ -1460,15 +1475,33 @@ async function stopScreenShare(){
         screenBox.remove();
     }
 
-    // restore speaker/local user
-    state.activeUser = UID;
+    // RESTORE VALID USER
+    let fallbackUser = null;
 
-    // IMPORTANT
+    // local user first
+    if(document.getElementById("video-" + UID)){
+
+        fallbackUser = UID;
+
+    } else {
+
+        // any available user
+        let anyBox = document.querySelector(".video-box");
+
+        if(anyBox){
+
+            fallbackUser = anyBox.id.replace("video-", "");
+        }
+    }
+
+    state.activeUser = fallbackUser;
+
+    // rebuild layout
     setTimeout(() => {
 
         updateLayout();
 
-    }, 200);
+    }, 300);
 }
 
 function renderExistingUsers(){
@@ -1492,7 +1525,7 @@ function updateMainView(){
     if(isReacting && reactionUid){
         target = reactionUid;
 
-    } else if(isScreenSharing && screenUid){
+    } else if(state.isScreenSharing && state.screenUser){
         target = screenUid;
 
     } else if(spotlightUser){
@@ -1501,12 +1534,14 @@ function updateMainView(){
     } else if(pinnedUser){
         target = pinnedUser;
 
-    } else if(activeUser){
-        target = activeUser;
+    } else if(state.activeUser){
+        target = state.activeUser;
     }
 
     if(target){
-        setMainVideo(target);
+        state.activeUser = target;
+
+        updateLayout();
     }
 }
 
