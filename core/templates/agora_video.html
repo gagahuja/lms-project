@@ -816,8 +816,12 @@ client.on("user-published", async (user, mediaType) => {
     // ❗ ALWAYS resolve name here
     let name = userMap[uid] || "User";
 
-    users[uid] = name;
-    updateParticipants();
+    if(!uid.includes("_screen")){
+
+        users[uid] = name;
+
+        updateParticipants();
+    }
 
 
     let box = createVideoBox(uid, name);
@@ -1126,7 +1130,7 @@ async function shareScreen(){
     main.appendChild(box);
     
 
-    let box = createVideoBox(state.screenUser, "Screen");
+    let box = createVideoBox(state.screenUser, "Screen Share");
     main.appendChild(box);
 
     screenTrack.play("player-" + state.screenUser);
@@ -1306,22 +1310,57 @@ client.on("user-left", user => {
 
     if(String(user.uid).includes("_screen")){
 
-        state.isScreenSharing = false;
+        // REMOVE FAKE SCREEN USER
+        delete users[user.uid];
+        delete userMap[user.uid];
 
-        state.screenUser = null;
+        updateParticipants();
 
-        let anyBox = document.querySelector(".video-box");
+        // REMOVE SCREEN BOX
+        let screenBox = document.getElementById("video-" + user.uid);
 
-        if(anyBox){
-
-            state.activeUser = anyBox.id.replace("video-", "");
+        if(screenBox){
+            screenBox.remove();
         }
 
+        // RESET SCREEN STATE
+        state.isScreenSharing = false;
+        state.screenUser = null;
+
+        // FIND REAL USER TO RESTORE
+        let fallbackBox = null;
+
+        // Prefer local user
+        if(document.getElementById("video-" + UID)){
+            fallbackBox = document.getElementById("video-" + UID);
+        }
+
+        // Otherwise first available real participant
+        if(!fallbackBox){
+
+            let all = document.querySelectorAll(".video-box");
+
+            all.forEach(box => {
+
+                if(!box.id.includes("_screen") && !fallbackBox){
+                    fallbackBox = box;
+                }
+            });
+        }
+
+        // RESTORE ACTIVE USER
+        if(fallbackBox){
+
+            state.activeUser =
+                fallbackBox.id.replace("video-", "");
+        }
+
+        // FORCE CLEAN REBUILD
         setTimeout(() => {
 
             updateLayout();
 
-        }, 300);
+        }, 200);
     }
 });
 
@@ -1495,7 +1534,6 @@ async function stopScreenShare(){
         }
     }
 
-    shareScreen();
 
     state.activeUser = fallbackUser;
 
