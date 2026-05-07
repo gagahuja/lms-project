@@ -1310,57 +1310,45 @@ client.on("user-left", user => {
 
     if(String(user.uid).includes("_screen")){
 
-        // REMOVE FAKE SCREEN USER
-        delete users[user.uid];
-        delete userMap[user.uid];
-
-        updateParticipants();
-
         // REMOVE SCREEN BOX
-        let screenBox = document.getElementById("video-" + user.uid);
+        let screenBox =
+            document.getElementById("video-" + user.uid);
 
         if(screenBox){
             screenBox.remove();
         }
 
-        // RESET SCREEN STATE
+        // CLEAR MAIN SLOT
+        document.getElementById("main-slot").innerHTML = "";
+
+        // RESET STATE
         state.isScreenSharing = false;
+
         state.screenUser = null;
 
-        // FIND REAL USER TO RESTORE
-        let fallbackBox = null;
+        // FIND REAL USER
+        let fallbackUser = null;
 
-        // Prefer local user
-        if(document.getElementById("video-" + UID)){
-            fallbackBox = document.getElementById("video-" + UID);
+        let firstRealUser =
+            document.querySelector(
+                '.video-box:not([id*="_screen"])'
+            );
+
+        if(firstRealUser){
+
+            fallbackUser =
+                firstRealUser.id.replace("video-", "");
         }
 
-        // Otherwise first available real participant
-        if(!fallbackBox){
-
-            let all = document.querySelectorAll(".video-box");
-
-            all.forEach(box => {
-
-                if(!box.id.includes("_screen") && !fallbackBox){
-                    fallbackBox = box;
-                }
-            });
+        if(fallbackUser){
+            state.activeUser = fallbackUser;
         }
 
-        // RESTORE ACTIVE USER
-        if(fallbackBox){
-
-            state.activeUser =
-                fallbackBox.id.replace("video-", "");
-        }
-
-        // FORCE CLEAN REBUILD
         setTimeout(() => {
 
             updateLayout();
 
-        }, 200);
+        }, 100);
     }
 });
 
@@ -1499,51 +1487,68 @@ function moveAllToSide(){
 
 async function stopScreenShare(){
 
+    if(!screenTrack) return;
+
     await screenClient.unpublish(screenTrack);
 
     screenTrack.close();
 
-    state.isScreenSharing = false;
-
-    state.screenUser = null;
-
-    // remove screen box
-    let screenBox = document.getElementById("video-" + UID + "_screen");
+    // REMOVE SCREEN BOX COMPLETELY
+    let screenBox =
+        document.getElementById("video-" + UID + "_screen");
 
     if(screenBox){
         screenBox.remove();
     }
 
-    // RESTORE VALID USER
-    let fallbackUser = null;
-    
+    // CLEAN MAIN SLOT
+    let mainSlot = document.getElementById("main-slot");
 
-    // local user first
+    mainSlot.innerHTML = "";
+
+    // RESET STATE
+    state.isScreenSharing = false;
+
+    state.screenUser = null;
+
+    screenTrack = null;
+
+    // FIND REAL USER
+    let fallbackUser = null;
+
+    // prefer local user
     if(document.getElementById("video-" + UID)){
 
         fallbackUser = UID;
 
     } else {
 
-        // any available user
-        let anyBox = document.querySelector(".video-box");
+        let firstRealUser =
+            document.querySelector(
+                '.video-box:not([id*="_screen"])'
+            );
 
-        if(anyBox){
+        if(firstRealUser){
 
-            fallbackUser = anyBox.id.replace("video-", "");
+            fallbackUser =
+                firstRealUser.id.replace("video-", "");
         }
     }
 
+    // RESTORE MAIN USER
+    if(fallbackUser){
 
-    state.activeUser = fallbackUser;
+        state.activeUser = fallbackUser;
+    }
 
-    // rebuild layout
+    // FORCE REBUILD
     setTimeout(() => {
 
         updateLayout();
 
-    }, 300);
+    }, 100);
 }
+
 
 function renderExistingUsers(){
 
