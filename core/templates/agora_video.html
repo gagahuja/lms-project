@@ -908,8 +908,14 @@ function updateLayout(){
 
     let targetUid = null;
 
-    // SCREEN SHARE PRIORITY
-    if(state.isScreenSharing && state.screenUser){
+    // SCREEN SHARE ALWAYS PRIORITY
+    if(
+        state.isScreenSharing &&
+        state.screenUser &&
+        document.getElementById(
+            "video-" + state.screenUser
+        )
+    ){
 
         targetUid = state.screenUser;
 
@@ -917,14 +923,12 @@ function updateLayout(){
 
         targetUid = state.pinnedUser;
 
-    } else if(state.activeUser){
+    } else if(
+        state.activeUser &&
+        !String(state.activeUser).includes("_screen")
+    ){
 
-        if(
-            state.activeUser &&
-            !String(state.activeUser).includes("_screen")
-        ){
-            targetUid = state.activeUser;
-        }
+        targetUid = state.activeUser;
     }
 
     // FALLBACK
@@ -978,7 +982,7 @@ function updateLayout(){
 
         let uid = box.id.replace("video-", "");
 
-        if(uid !== String(targetUid)){
+        if(String(uid) !== String(targetUid)){
 
             if(!side.contains(box)){
                 side.appendChild(box);
@@ -1143,7 +1147,7 @@ async function shareScreen(){
     await screenClient.publish([screenTrack]);
 
     state.isScreenSharing = true;
-    state.screenUser = UID + "_screen";
+    state.screenUser = String(UID) + "_screen";
 
 
     // 🔥 CREATE MAIN SCREEN
