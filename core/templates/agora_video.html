@@ -793,7 +793,7 @@ async function join(){
     state.activeUser = UID;
 
     // THEN layout decides main
-    updateLayout();
+    renderLayout()
 
     await client.publish(localTracks);
 
@@ -813,9 +813,47 @@ client.on("user-published", async (user, mediaType) => {
 
     let uid = String(user.uid);
 
-    // ❗ ALWAYS resolve name here
     let name = userMap[uid] || "User";
 
+    // CREATE VIDEO BOX
+    let box = document.getElementById("video-" + uid);
+
+    if(!box){
+
+        box = createVideoBox(uid, name);
+
+        document
+            .getElementById("side-videos")
+            .appendChild(box);
+    }
+
+    // VIDEO
+    if(mediaType === "video"){
+
+        user.videoTrack.play("player-" + uid);
+
+        // SCREEN SHARE
+        if(uid.includes("_screen")){
+
+            state.isScreenSharing = true;
+
+            state.screenUser = uid;
+
+        } else {
+
+            if(!state.activeUser){
+                state.activeUser = uid;
+            }
+        }
+    }
+
+    // AUDIO
+    if(mediaType === "audio"){
+
+        user.audioTrack.play();
+    }
+
+    // PARTICIPANTS
     if(!uid.includes("_screen")){
 
         users[uid] = name;
@@ -823,55 +861,11 @@ client.on("user-published", async (user, mediaType) => {
         updateParticipants();
     }
 
-
-    let box = createVideoBox(uid, name);
-    document.getElementById("side-videos").appendChild(box);
-
-    if(mediaType === "video"){
-
-        let uid = String(user.uid);
-
-        let box = document.getElementById("video-" + uid);
-
-        if(!box){
-            box = createVideoBox(uid, userMap[uid] || "User");
-            document.getElementById("side-videos").appendChild(box);
-        }
-
-        user.videoTrack.play("player-" + uid);
-
-        // 🔥 SCREEN SHARE DETECTION
-        if(uid.includes("_screen")){
-
-            state.isScreenSharing = true;
-            state.screenUser = uid;
-
-            updateLayout();
-            // 🔥 ONLY MOVE SCREEN TO MAIN
-            //moveToMain(uid);
-
-            return; // ❗ STOP further layout logic
-        } else {
-
-            // normal user
-            if(!state.isScreenSharing && !state.pinnedUser){
-                state.activeUser = uid;
-            }
-
-        }
-    }
-
-    if(mediaType === "audio"){
-        user.audioTrack.play();
-    }
-
-    // set first speaker
-    if(!state.activeUser){
-        state.activeUser = uid;
-    }
-
-    updateLayout();
+    // FINAL RENDER
+    renderLayout();
 });
+
+    
 
 console.log("Users map:", users);
 
@@ -900,33 +894,37 @@ function createVideoBox(uid, name){
     return div;
 }
 
-function updateLayout(){
+function renderLayout(){
 
-    let mainSlot = document.getElementById("main-slot");
+    let mainSlot =
+        document.getElementById("main-slot");
 
-    let side = document.getElementById("side-videos");
+    let sideVideos =
+        document.getElementById("side-videos");
 
+    // DETERMINE MAIN USER
     let targetUid = null;
 
-    // SCREEN SHARE ALWAYS PRIORITY
+    // 1 SCREEN SHARE
     if(
         state.isScreenSharing &&
-        state.screenUser &&
-        document.getElementById(
-            "video-" + state.screenUser
-        )
+        state.screenUser
     ){
 
         targetUid = state.screenUser;
 
+    // 2 SPOTLIGHT
+    } else if(spotlightUser){
+
+        targetUid = spotlightUser;
+
+    // 3 PINNED
     } else if(state.pinnedUser){
 
         targetUid = state.pinnedUser;
 
-    } else if(
-        state.activeUser &&
-        !String(state.activeUser).includes("_screen")
-    ){
+    // 4 ACTIVE SPEAKER
+    } else if(state.activeUser){
 
         targetUid = state.activeUser;
     }
@@ -934,74 +932,40 @@ function updateLayout(){
     // FALLBACK
     if(!targetUid){
 
-        let firstBox = document.querySelector(".video-box");
+        let first =
+            document.querySelector(".video-box");
 
-        if(firstBox){
-
-            targetUid = firstBox.id.replace("video-", "");
+        if(first){
+            targetUid =
+                first.id.replace("video-", "");
         }
     }
 
-    if(!targetBox){
+    if(!targetUid) return;
 
-        // restore first real user
-        let firstRealUser =
-            document.querySelector(
-                '.video-box:not([id*="_screen"])'
-            );
-
-        if(firstRealUser){
-
-            targetBox = firstRealUser;
-
-        } else {
-
-            return;
-        }
-    }   
-
-    let targetBox = document.getElementById("video-" + targetUid);
-
-    // FALLBACK AGAIN
-    if(!targetBox){
-
-        let firstGridBox = side.querySelector(".video-box");
-
-        if(firstGridBox){
-
-            targetBox = firstGridBox;
-
-            targetUid = firstGridBox.id.replace("video-", "");
-        }
-    }
+    let targetBox =
+        document.getElementById(
+            "video-" + targetUid
+        );
 
     if(!targetBox) return;
 
-    // move ALL non-target users to grid
-    document.querySelectorAll(".video-box").forEach(box => {
+    // MOVE ALL TO GRID FIRST
+    document
+        .querySelectorAll(".video-box")
+        .forEach(box => {
 
-        let uid = box.id.replace("video-", "");
+            if(box !== targetBox){
 
-        if(String(uid) !== String(targetUid)){
-
-            if(!side.contains(box)){
-                side.appendChild(box);
+                sideVideos.appendChild(box);
             }
-        }
-    });
+        });
 
-    // move target to main
-    if(!mainSlot.contains(targetBox)){
+    // CLEAR MAIN
+    mainSlot.innerHTML = "";
 
-        let currentMain = mainSlot.querySelector(".video-box");
-
-        if(currentMain){
-
-            side.appendChild(currentMain);
-        }
-
-        mainSlot.appendChild(targetBox);
-    }
+    // MOVE TARGET TO MAIN
+    mainSlot.appendChild(targetBox);
 }
 
 // CHAT
@@ -1136,33 +1100,51 @@ function toggleCam(){
 
 async function shareScreen(){
 
+    // STOP SHARE
     if(state.isScreenSharing){
         stopScreenShare();
         return;
     }
 
+    // CREATE TRACK
     screenTrack = await AgoraRTC.createScreenVideoTrack();
 
-    await screenClient.join(APP_ID, CHANNEL, null, client.uid + "_screen");
+    // SCREEN UID
+    screenUid = String(UID) + "_screen";
+
+    // JOIN SCREEN CLIENT
+    await screenClient.join(
+        APP_ID,
+        CHANNEL,
+        null,
+        screenUid
+    );
+
+    // PUBLISH SCREEN
     await screenClient.publish([screenTrack]);
 
+    // STATE
     state.isScreenSharing = true;
-    state.screenUser = String(UID) + "_screen";
+    state.screenUser = screenUid;
 
+    // CREATE BOX
+    let box = createVideoBox(screenUid, "Screen");
 
-    // 🔥 CREATE MAIN SCREEN
-    let main = document.getElementById("main-slot");
-    main.appendChild(box);
-    
+    // ADD TO DOM
+    document
+        .getElementById("side-videos")
+        .appendChild(box);
 
-    let box = createVideoBox(state.screenUser, "Screen Share");
-    main.appendChild(box);
+    // PLAY
+    screenTrack.play("player-" + screenUid);
 
-    screenTrack.play("player-" + state.screenUser);
+    // RENDER
+    renderLayout();
 
-    updateLayout();
-
-    screenTrack.on("track-ended", stopScreenShare);
+    // AUTO STOP
+    screenTrack.on("track-ended", async () => {
+        await stopScreenShare();
+    });
 }
 
 function muteAll(){
@@ -1301,7 +1283,7 @@ client.on("volume-indicator", volumes => {
     let now = Date.now();
 
     // prevent rapid switching
-    if(now - lastSwitchTime < 1500) return;
+    if(now - lastSwitchTime < 500) return;
 
     // same speaker
     if(lastSpeaker === loudestUser) return;
@@ -1312,14 +1294,14 @@ client.on("volume-indicator", volumes => {
 
     state.activeUser = loudestUser;
 
-    updateLayout();
+    renderLayout()
 });
 
 function setGrid(){
 
     state.pinnedUser = null;
 
-    updateLayout();
+    renderLayout()
 }
 
 function setSpotlight(){
@@ -1375,7 +1357,7 @@ client.on("user-left", user => {
 
         setTimeout(() => {
 
-            updateLayout();
+            renderLayout()
 
         }, 100);
     }
@@ -1395,35 +1377,7 @@ function addEmoji(emoji){
 
 
 
-function restoreLayoutExact(){
 
-    let main = document.getElementById("main-video");
-    let side = document.getElementById("side-videos");
-
-    let targetId = "video-" + layoutBeforeScreen.main;
-    let targetBox = document.getElementById(targetId);
-
-    if(!targetBox){
-        console.log("❌ No main video found");
-        return;
-    }
-
-    // 🔥 STEP 1: MOVE TARGET TO MAIN DIRECTLY
-    main.appendChild(targetBox);
-
-    // 🔥 STEP 2: UPDATE ACTIVE USER
-    state.activeUser = layoutBeforeScreen.main;
-
-    // 🔥 STEP 3: FIX SIDE ORDER
-    layoutBeforeScreen.side.forEach(uid => {
-        let box = document.getElementById("video-" + uid);
-        if(box){
-            side.appendChild(box);
-        }
-    });
-
-    console.log("✅ Layout restored EXACTLY (no grid issue)");
-}
 
 function toggleRaiseHand(){
 
@@ -1493,7 +1447,7 @@ function showReaction(uid, emoji){
 
         reactionUid = null;
 
-        updateLayout();
+        renderLayout()
 
     }, 4000);
     isReacting = false;
@@ -1502,17 +1456,7 @@ function showReaction(uid, emoji){
     updateMainView();
 }
 
-function moveAllToSide(){
 
-    let all = document.querySelectorAll(".video-box");
-
-    all.forEach(box => {
-
-        if(!document.getElementById("main-video").contains(box)){
-            document.getElementById("side-videos").appendChild(box);
-        }
-    });
-}
 
 async function stopScreenShare(){
 
@@ -1522,69 +1466,27 @@ async function stopScreenShare(){
 
     screenTrack.close();
 
-    // REMOVE SCREEN BOX COMPLETELY
+    // REMOVE SCREEN BOX
     let screenBox =
-        document.getElementById("video-" + UID + "_screen");
+        document.getElementById(
+            "video-" + state.screenUser
+        );
 
     if(screenBox){
         screenBox.remove();
     }
 
-    // CLEAN MAIN SLOT
-    let mainSlot = document.getElementById("main-slot");
-
-    mainSlot.innerHTML = "";
-
     // RESET STATE
     state.isScreenSharing = false;
-
     state.screenUser = null;
 
     screenTrack = null;
 
-    // FIND REAL USER
-    let fallbackUser = null;
+    // RESTORE ACTIVE USER
+    state.activeUser = UID;
 
-    // prefer local user
-    if(document.getElementById("video-" + UID)){
-
-        fallbackUser = UID;
-
-    } else {
-
-        let firstRealUser =
-            document.querySelector(
-                '.video-box:not([id*="_screen"])'
-            );
-
-        if(firstRealUser){
-
-            fallbackUser =
-                firstRealUser.id.replace("video-", "");
-        }
-    }
-
-    // RESTORE MAIN USER
-    if(fallbackUser){
-
-        // HARD RESET
-        state.activeUser = null;
-
-        setTimeout(() => {
-
-            state.activeUser = fallbackUser;
-
-            updateLayout();
-
-        }, 100);
-    }
-
-    // FORCE REBUILD
-    setTimeout(() => {
-
-        updateLayout();
-
-    }, 100);
+    // RE-RENDER
+    renderLayout();
 }
 
 
@@ -1601,33 +1503,7 @@ function renderExistingUsers(){
     });
 }
 
-function updateMainView(){
 
-    let target = null;
-
-    // 🎯 PRIORITY SYSTEM
-    if(isReacting && reactionUid){
-        target = reactionUid;
-
-    } else if(state.isScreenSharing && state.screenUser){
-        target = screenUid;
-
-    } else if(spotlightUser){
-        target = spotlightUser;
-
-    } else if(pinnedUser){
-        target = pinnedUser;
-
-    } else if(state.activeUser){
-        target = state.activeUser;
-    }
-
-    if(target){
-        state.activeUser = target;
-
-        updateLayout();
-    }
-}
 
 function renderAllVideos(){
 
