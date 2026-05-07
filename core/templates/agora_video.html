@@ -919,7 +919,12 @@ function updateLayout(){
 
     } else if(state.activeUser){
 
-        targetUid = state.activeUser;
+        if(
+            state.activeUser &&
+            !String(state.activeUser).includes("_screen")
+        ){
+            targetUid = state.activeUser;
+        }
     }
 
     // FALLBACK
@@ -933,7 +938,23 @@ function updateLayout(){
         }
     }
 
-    if(!targetUid) return;
+    if(!targetBox){
+
+        // restore first real user
+        let firstRealUser =
+            document.querySelector(
+                '.video-box:not([id*="_screen"])'
+            );
+
+        if(firstRealUser){
+
+            targetBox = firstRealUser;
+
+        } else {
+
+            return;
+        }
+    }   
 
     let targetBox = document.getElementById("video-" + targetUid);
 
@@ -1262,7 +1283,11 @@ client.on("volume-indicator", volumes => {
 
             highestLevel = v.level;
 
-            loudestUser = String(v.uid);
+            let candidate = String(v.uid);
+
+            if(candidate.includes("_screen")) return;
+
+            loudestUser = candidate;
         }
     });
 
@@ -1538,7 +1563,16 @@ async function stopScreenShare(){
     // RESTORE MAIN USER
     if(fallbackUser){
 
-        state.activeUser = fallbackUser;
+        // HARD RESET
+        state.activeUser = null;
+
+        setTimeout(() => {
+
+            state.activeUser = fallbackUser;
+
+            updateLayout();
+
+        }, 100);
     }
 
     // FORCE REBUILD
