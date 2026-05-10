@@ -622,13 +622,13 @@
         <div class="video-top">
 
             <div class="controls-vertical">
-                <button onclick="join()">Join</button>
+                <!--<button onclick="join()">Join</button>-->
                 <button id="join-btn">Join</button>
                 <button onclick="toggleMic()">Mic</button>
                 <button onclick="toggleCam()">Cam</button>
                 <button onclick="setGrid()">Grid</button>
                 <button onclick="setSpotlight()">Spotlight</button>
-                <button onclick="shareScreen()">Share</button>
+                <!--<button onclick="shareScreen()">Share</button>-->
                 <button id="share-btn">Share</button>
                 <button onclick="toggleRaiseHand()">✋ Raise Hand</button>
                 <button onclick="sendReaction('👍')">👍</button>
@@ -1640,8 +1640,7 @@ function renderAllVideos(){
 import {
     initRTC,
     joinRoom,
-    startScreenShare,
-    stopScreenShare
+    startScreenShare
 
 } from "/static/js/liveclass/rtc.js";
 
@@ -1649,7 +1648,7 @@ const APP_ID =
     "68983e3ac34747498d839a7e4c83a9c5";
 
 const CHANNEL =
-    "{{ room_name|default:'default' }}";
+    "test-room";
 
 const USERNAME =
     "{{ request.user.username }}";
@@ -1679,19 +1678,12 @@ document
         });
     });
 
-
+// SHARE BUTTON
 document
     .getElementById("share-btn")
     .addEventListener("click", async () => {
 
         await startScreenShare();
     });
-
-// GLOBAL SCREEN SHARE
-window.startScreenShare =
-    startScreenShare;
-
-window.stopScreenShare =
-    stopScreenShare;
 
 </script>
