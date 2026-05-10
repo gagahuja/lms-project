@@ -623,11 +623,13 @@
 
             <div class="controls-vertical">
                 <button onclick="join()">Join</button>
+                <button id="join-btn">Join</button>
                 <button onclick="toggleMic()">Mic</button>
                 <button onclick="toggleCam()">Cam</button>
                 <button onclick="setGrid()">Grid</button>
                 <button onclick="setSpotlight()">Spotlight</button>
                 <button onclick="shareScreen()">Share</button>
+                <button id="share-btn">Share</button>
                 <button onclick="toggleRaiseHand()">✋ Raise Hand</button>
                 <button onclick="sendReaction('👍')">👍</button>
                 <button onclick="sendReaction('👏')">👏</button>
@@ -1643,6 +1645,49 @@ import {
 
 } from "/static/js/liveclass/rtc.js";
 
+const APP_ID =
+    "68983e3ac34747498d839a7e4c83a9c5";
+
+const CHANNEL =
+    "{{ room_name|default:'default' }}";
+
+const USERNAME =
+    "{{ request.user.username }}";
+
+// INIT RTC
+await initRTC(APP_ID);
+
+// JOIN BUTTON
+document
+    .getElementById("join-btn")
+    .addEventListener("click", async () => {
+
+        let uid =
+            String(Date.now());
+
+        await joinRoom({
+
+            appId: APP_ID,
+
+            channel: CHANNEL,
+
+            token: null,
+
+            uid: uid,
+
+            username: USERNAME
+        });
+    });
+
+
+document
+    .getElementById("share-btn")
+    .addEventListener("click", async () => {
+
+        await startScreenShare();
+    });
+
+// GLOBAL SCREEN SHARE
 window.startScreenShare =
     startScreenShare;
 
