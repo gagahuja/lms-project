@@ -76,9 +76,9 @@ export function renderLayout(){
     mainStage.appendChild(mainTile);
 
     // PLAY VIDEO
+    
     playParticipantVideo(
-        mainParticipant,
-        mainTile
+        mainParticipant
     );
 
     // RENDER GRID
@@ -92,7 +92,8 @@ export function renderLayout(){
 
         videoGrid.appendChild(tile);
 
-        playParticipantVideo(p, tile);
+        
+        playParticipantVideo(p);
     });
 
     // SCREEN SHARE
@@ -108,6 +109,7 @@ function createVideoTile(
     isMain
 ){
 
+    // MAIN TILE
     let tile =
         document.createElement("div");
 
@@ -119,37 +121,58 @@ function createVideoTile(
     tile.id =
         "tile-" + participant.uid;
 
-    tile.innerHTML = `
+    // VIDEO CONTAINER
+    let player =
+        document.createElement("div");
 
-        <div
-            class="video-player"
-            id="player-${participant.uid}">
-        </div>
+    player.className =
+        "video-player";
 
-        <div class="video-info">
+    player.id =
+        "player-" + participant.uid;
 
-            ${participant.name}
+    // USER NAME
+    let info =
+        document.createElement("div");
 
-        </div>
-    `;
+    info.className =
+        "video-info";
+
+    info.innerText =
+        participant.name;
+
+    // APPEND
+    tile.appendChild(player);
+
+    tile.appendChild(info);
 
     return tile;
 }
 
 
 function playParticipantVideo(
-    participant,
-    tile
+    participant
 ){
 
-    if(
-        participant.videoTrack
-    ){
+    // NO VIDEO TRACK
+    if(!participant.videoTrack)
+        return;
 
-        participant.videoTrack.play(
+    // FIND PLAYER DIV
+    let player =
+        document.getElementById(
             "player-" + participant.uid
         );
-    }
+
+    // PLAYER NOT FOUND
+    if(!player)
+        return;
+
+    // CLEAR OLD VIDEO
+    player.innerHTML = "";
+
+    // PLAY VIDEO
+    participant.videoTrack.play(player);
 }
 
 
