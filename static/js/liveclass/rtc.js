@@ -1,5 +1,5 @@
-import { appState } from "./state.js";
-import { renderLayout } from "./layout.js";
+import { appState } from "./state.js?v=2";
+import { renderLayout } from "./layout.js?v=2";
 
 export let client = null;
 
@@ -165,4 +165,55 @@ function registerRTCEvents(){
             }
         }
     );
+}
+
+
+export async function startScreenShare(){
+
+    screenTrack =
+        await AgoraRTC
+        .createScreenVideoTrack();
+
+    await client.publish(screenTrack);
+
+    appState.screenShare = {
+
+        active: true,
+
+        owner: appState.localUser,
+
+        track: screenTrack
+    };
+
+    renderLayout();
+
+    screenTrack.on(
+        "track-ended",
+        async () => {
+
+            await stopScreenShare();
+        }
+    );
+}
+
+export async function stopScreenShare(){
+
+    if(!screenTrack) return;
+
+    await client.unpublish(screenTrack);
+
+    screenTrack.close();
+
+    screenTrack = null;
+
+    appState.screenShare = {
+
+        active: false,
+
+        owner: null,
+
+        track: null
+    };
+
+    renderLayout();
 }
