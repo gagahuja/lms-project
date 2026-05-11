@@ -109,20 +109,6 @@
         }
 
 
-        .video-label {
-            position: absolute;
-            bottom: 8px;
-            left: 8px;
-            background: rgba(0,0,0,0.6);
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-size: 15px;
-            color: white;
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
         .video-label span {
             color: white;           /* ensure all text white */
             font-weight: 600;
@@ -530,35 +516,7 @@
             height:100%;
         }
 
-        #main-stage{
-
-            position:relative;
-
-            width:100%;
-
-            height:70vh;
-
-            min-height:70vh;
-
-            background:black;
-
-            border-radius:16px;
-
-            overflow:hidden;
-        }
-
-        #video-grid{
-
-            display:grid;
-
-            grid-template-columns:
-                repeat(auto-fill,minmax(220px,1fr));
-
-            gap:10px;
-
-            min-height:160px;
-        }
-
+        
         .video-tile{
 
             position:relative;
@@ -606,24 +564,7 @@
             overflow:hidden;
         }
 
-        .video-player{
-
-            position:absolute;
-
-            top:0;
-
-            left:0;
-
-            width:100%;
-
-            height:100%;
-
-            min-height:100%;
-
-            background:black;
-
-            overflow:hidden;
-        }
+        
 
         .video-info{
 
@@ -644,11 +585,110 @@
             font-size:14px;
         }
 
+        
+        #live-class-layout{
+
+            width:100%;
+
+            display:flex;
+
+            flex-direction:column;
+
+            gap:16px;
+        }
+
+        #main-stage{
+
+            width:100%;
+
+            height:70vh;
+
+            background:black;
+
+            border-radius:16px;
+
+            overflow:hidden;
+
+            position:relative;
+        }
+
+        #video-grid{
+
+            display:grid;
+
+            grid-template-columns:
+                repeat(auto-fill,minmax(220px,1fr));
+
+            gap:12px;
+        }
+
+        .main-video-tile{
+
+            width:100%;
+
+            height:100%;
+
+            position:relative;
+
+            background:black;
+        }
+
+        .grid-video-tile{
+
+            width:100%;
+
+            height:180px;
+
+            position:relative;
+
+            border-radius:12px;
+
+            overflow:hidden;
+
+            background:black;
+        }
+
+        .video-player,
         .screen-player{
 
             width:100%;
 
             height:100%;
+
+            position:absolute;
+
+            top:0;
+
+            left:0;
+        }
+
+        .video-label,
+        .screen-title{
+
+            position:absolute;
+
+            left:10px;
+
+            bottom:10px;
+
+            background:rgba(0,0,0,0.5);
+
+            color:white;
+
+            padding:6px 12px;
+
+            border-radius:8px;
+
+            z-index:100;
+        }
+
+        .screen-wrapper{
+
+            width:100%;
+
+            height:100%;
+
+            position:relative;
         }
         
     </style>
@@ -676,7 +716,7 @@
 
         <div id="side-videos"></div> -->
 
-        <div id="live-layout">
+        <div id="live-class-layout">
 
             <div id="main-stage"></div>
 
@@ -738,7 +778,7 @@ import {
     joinRoom,
     startScreenShare
 
-} from "/static/js/liveclass/rtc.js?v=2";
+} from "/static/js/liveclass/rtc.js?v=3"
 
 const APP_ID =
     "68983e3ac34747498d839a7e4c83a9c5";

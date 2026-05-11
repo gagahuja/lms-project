@@ -1,5 +1,5 @@
-import { appState } from "./state.js?v=2";
-import { renderLayout } from "./layout.js?v=2";
+import { appState } from "./state.js?v=3";
+import { renderLayout } from "./layout.js?v=3";
 
 export let client = null;
 

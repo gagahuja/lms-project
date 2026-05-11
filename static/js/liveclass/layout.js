@@ -1,58 +1,52 @@
-import { appState } from "./state.js";
+import { appState } from "./state.js?v=3";
 
 export function renderLayout(){
 
-    let mainStage =
+    const mainStage =
         document.getElementById("main-stage");
 
-    let videoGrid =
+    const videoGrid =
         document.getElementById("video-grid");
 
-    if(!mainStage || !videoGrid) return;
+    if(!mainStage || !videoGrid)
+        return;
 
-    // CLEAR UI
     mainStage.innerHTML = "";
 
     videoGrid.innerHTML = "";
 
-    // ALL PARTICIPANTS
-    let participants =
+    const participants =
         Object.values(appState.participants);
 
-    if(participants.length === 0) return;
+    if(participants.length === 0)
+        return;
 
-    // DETERMINE MAIN USER
     let mainParticipant = null;
 
-    // PRIORITY 1 — SCREEN SHARE
+    // SCREEN SHARE PRIORITY
     if(
         appState.screenShare.active &&
         appState.screenShare.owner
     ){
 
-        mainParticipant =
-            appState.participants[
-                appState.screenShare.owner
-            ];
+        renderScreenShare(mainStage);
 
-    // PRIORITY 2 — SPOTLIGHT
-    } else if(appState.spotlightUser){
+        participants.forEach(p => {
 
-        mainParticipant =
-            appState.participants[
-                appState.spotlightUser
-            ];
+            const tile =
+                createVideoTile(p, false);
 
-    // PRIORITY 3 — PINNED
-    } else if(appState.pinnedUser){
+            videoGrid.appendChild(tile);
 
-        mainParticipant =
-            appState.participants[
-                appState.pinnedUser
-            ];
+            
+            playVideo(p);
+        });
 
-    // PRIORITY 4 — ACTIVE SPEAKER
-    } else if(appState.activeSpeaker){
+        return;
+    }
+
+    // ACTIVE SPEAKER
+    if(appState.activeSpeaker){
 
         mainParticipant =
             appState.participants[
@@ -66,147 +60,107 @@ export function renderLayout(){
         mainParticipant = participants[0];
     }
 
-    // RENDER MAIN STAGE
-    let mainTile =
-        createVideoTile(
-            mainParticipant,
-            true
-        );
+    // MAIN VIDEO
+    const mainTile =
+        createVideoTile(mainParticipant, true);
 
     mainStage.appendChild(mainTile);
 
-    // PLAY VIDEO
-    
-    playParticipantVideo(
-        mainParticipant
-    );
+    playVideo(mainParticipant);
 
-    // RENDER GRID
+    // GRID
     participants.forEach(p => {
 
         if(p.uid === mainParticipant.uid)
             return;
 
-        let tile =
+        const tile =
             createVideoTile(p, false);
 
         videoGrid.appendChild(tile);
 
-        
-        playParticipantVideo(p);
+
+        playVideo(p);
     });
-
-    // SCREEN SHARE
-    if(appState.screenShare.active){
-
-        renderScreenShare();
-    }
 }
-
 
 function createVideoTile(
     participant,
     isMain
 ){
 
-    // MAIN TILE
-    let tile =
+    const tile =
         document.createElement("div");
 
     tile.className =
         isMain
-        ? "video-tile main-tile"
-        : "video-tile grid-tile";
+        ? "main-video-tile"
+        : "grid-video-tile";
 
-    tile.id =
-        "tile-" + participant.uid;
-
-    // VIDEO CONTAINER
-    let player =
+    const player =
         document.createElement("div");
+
+    player.id =
+        `player-${participant.uid}`;
 
     player.className =
         "video-player";
 
-    player.id =
-        "player-" + participant.uid;
-
-    // USER NAME
-    let info =
+    const label =
         document.createElement("div");
 
-    info.className =
-        "video-info";
+    label.className =
+        "video-label";
 
-    info.innerText =
-        participant.name;
+    label.innerText =
+        participant.name || "User";
 
-    // APPEND
     tile.appendChild(player);
 
-    tile.appendChild(info);
+    tile.appendChild(label);
 
     return tile;
 }
 
+function playVideo(participant){
 
-function playParticipantVideo(
-    participant
-){
-
-    // NO VIDEO TRACK
     if(!participant.videoTrack)
         return;
 
-    // FIND PLAYER DIV
-    let player =
+    const container =
         document.getElementById(
-            "player-" + participant.uid
+            `player-${participant.uid}`
         );
 
-    // PLAYER NOT FOUND
-    if(!player)
+    if(!container)
         return;
 
-    // CLEAR OLD VIDEO
-    player.innerHTML = "";
-
-    // PLAY VIDEO
-    participant.videoTrack.play(player);
+    participant.videoTrack.play(container);
 }
 
+function renderScreenShare(mainStage){
 
-
-function renderScreenShare(){
-
-    let mainStage =
-        document.getElementById("main-stage");
-
-    let screenContainer =
+    const wrapper =
         document.createElement("div");
 
-    screenContainer.id =
-        "screen-share-container";
+    wrapper.className =
+        "screen-wrapper";
 
-    mainStage.innerHTML = "";
-
-    screenContainer.innerHTML = `
+    wrapper.innerHTML = `
 
         <div
             id="screen-player"
             class="screen-player">
         </div>
 
-        <div class="screen-label">
+        <div class="screen-title">
             Screen Share
         </div>
     `;
 
-    mainStage.appendChild(
-        screenContainer
-    );
+    mainStage.appendChild(wrapper);
 
     appState.screenShare.track.play(
-        "screen-player"
+        document.getElementById("screen-player")
     );
 }

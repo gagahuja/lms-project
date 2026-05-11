@@ -2,6 +2,8 @@ export const appState = {
 
     participants: {},
 
+    localUser: null,
+
     activeSpeaker: null,
 
     pinnedUser: null,
@@ -9,12 +11,11 @@ export const appState = {
     spotlightUser: null,
 
     screenShare: {
+
         active: false,
+
         owner: null,
+
         track: null
-    },
-
-    layoutMode: "speaker",
-
-    localUser: null
+    }
 };
