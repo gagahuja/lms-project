@@ -110,14 +110,58 @@ function registerRTCEvents(){
                     .participants[uid]
                     .videoTrack = user.videoTrack;
 
-                // SCREEN SHARE DETECTION
-                if(
-                    appState.screenShare.active &&
-                    appState.screenShare.owner === uid
-                ){
+                    // CAMERA RETURNED
+                    if(
+                        appState.screenShare.owner === uid
+                    ){
 
-                    appState.screenShare.track =
-                        user.videoTrack;
+                        let label =
+                            user.videoTrack
+                            ._mediaStreamTrack
+                            ?.label || "";
+
+                        // NOT SCREEN ANYMORE
+                        if(
+                            !label
+                            .toLowerCase()
+                            .includes("screen")
+                        ){
+
+                            appState.screenShare = {
+
+                                active:false,
+
+                                owner:null,
+
+                                track:null
+                            };
+                        }
+                    }
+
+                // DETECT REMOTE SCREEN SHARE
+                if(user.videoTrack){
+
+                    let trackLabel =
+                        user.videoTrack
+                        ._mediaStreamTrack
+                        ?.label || "";
+
+                    // SCREEN TRACK
+                    if(
+                        trackLabel
+                        .toLowerCase()
+                        .includes("screen")
+                    ){
+
+                        appState.screenShare = {
+
+                            active: true,
+
+                            owner: uid,
+
+                            track: user.videoTrack
+                        };
+                    }
                 }
             }
 
@@ -141,6 +185,21 @@ function registerRTCEvents(){
         let uid = String(user.uid);
 
         delete appState.participants[uid];
+
+        // RESET SCREEN SHARE
+        if(
+            appState.screenShare.owner === uid
+        ){
+
+            appState.screenShare = {
+
+                active:false,
+
+                owner:null,
+
+                track:null
+            };
+        }
 
         renderLayout();
     });
