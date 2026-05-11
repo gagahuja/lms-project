@@ -33,27 +33,25 @@ export function renderLayout(){
         appState.screenShare.owner
     ){
 
-        if(appState.screenShare.track){
+        // FIXED MAIN SCREEN
+        renderScreenShare(mainStage);
 
-            renderScreenShare(mainStage);
-
-        }else{
-
-            appState.screenShare.active =
-                false;
-        }
-
+        // ALL USERS IN GRID
         participants.forEach(p => {
 
             const tile =
-                createVideoTile(p, false);
+                createVideoTile(
+                    p,
+                    false
+                );
 
             videoGrid.appendChild(tile);
 
-            
             playVideo(p);
         });
 
+        // VERY IMPORTANT
+        // STOP SPEAKER SWITCHING
         return;
     }
 

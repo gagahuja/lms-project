@@ -231,7 +231,8 @@ function registerRTCEvents(){
             if(
                 highest > 3 &&
                 loudest &&
-                loudest !== lastSpeaker
+                loudest !== lastSpeaker &&
+                !appState.screenShare.activ
             ){
 
                 lastSpeaker = loudest;
