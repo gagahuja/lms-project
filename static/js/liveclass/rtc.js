@@ -232,7 +232,7 @@ function registerRTCEvents(){
                 highest > 3 &&
                 loudest &&
                 loudest !== lastSpeaker &&
-                !appState.screenShare.activ
+                !appState.screenShare.active
             ){
 
                 lastSpeaker = loudest;
@@ -265,10 +265,7 @@ export async function startScreenShare(){
             await AgoraRTC
             .createScreenVideoTrack();
 
-        // UNPUBLISH CAMERA VIDEO
-        await client.unpublish(
-            localTracks.video
-        );
+        
 
         // PUBLISH SCREEN
         await client.publish(
