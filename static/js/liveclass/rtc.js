@@ -136,6 +136,8 @@ function registerRTCEvents(){
     });
 
     // SPEAKER DETECTION
+    let lastSpeaker = null;
+
     client.enableAudioVolumeIndicator();
 
     client.on(
@@ -156,12 +158,28 @@ function registerRTCEvents(){
                 }
             });
 
-            if(highest > 10){
+            // FAST SWITCH
+            if(
+                highest > 3 &&
+                loudest &&
+                loudest !== lastSpeaker
+            ){
+
+                lastSpeaker = loudest;
 
                 appState.activeSpeaker =
                     loudest;
 
-                renderLayout();
+                // DON'T RERENDER MAIN SCREEN
+                // DURING SCREEN SHARE
+
+                if(!appState.screenShare.active){
+
+                    requestAnimationFrame(() => {
+
+                        renderLayout();
+                    });
+                }
             }
         }
     );

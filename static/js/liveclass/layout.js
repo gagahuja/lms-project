@@ -11,7 +11,11 @@ export function renderLayout(){
     if(!mainStage || !videoGrid)
         return;
 
-    mainStage.innerHTML = "";
+    // DON'T RESET SCREEN SHARE
+    if(!appState.screenShare.active){
+
+        mainStage.innerHTML = "";
+    }
 
     videoGrid.innerHTML = "";
 
@@ -140,27 +144,45 @@ function playVideo(participant){
 
 function renderScreenShare(mainStage){
 
+    mainStage.innerHTML = "";
+
     const wrapper =
         document.createElement("div");
 
     wrapper.className =
         "screen-wrapper";
 
-    wrapper.innerHTML = `
+    // SCREEN PLAYER
+    const screenPlayer =
+        document.createElement("div");
 
-        <div
-            id="screen-player"
-            class="screen-player">
-        </div>
+    screenPlayer.id =
+        "screen-player";
 
-        <div class="screen-title">
-            Screen Share
-        </div>
-    `;
+    screenPlayer.className =
+        "screen-player";
+
+    // LABEL
+    const title =
+        document.createElement("div");
+
+    title.className =
+        "screen-title";
+
+    title.innerText =
+        "Screen Share";
+
+    wrapper.appendChild(screenPlayer);
+
+    wrapper.appendChild(title);
 
     mainStage.appendChild(wrapper);
 
-    appState.screenShare.track.play(
-        document.getElementById("screen-player")
-    );
+    // PLAY SCREEN TRACK
+    if(appState.screenShare.track){
+
+        appState.screenShare.track.play(
+            screenPlayer
+        );
+    }
 }
