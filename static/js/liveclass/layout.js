@@ -150,10 +150,27 @@ function playVideo(participant){
 
 function renderScreenShare(mainStage){
 
+    // CHECK EXISTING
+    let existing =
+        document.getElementById(
+            "screen-share-wrapper"
+        );
+
+    // ALREADY RENDERED
+    if(existing){
+
+        return;
+    }
+
+    // CLEAR MAIN ONLY ONCE
     mainStage.innerHTML = "";
 
+    // WRAPPER
     const wrapper =
         document.createElement("div");
+
+    wrapper.id =
+        "screen-share-wrapper";
 
     wrapper.className =
         "screen-wrapper";
@@ -168,7 +185,7 @@ function renderScreenShare(mainStage){
     screenPlayer.className =
         "screen-player";
 
-    // LABEL
+    // TITLE
     const title =
         document.createElement("div");
 

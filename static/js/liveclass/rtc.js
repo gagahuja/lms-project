@@ -110,47 +110,26 @@ function registerRTCEvents(){
                     .participants[uid]
                     .videoTrack = user.videoTrack;
 
-                    // CAMERA RETURNED
-                    if(
-                        appState.screenShare.owner === uid
-                    ){
+                // REMOTE SCREEN SHARE
+                if(
 
-                        let label =
-                            user.videoTrack
-                            ._mediaStreamTrack
-                            ?.label || "";
+                    user.videoTrack &&
+                    user.videoTrack._trackMediaType === "video"
 
-                        // NOT SCREEN ANYMORE
-                        if(
-                            !label
-                            .toLowerCase()
-                            .includes("screen")
-                        ){
+                ){
 
-                            appState.screenShare = {
-
-                                active:false,
-
-                                owner:null,
-
-                                track:null
-                            };
-                        }
-                    }
-
-                // DETECT REMOTE SCREEN SHARE
-                if(user.videoTrack){
-
-                    let trackLabel =
+                    let label =
                         user.videoTrack
                         ._mediaStreamTrack
                         ?.label || "";
 
-                    // SCREEN TRACK
+                    // DETECT SCREEN
                     if(
-                        trackLabel
-                        .toLowerCase()
-                        .includes("screen")
+
+                        label.toLowerCase().includes("screen") ||
+                        label.toLowerCase().includes("window") ||
+                        label.toLowerCase().includes("chrome")
+
                     ){
 
                         appState.screenShare = {
@@ -163,6 +142,8 @@ function registerRTCEvents(){
                         };
                     }
                 }
+
+                renderLayout();
             }
 
             // AUDIO
@@ -261,16 +242,27 @@ export async function startScreenShare(){
     try{
 
         // CREATE SCREEN TRACK
-        screenTrack =
+        const screenTracks =
             await AgoraRTC
-            .createScreenVideoTrack();
+            .createScreenVideoTrack(
+                {},
+                "auto"
+            );
 
-        
+        // HANDLE ARRAY / SINGLE TRACK
+        if(Array.isArray(screenTracks)){
+
+            screenTrack = screenTracks[0];
+
+        }else{
+
+            screenTrack = screenTracks;
+        }
 
         // PUBLISH SCREEN
-        await client.publish(
+        await client.publish([
             screenTrack
-        );
+        ]);
 
         // SAVE STATE
         appState.screenShare = {
@@ -282,6 +274,7 @@ export async function startScreenShare(){
             track: screenTrack
         };
 
+        // RENDER
         renderLayout();
 
         // AUTO STOP
@@ -333,6 +326,16 @@ export async function stopScreenShare(){
 
             track: null
         };
+
+        // REMOVE SCREEN DOM
+        const wrapper =
+            document.getElementById(
+                "screen-share-wrapper"
+            );
+
+        if(wrapper){
+            wrapper.remove();
+        }
 
         renderLayout();
 
