@@ -109,6 +109,16 @@ function registerRTCEvents(){
                 appState
                     .participants[uid]
                     .videoTrack = user.videoTrack;
+
+                // SCREEN SHARE DETECTION
+                if(
+                    appState.screenShare.active &&
+                    appState.screenShare.owner === uid
+                ){
+
+                    appState.screenShare.track =
+                        user.videoTrack;
+                }
             }
 
             // AUDIO
@@ -188,50 +198,92 @@ function registerRTCEvents(){
 
 export async function startScreenShare(){
 
-    screenTrack =
-        await AgoraRTC
-        .createScreenVideoTrack();
+    try{
 
-    await client.publish(screenTrack);
+        // CREATE SCREEN TRACK
+        screenTrack =
+            await AgoraRTC
+            .createScreenVideoTrack();
 
-    appState.screenShare = {
+        // UNPUBLISH CAMERA VIDEO
+        await client.unpublish(
+            localTracks.video
+        );
 
-        active: true,
+        // PUBLISH SCREEN
+        await client.publish(
+            screenTrack
+        );
 
-        owner: appState.localUser,
+        // SAVE STATE
+        appState.screenShare = {
 
-        track: screenTrack
-    };
+            active: true,
 
-    renderLayout();
+            owner: appState.localUser,
 
-    screenTrack.on(
-        "track-ended",
-        async () => {
+            track: screenTrack
+        };
 
-            await stopScreenShare();
-        }
-    );
+        renderLayout();
+
+        // AUTO STOP
+        screenTrack.on(
+            "track-ended",
+            async () => {
+
+                await stopScreenShare();
+            }
+        );
+
+    }catch(err){
+
+        console.error(
+            "Screen share error:",
+            err
+        );
+    }
 }
 
 export async function stopScreenShare(){
 
-    if(!screenTrack) return;
+    try{
 
-    await client.unpublish(screenTrack);
+        if(!screenTrack)
+            return;
 
-    screenTrack.close();
+        // UNPUBLISH SCREEN
+        await client.unpublish(
+            screenTrack
+        );
 
-    screenTrack = null;
+        // CLOSE TRACK
+        screenTrack.close();
 
-    appState.screenShare = {
+        screenTrack = null;
 
-        active: false,
+        // REPUBLISH CAMERA
+        await client.publish(
+            localTracks.video
+        );
 
-        owner: null,
+        // RESET STATE
+        appState.screenShare = {
 
-        track: null
-    };
+            active: false,
 
-    renderLayout();
+            owner: null,
+
+            track: null
+        };
+
+        renderLayout();
+
+    }catch(err){
+
+        console.error(
+            "Stop share error:",
+            err
+        );
+    }
 }

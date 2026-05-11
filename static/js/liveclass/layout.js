@@ -33,7 +33,15 @@ export function renderLayout(){
         appState.screenShare.owner
     ){
 
-        renderScreenShare(mainStage);
+        if(appState.screenShare.track){
+
+            renderScreenShare(mainStage);
+
+        }else{
+
+            appState.screenShare.active =
+                false;
+        }
 
         participants.forEach(p => {
 
