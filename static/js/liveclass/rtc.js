@@ -52,8 +52,13 @@ export async function joinRoom({
         uid,
         name: username,
 
-        videoTrack: localTracks.video,
-        audioTrack: localTracks.audio,
+        cameraTrack:
+            localTracks.video,
+
+        screenTrack: null,
+
+        audioTrack:
+            localTracks.audio,
 
         isMuted: false,
         isCameraOff: false,
@@ -93,7 +98,10 @@ function registerRTCEvents(){
 
                     name: "User",
 
-                    videoTrack: null,
+                    cameraTrack: null,
+
+                    screenTrack: null,
+
                     audioTrack: null,
 
                     isMuted: false,
@@ -106,25 +114,30 @@ function registerRTCEvents(){
             // VIDEO
             if(mediaType === "video"){
 
-                // SAVE TRACK
-                appState
-                    .participants[uid]
-                    .videoTrack =
-                        user.videoTrack;
-
-                // REMOTE SCREEN TRACK
-                // SECOND VIDEO FROM SAME USER
+                // SCREEN SHARE MODE
                 if(
                     appState.screenShare.active &&
                     appState.screenShare.owner === uid
                 ){
 
+                    appState
+                        .participants[uid]
+                        .screenTrack =
+                            user.videoTrack;
+
                     appState.screenShare.track =
                         user.videoTrack;
-                    renderLayout();
 
-                    return;
+                }else{
+
+                    // NORMAL CAMERA
+                    appState
+                        .participants[uid]
+                        .cameraTrack =
+                            user.videoTrack;
                 }
+
+                renderLayout();
             }
 
             // AUDIO

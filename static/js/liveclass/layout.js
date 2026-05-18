@@ -137,7 +137,24 @@ function createVideoTile(
 
 function playVideo(participant){
 
-    if(!participant.videoTrack)
+    let track = null;
+
+    // SCREEN MODE
+    if(
+        appState.screenShare.active &&
+        participant.screenTrack
+    ){
+
+        track =
+            participant.screenTrack;
+
+    }else{
+
+        track =
+            participant.cameraTrack;
+    }
+
+    if(!track)
         return;
 
     const container =
@@ -148,7 +165,7 @@ function playVideo(participant){
     if(!container)
         return;
 
-    participant.videoTrack.play(container);
+    track.play(container);
 }
 
 function renderScreenShare(mainStage){
