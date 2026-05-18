@@ -121,9 +121,10 @@ function registerRTCEvents(){
 
                     appState.screenShare.track =
                         user.videoTrack;
-                    }
+                    renderLayout();
 
-                renderLayout();
+                    return;
+                }
             }
 
             // AUDIO

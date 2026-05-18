@@ -56,7 +56,10 @@ export function renderLayout(){
     }
 
     // ACTIVE SPEAKER
-    if(appState.activeSpeaker){
+    if(
+        !appState.screenShare.active &&
+        appState.activeSpeaker
+    ){
 
         mainParticipant =
             appState.participants[
