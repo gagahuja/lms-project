@@ -29,15 +29,36 @@ export function renderLayout(){
 
     // SCREEN SHARE PRIORITY
     if(
-        appState.screenShare.active &&
-        appState.screenShare.owner
+        appState.screenShare.active
     ){
 
-        // FIXED MAIN SCREEN
-        renderScreenShare(mainStage);
+        const screenUser =
+            participants.find(
+                p => p.isScreen
+            );
 
-        // ALL USERS IN GRID
+        if(screenUser){
+
+            mainStage.innerHTML = "";
+
+            const mainTile =
+                createVideoTile(
+                    screenUser,
+                    true
+                );
+
+            mainStage.appendChild(
+                mainTile
+            );
+
+            playVideo(screenUser);
+        }
+
+        // GRID = REAL USERS
         participants.forEach(p => {
+
+            if(p.isScreen)
+                return;
 
             const tile =
                 createVideoTile(
@@ -50,8 +71,6 @@ export function renderLayout(){
             playVideo(p);
         });
 
-        // VERY IMPORTANT
-        // STOP SPEAKER SWITCHING
         return;
     }
 
@@ -139,11 +158,7 @@ function playVideo(participant){
 
     let track = null;
 
-    // SCREEN MODE
-    if(
-        appState.screenShare.active &&
-        participant.screenTrack
-    ){
+    if(participant.isScreen){
 
         track =
             participant.screenTrack;

@@ -114,19 +114,34 @@ function registerRTCEvents(){
             // VIDEO
             if(mediaType === "video"){
 
-                // SCREEN SHARE MODE
+                // SCREEN SHARE
                 if(
                     appState.screenShare.active &&
                     appState.screenShare.owner === uid
                 ){
 
-                    appState
-                        .participants[uid]
-                        .screenTrack =
-                            user.videoTrack;
+                    const screenUid =
+                        `${uid}_screen`;
 
-                    appState.screenShare.track =
-                        user.videoTrack;
+                    // CREATE SCREEN PARTICIPANT
+                    appState
+                        .participants[
+                            screenUid
+                        ] = {
+
+                        uid: screenUid,
+
+                        name: "Screen",
+
+                        cameraTrack: null,
+
+                        screenTrack:
+                            user.videoTrack,
+
+                        audioTrack: null,
+
+                        isScreen: true
+                    };
 
                 }else{
 
@@ -316,6 +331,18 @@ export async function stopScreenShare(){
 
             track: null
         };
+
+        // REMOVE SCREEN TILE
+        Object.keys(
+            appState.participants
+        ).forEach(id => {
+
+            if(id.includes("_screen")){
+
+                delete appState
+                    .participants[id];
+            }
+        });
 
         // REMOVE SCREEN DOM
         const wrapper =
