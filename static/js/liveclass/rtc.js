@@ -232,6 +232,11 @@ export async function startScreenShare(){
             ? tracks[0]
             : tracks;
 
+        console.log(
+            "SCREEN TRACK:",
+            screenTrack
+        );
+
         // SAVE LOCAL STATE
         appState.screenShare = {
 
@@ -245,6 +250,10 @@ export async function startScreenShare(){
         // PUBLISH SCREEN
         await client.publish(
             screenTrack
+        );
+
+        console.log(
+            "SCREEN PUBLISHED"
         );
 
         // FORCE RENDER

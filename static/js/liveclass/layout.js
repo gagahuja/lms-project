@@ -184,5 +184,10 @@ function renderScreenShare(mainStage){
         appState.screenShare.track.play(
             screenPlayer
         );
+
+        console.log(
+            "SCREEN TRACK:",
+            appState.screenShare.track
+        );
     }
 }
