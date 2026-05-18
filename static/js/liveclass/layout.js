@@ -150,27 +150,12 @@ function playVideo(participant){
 
 function renderScreenShare(mainStage){
 
-    // CHECK EXISTING
-    let existing =
-        document.getElementById(
-            "screen-share-wrapper"
-        );
-
-    // ALREADY RENDERED
-    if(existing){
-
-        return;
-    }
-
-    // CLEAR MAIN ONLY ONCE
+    // RESET MAIN
     mainStage.innerHTML = "";
 
     // WRAPPER
     const wrapper =
         document.createElement("div");
-
-    wrapper.id =
-        "screen-share-wrapper";
 
     wrapper.className =
         "screen-wrapper";
@@ -185,23 +170,15 @@ function renderScreenShare(mainStage){
     screenPlayer.className =
         "screen-player";
 
-    // TITLE
-    const title =
-        document.createElement("div");
+    wrapper.appendChild(
+        screenPlayer
+    );
 
-    title.className =
-        "screen-title";
+    mainStage.appendChild(
+        wrapper
+    );
 
-    title.innerText =
-        "Screen Share";
-
-    wrapper.appendChild(screenPlayer);
-
-    wrapper.appendChild(title);
-
-    mainStage.appendChild(wrapper);
-
-    // PLAY SCREEN TRACK
+    // PLAY TRACK
     if(appState.screenShare.track){
 
         appState.screenShare.track.play(

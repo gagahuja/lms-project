@@ -106,42 +106,22 @@ function registerRTCEvents(){
             // VIDEO
             if(mediaType === "video"){
 
+                // SAVE TRACK
                 appState
                     .participants[uid]
-                    .videoTrack = user.videoTrack;
+                    .videoTrack =
+                        user.videoTrack;
 
-                // REMOTE SCREEN SHARE
+                // REMOTE SCREEN TRACK
+                // SECOND VIDEO FROM SAME USER
                 if(
-
-                    user.videoTrack &&
-                    user.videoTrack._trackMediaType === "video"
-
+                    appState.screenShare.active &&
+                    appState.screenShare.owner === uid
                 ){
 
-                    let label =
-                        user.videoTrack
-                        ._mediaStreamTrack
-                        ?.label || "";
-
-                    // DETECT SCREEN
-                    if(
-
-                        label.toLowerCase().includes("screen") ||
-                        label.toLowerCase().includes("window") ||
-                        label.toLowerCase().includes("chrome")
-
-                    ){
-
-                        appState.screenShare = {
-
-                            active: true,
-
-                            owner: uid,
-
-                            track: user.videoTrack
-                        };
+                    appState.screenShare.track =
+                        user.videoTrack;
                     }
-                }
 
                 renderLayout();
             }
@@ -242,29 +222,17 @@ export async function startScreenShare(){
     try{
 
         // CREATE SCREEN TRACK
-        const screenTracks =
+        const tracks =
             await AgoraRTC
-            .createScreenVideoTrack(
-                {},
-                "auto"
-            );
+            .createScreenVideoTrack();
 
-        // HANDLE ARRAY / SINGLE TRACK
-        if(Array.isArray(screenTracks)){
+        // ARRAY / SINGLE
+        screenTrack =
+            Array.isArray(tracks)
+            ? tracks[0]
+            : tracks;
 
-            screenTrack = screenTracks[0];
-
-        }else{
-
-            screenTrack = screenTracks;
-        }
-
-        // PUBLISH SCREEN
-        await client.publish([
-            screenTrack
-        ]);
-
-        // SAVE STATE
+        // SAVE LOCAL STATE
         appState.screenShare = {
 
             active: true,
@@ -274,7 +242,12 @@ export async function startScreenShare(){
             track: screenTrack
         };
 
-        // RENDER
+        // PUBLISH SCREEN
+        await client.publish(
+            screenTrack
+        );
+
+        // FORCE RENDER
         renderLayout();
 
         // AUTO STOP
