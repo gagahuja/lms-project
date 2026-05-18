@@ -226,18 +226,23 @@ export async function startScreenShare(){
             await AgoraRTC
             .createScreenVideoTrack();
 
-        // ARRAY / SINGLE
         screenTrack =
             Array.isArray(tracks)
             ? tracks[0]
             : tracks;
 
-        console.log(
-            "SCREEN TRACK:",
+        // VERY IMPORTANT
+        // REMOVE CAMERA FIRST
+        await client.unpublish(
+            localTracks.video
+        );
+
+        // PUBLISH SCREEN
+        await client.publish(
             screenTrack
         );
 
-        // SAVE LOCAL STATE
+        // SAVE STATE
         appState.screenShare = {
 
             active: true,
@@ -247,16 +252,6 @@ export async function startScreenShare(){
             track: screenTrack
         };
 
-        // PUBLISH SCREEN
-        await client.publish(
-            screenTrack
-        );
-
-        console.log(
-            "SCREEN PUBLISHED"
-        );
-
-        // FORCE RENDER
         renderLayout();
 
         // AUTO STOP
@@ -284,17 +279,16 @@ export async function stopScreenShare(){
         if(!screenTrack)
             return;
 
-        // UNPUBLISH SCREEN
+        // REMOVE SCREEN
         await client.unpublish(
             screenTrack
         );
 
-        // CLOSE TRACK
         screenTrack.close();
 
         screenTrack = null;
 
-        // REPUBLISH CAMERA
+        // RETURN CAMERA
         await client.publish(
             localTracks.video
         );
@@ -316,6 +310,7 @@ export async function stopScreenShare(){
             );
 
         if(wrapper){
+
             wrapper.remove();
         }
 
