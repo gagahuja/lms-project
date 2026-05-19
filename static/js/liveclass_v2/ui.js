@@ -44,7 +44,7 @@ export function renderParticipants(){
 
     const screenUser =
         participants.find(
-            p => p.isScreen
+            p => p.screenTrack
         );
 
     if(screenUser){
@@ -200,9 +200,30 @@ function playTrack(
     participant
 ){
 
+    let track = null;
+
+    // SCREEN MODE
     if(
-        !participant.videoTrack
-    ) return;
+        participant
+        .screenTrack
+    ){
+
+        track =
+            participant
+            .screenTrack;
+
+    }else{
+
+        track =
+            participant
+            .cameraTrack
+            ||
+            participant
+            .videoTrack;
+    }
+
+    if(!track)
+        return;
 
     const player =
         document.getElementById(
@@ -212,17 +233,5 @@ function playTrack(
     if(!player)
         return;
 
-    try{
-
-        participant
-            .videoTrack
-            .play(player);
-
-    }catch(err){
-
-        console.error(
-            "PLAY ERROR",
-            err
-        );
-    }
+    track.play(player);
 }

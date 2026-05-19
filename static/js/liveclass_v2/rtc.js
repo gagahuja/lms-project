@@ -231,14 +231,14 @@ function registerEvents(){
                     username:
                         "User",
 
-                    videoTrack:
+                    cameraTrack:
+                        null,
+
+                    screenTrack:
                         null,
 
                     audioTrack:
-                        null,
-
-                    isScreen:
-                        false
+                        null
                 };
             }
 
@@ -247,29 +247,42 @@ function registerEvents(){
                 "video"
             ){
 
-                console.log(
-                    "REMOTE VIDEO",
-                    {
-                        uid,
-                        user,
-                        label:
-                            user.videoTrack
-                            ?._mediaStreamTrack
-                            ?.label,
+                const trackId =
+                    user.videoTrack
+                    ?._mediaStreamTrack
+                    ?.id || "";
 
-                        trackId:
-                            user.videoTrack
-                            ?._mediaStreamTrack
-                            ?.id
-                    }
-                );
+                // SCREEN TRACK
+                if(
+                    trackId.includes(
+                        "video"
+                    )
+                ){
 
-                state
-                .participants[
-                    uid
-                ]
-                .videoTrack =
-                    user.videoTrack;
+                    state
+                    .participants[
+                        uid
+                    ]
+                    .screenTrack =
+                        user.videoTrack;
+
+                    state.screenShare = {
+
+                        active: true,
+
+                        owner: uid
+                    };
+
+                }else{
+
+                    // CAMERA
+                    state
+                    .participants[
+                        uid
+                    ]
+                    .cameraTrack =
+                        user.videoTrack;
+                }
 
                 renderParticipants();
             }
