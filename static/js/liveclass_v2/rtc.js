@@ -32,7 +32,6 @@ export async function joinRoom({
     const client =
         state.client;
 
-    // JOIN
     await client.join(
         appId,
         channel,
@@ -43,7 +42,6 @@ export async function joinRoom({
     state.localUid =
         uid;
 
-    // LOCAL TRACKS
     const tracks =
         await AgoraRTC
         .createMicrophoneAndCameraTracks();
@@ -54,24 +52,139 @@ export async function joinRoom({
     state.localTracks.video =
         tracks[1];
 
-    // SAVE LOCAL USER
     state.participants[uid] = {
 
         uid,
+
         username,
 
         videoTrack:
             state.localTracks.video,
 
         audioTrack:
-            state.localTracks.audio
+            state.localTracks.audio,
+
+        isScreen:
+            false
     };
 
-    // PUBLISH
     await client.publish([
+
         state.localTracks.audio,
         state.localTracks.video
     ]);
+
+    renderParticipants();
+}
+
+
+export async function startScreenShare(){
+
+    try{
+
+        const tracks =
+            await AgoraRTC
+            .createScreenVideoTrack();
+
+        state.screenTrack =
+            Array.isArray(tracks)
+            ? tracks[0]
+            : tracks;
+
+        // CAMERA OFF
+        await state.client
+            .unpublish(
+                state
+                .localTracks
+                .video
+            );
+
+        // PUBLISH SCREEN
+        await state.client
+            .publish(
+                state
+                .screenTrack
+            );
+
+        // SCREEN USER
+        state.participants[
+            "screen"
+        ] = {
+
+            uid: "screen",
+
+            username:
+                "Screen",
+
+            videoTrack:
+                state.screenTrack,
+
+            isScreen:
+                true
+        };
+
+        state.screenShare = {
+
+            active: true,
+
+            owner:
+                state.localUid
+        };
+
+        renderParticipants();
+
+        state.screenTrack.on(
+            "track-ended",
+            async () => {
+
+                await stopScreenShare();
+            }
+        );
+
+    }catch(err){
+
+        console.error(
+            err
+        );
+    }
+}
+
+
+export async function stopScreenShare(){
+
+    if(
+        !state.screenTrack
+    ) return;
+
+    await state.client
+        .unpublish(
+            state.screenTrack
+        );
+
+    state.screenTrack
+        .close();
+
+    state.screenTrack =
+        null;
+
+    delete state
+        .participants[
+            "screen"
+        ];
+
+    await state.client
+        .publish(
+            state
+            .localTracks
+            .video
+        );
+
+    state.screenShare = {
+
+        active:false,
+
+        owner:null
+    };
 
     renderParticipants();
 }
@@ -82,7 +195,7 @@ function registerEvents(){
     const client =
         state.client;
 
-    // REMOTE USER JOIN
+
     client.on(
         "user-published",
         async (
@@ -90,20 +203,26 @@ function registerEvents(){
             mediaType
         ) => {
 
-            await client.subscribe(
-                user,
-                mediaType
-            );
+            await client
+                .subscribe(
+                    user,
+                    mediaType
+                );
 
             const uid =
-                String(user.uid);
+                String(
+                    user.uid
+                );
 
-            // CREATE USER
             if(
-                !state.participants[uid]
+                !state
+                .participants[
+                    uid
+                ]
             ){
 
-                state.participants[
+                state
+                .participants[
                     uid
                 ] = {
 
@@ -116,11 +235,13 @@ function registerEvents(){
                         null,
 
                     audioTrack:
-                        null
+                        null,
+
+                    isScreen:
+                        false
                 };
             }
 
-            // VIDEO
             if(
                 mediaType ===
                 "video"
@@ -134,7 +255,6 @@ function registerEvents(){
                     user.videoTrack;
             }
 
-            // AUDIO
             if(
                 mediaType ===
                 "audio"
@@ -147,53 +267,67 @@ function registerEvents(){
                 .audioTrack =
                     user.audioTrack;
 
-                user.audioTrack.play();
+                user
+                .audioTrack
+                .play();
             }
 
             renderParticipants();
         }
     );
 
-    // USER LEFT
+
     client.on(
         "user-left",
         user => {
 
             delete state
-            .participants[
-                user.uid
-            ];
+                .participants[
+                    user.uid
+                ];
 
             renderParticipants();
         }
     );
 
-    // AUDIO LEVEL DETECTION
+
     client.enableAudioVolumeIndicator();
 
     client.on(
         "volume-indicator",
         volumes => {
 
-        let loudest = null;
+        // DISABLE
+        // DURING SHARE
+        if(
+            state
+            .screenShare
+            .active
+        ) return;
 
-        let highest = 0;
+        let loudest =
+            null;
+
+        let highest =
+            0;
 
         volumes.forEach(v => {
 
             if(
-                v.level > highest
+                v.level >
+                highest
             ){
 
                 highest =
                     v.level;
 
                 loudest =
-                    String(v.uid);
+                    String(
+                        v.uid
+                    );
             }
         });
 
-        // SPEAKER THRESHOLD
         if(
             highest > 5 &&
             loudest
@@ -202,10 +336,10 @@ function registerEvents(){
             const now =
                 Date.now();
 
-            // ANTI-FLICKER
             if(
 
-                state.activeSpeaker
+                state
+                .activeSpeaker
                 !== loudest &&
 
                 now -

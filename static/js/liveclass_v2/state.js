@@ -8,11 +8,20 @@ export const state = {
         video: null
     },
 
+    screenTrack: null,
+
     localUid: null,
 
     participants: {},
 
     activeSpeaker: null,
 
-    lastSpeakerChange: 0
+    lastSpeakerChange: 0,
+
+    screenShare: {
+
+        active: false,
+
+        owner: null
+    }
 };

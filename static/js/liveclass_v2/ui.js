@@ -21,88 +21,156 @@ export function renderParticipants(){
         !grid
     ) return;
 
-    // RESET UI
-    mainStage.innerHTML = "";
-    grid.innerHTML = "";
+    mainStage.innerHTML =
+        "";
+
+    grid.innerHTML =
+        "";
 
     const participants =
         Object.values(
-            state.participants
+            state
+            .participants
         );
 
     if(
-        participants.length === 0
+        participants.length
+        === 0
     ) return;
 
-    // ACTIVE SPEAKER
-    let mainUser = null;
+
+    // SCREEN SHARE
+    if(
+        state
+        .screenShare
+        .active
+    ){
+
+        const screen =
+            participants.find(
+                p =>
+                p.isScreen
+            );
+
+        if(screen){
+
+            const tile =
+                createTile(
+                    screen,
+                    true
+                );
+
+            mainStage
+                .appendChild(
+                    tile
+                );
+
+            playTrack(
+                screen
+            );
+        }
+
+        participants.forEach(
+            p => {
+
+            if(
+                p.isScreen
+            ) return;
+
+            const tile =
+                createTile(
+                    p,
+                    false
+                );
+
+            grid
+                .appendChild(
+                    tile
+                );
+
+            playTrack(
+                p
+            );
+        });
+
+        return;
+    }
+
+
+    let mainUser =
+        null;
 
     if(
-        state.activeSpeaker &&
-        state.participants[
-            state.activeSpeaker
+        state
+        .activeSpeaker &&
+        state
+        .participants[
+            state
+            .activeSpeaker
         ]
     ){
 
         mainUser =
-            state.participants[
-                state.activeSpeaker
+            state
+            .participants[
+                state
+                .activeSpeaker
             ];
     }
 
-    // FALLBACK
     if(!mainUser){
 
         mainUser =
             participants[0];
     }
 
-    // MAIN TILE
     const mainTile =
-        createVideoTile(
+        createTile(
             mainUser,
             true
         );
 
-    mainStage.appendChild(
-        mainTile
+    mainStage
+        .appendChild(
+            mainTile
+        );
+
+    playTrack(
+        mainUser
     );
 
-    playTrack(mainUser);
-
-    // GRID USERS
     participants.forEach(
-        participant => {
+        p => {
 
         if(
-            participant.uid ===
+            p.uid ===
             mainUser.uid
         ) return;
 
         const tile =
-            createVideoTile(
-                participant,
+            createTile(
+                p,
                 false
             );
 
-        grid.appendChild(
-            tile
-        );
+        grid
+            .appendChild(
+                tile
+            );
 
-        playTrack(
-            participant
-        );
+        playTrack(p);
     });
 }
 
 
-function createVideoTile(
+function createTile(
     participant,
     isMain
 ){
 
     const tile =
-        document.createElement(
+        document
+        .createElement(
             "div"
         );
 
@@ -118,9 +186,13 @@ function createVideoTile(
             class="video-player">
         </div>
 
-        <div class="video-name">
+        <div
+            class="video-name">
 
-            ${participant.username}
+            ${
+                participant
+                .username
+            }
 
         </div>
     `;
@@ -134,7 +206,8 @@ function playTrack(
 ){
 
     if(
-        !participant.videoTrack
+        !participant
+        .videoTrack
     ) return;
 
     participant
