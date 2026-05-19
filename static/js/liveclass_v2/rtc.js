@@ -247,12 +247,54 @@ function registerEvents(){
                 "video"
             ){
 
-                state
-                .participants[
-                    uid
-                ]
-                .videoTrack =
-                    user.videoTrack;
+                const label =
+                    user.videoTrack
+                    ._mediaStreamTrack
+                    ?.label
+                    ?.toLowerCase()
+                    || "";
+
+                // REMOTE SCREEN
+                if(
+                    label.includes(
+                        "screen"
+                    )
+                ){
+
+                    state.participants[
+                        "screen"
+                    ] = {
+
+                        uid:
+                            "screen",
+
+                        username:
+                            "Screen",
+
+                        videoTrack:
+                            user.videoTrack,
+
+                        isScreen:
+                            true
+                    };
+
+                    state.screenShare = {
+
+                        active: true,
+
+                        owner: uid
+                    };
+
+                }else{
+
+                    // NORMAL CAMERA
+                    state
+                    .participants[
+                        uid
+                    ]
+                    .videoTrack =
+                        user.videoTrack;
+                }
             }
 
             if(
@@ -285,6 +327,18 @@ function registerEvents(){
                 .participants[
                     user.uid
                 ];
+
+            delete state
+                .participants[
+                    "screen"
+                ];
+
+            state.screenShare = {
+
+                active:false,
+
+                owner:null
+            };
 
             renderParticipants();
         }
