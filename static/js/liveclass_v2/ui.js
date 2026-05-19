@@ -6,62 +6,121 @@ from "./state.js";
 
 export function renderParticipants(){
 
-    const container =
+    const mainStage =
         document.getElementById(
-            "video-container"
+            "main-stage"
         );
 
-    if(!container)
-        return;
+    const grid =
+        document.getElementById(
+            "video-grid"
+        );
 
-    container.innerHTML = "";
+    if(
+        !mainStage ||
+        !grid
+    ) return;
+
+    // RESET UI
+    mainStage.innerHTML = "";
+    grid.innerHTML = "";
 
     const participants =
         Object.values(
             state.participants
         );
 
+    if(
+        participants.length === 0
+    ) return;
+
+    // FIRST USER = MAIN
+    const mainUser =
+        participants[0];
+
+    // MAIN TILE
+    const mainTile =
+        createVideoTile(
+            mainUser,
+            true
+        );
+
+    mainStage.appendChild(
+        mainTile
+    );
+
+    playTrack(mainUser);
+
+    // GRID USERS
     participants.forEach(
         participant => {
 
-        const tile =
-            document.createElement(
-                "div"
-            );
-
-        tile.className =
-            "video-tile";
-
-        tile.innerHTML = `
-
-            <div
-                id="player-${participant.uid}"
-                class="video-player">
-            </div>
-
-            <div class="video-name">
-
-                ${
-                    participant
-                    .username
-                }
-
-            </div>
-        `;
-
-        container
-            .appendChild(tile);
-
         if(
-            participant
-            .videoTrack
-        ){
+            participant.uid ===
+            mainUser.uid
+        ) return;
 
-            participant
-            .videoTrack
-            .play(
-                `player-${participant.uid}`
+        const tile =
+            createVideoTile(
+                participant,
+                false
             );
-        }
+
+        grid.appendChild(
+            tile
+        );
+
+        playTrack(
+            participant
+        );
     });
+}
+
+
+function createVideoTile(
+    participant,
+    isMain
+){
+
+    const tile =
+        document.createElement(
+            "div"
+        );
+
+    tile.className =
+        isMain
+        ? "main-video-tile"
+        : "grid-video-tile";
+
+    tile.innerHTML = `
+
+        <div
+            id="player-${participant.uid}"
+            class="video-player">
+        </div>
+
+        <div class="video-name">
+
+            ${participant.username}
+
+        </div>
+    `;
+
+    return tile;
+}
+
+
+function playTrack(
+    participant
+){
+
+    if(
+        !participant.videoTrack
+    ) return;
+
+    participant
+        .videoTrack
+        .play(
+            `player-${participant.uid}`
+        );
 }
