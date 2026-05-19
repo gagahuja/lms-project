@@ -48,20 +48,22 @@
 
 .video-grid{
 
-    display:grid;
-
-    grid-template-columns:
-        repeat(
-            auto-fit,
-            minmax(250px,1fr)
-        );
+    display:flex;
 
     gap:16px;
+
+    flex-wrap:wrap;
+
+    justify-content:flex-start;
+
+    align-items:flex-start;
 }
 
 .grid-video-tile{
 
-    height:220px;
+    width:260px;
+
+    height:170px;
 
     background:#111;
 
@@ -70,6 +72,8 @@
     overflow:hidden;
 
     position:relative;
+
+    flex-shrink:0;
 }
 
 
