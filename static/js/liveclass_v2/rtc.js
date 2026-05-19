@@ -247,6 +247,15 @@ function registerEvents(){
                 "video"
             ){
 
+                console.log(
+                    "REMOTE VIDEO TRACK",
+                    uid,
+                    user.videoTrack,
+                    user.videoTrack
+                        ?._mediaStreamTrack
+                        ?.label
+                );
+
                 const label =
                     user.videoTrack
                     ._mediaStreamTrack
