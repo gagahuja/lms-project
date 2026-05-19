@@ -29,8 +29,7 @@ export function renderParticipants(){
 
     const participants =
         Object.values(
-            state
-            .participants
+            state.participants
         );
 
     if(
@@ -39,37 +38,34 @@ export function renderParticipants(){
     ) return;
 
 
-    // SCREEN SHARE
-    if(
-        state
-        .screenShare
-        .active
-    ){
+    // ==========================
+    // SCREEN SHARE MODE
+    // ==========================
 
-        const screen =
-            participants.find(
-                p =>
-                p.isScreen
+    const screenUser =
+        participants.find(
+            p => p.isScreen
+        );
+
+    if(screenUser){
+
+        // FIX SCREEN
+        const screenTile =
+            createTile(
+                screenUser,
+                true
             );
 
-        if(screen){
-
-            const tile =
-                createTile(
-                    screen,
-                    true
-                );
-
-            mainStage
-                .appendChild(
-                    tile
-                );
-
-            playTrack(
-                screen
+        mainStage
+            .appendChild(
+                screenTile
             );
-        }
 
+        playTrack(
+            screenUser
+        );
+
+        // EVERYONE IN GRID
         participants.forEach(
             p => {
 
@@ -83,38 +79,35 @@ export function renderParticipants(){
                     false
                 );
 
-            grid
-                .appendChild(
-                    tile
-                );
-
-            playTrack(
-                p
+            grid.appendChild(
+                tile
             );
+
+            playTrack(p);
         });
 
+        // VERY IMPORTANT
         return;
     }
 
+
+    // ==========================
+    // NORMAL SPEAKER MODE
+    // ==========================
 
     let mainUser =
         null;
 
     if(
-        state
-        .activeSpeaker &&
-        state
-        .participants[
-            state
-            .activeSpeaker
+        state.activeSpeaker &&
+        state.participants[
+            state.activeSpeaker
         ]
     ){
 
         mainUser =
-            state
-            .participants[
-                state
-                .activeSpeaker
+            state.participants[
+                state.activeSpeaker
             ];
     }
 
@@ -158,7 +151,9 @@ export function renderParticipants(){
                 tile
             );
 
-        playTrack(p);
+        playTrack(
+            p
+        );
     });
 }
 
