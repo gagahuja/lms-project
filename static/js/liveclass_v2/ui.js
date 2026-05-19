@@ -206,13 +206,28 @@ function playTrack(
 ){
 
     if(
-        !participant
-        .videoTrack
+        !participant.videoTrack
     ) return;
 
-    participant
-        .videoTrack
-        .play(
+    const player =
+        document.getElementById(
             `player-${participant.uid}`
         );
+
+    if(!player)
+        return;
+
+    try{
+
+        participant
+            .videoTrack
+            .play(player);
+
+    }catch(err){
+
+        console.error(
+            "PLAY ERROR",
+            err
+        );
+    }
 }
