@@ -34,9 +34,28 @@ export function renderParticipants(){
         participants.length === 0
     ) return;
 
-    // FIRST USER = MAIN
-    const mainUser =
-        participants[0];
+    // ACTIVE SPEAKER
+    let mainUser = null;
+
+    if(
+        state.activeSpeaker &&
+        state.participants[
+            state.activeSpeaker
+        ]
+    ){
+
+        mainUser =
+            state.participants[
+                state.activeSpeaker
+            ];
+    }
+
+    // FALLBACK
+    if(!mainUser){
+
+        mainUser =
+            participants[0];
+    }
 
     // MAIN TILE
     const mainTile =

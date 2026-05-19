@@ -10,5 +10,9 @@ export const state = {
 
     localUid: null,
 
-    participants: {}
+    participants: {},
+
+    activeSpeaker: null,
+
+    lastSpeakerChange: 0
 };

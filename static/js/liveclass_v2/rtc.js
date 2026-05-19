@@ -167,4 +167,64 @@ function registerEvents(){
             renderParticipants();
         }
     );
+
+    // AUDIO LEVEL DETECTION
+    client.enableAudioVolumeIndicator();
+
+    client.on(
+        "volume-indicator",
+        volumes => {
+
+        let loudest = null;
+
+        let highest = 0;
+
+        volumes.forEach(v => {
+
+            if(
+                v.level > highest
+            ){
+
+                highest =
+                    v.level;
+
+                loudest =
+                    String(v.uid);
+            }
+        });
+
+        // SPEAKER THRESHOLD
+        if(
+            highest > 5 &&
+            loudest
+        ){
+
+            const now =
+                Date.now();
+
+            // ANTI-FLICKER
+            if(
+
+                state.activeSpeaker
+                !== loudest &&
+
+                now -
+                state
+                .lastSpeakerChange
+                > 500
+
+            ){
+
+                state
+                .activeSpeaker =
+                    loudest;
+
+                state
+                .lastSpeakerChange =
+                    now;
+
+                renderParticipants();
+            }
+        }
+    });
 }
