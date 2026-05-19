@@ -248,62 +248,30 @@ function registerEvents(){
             ){
 
                 console.log(
-                    "REMOTE VIDEO TRACK",
-                    uid,
-                    user.videoTrack,
-                    user.videoTrack
-                        ?._mediaStreamTrack
-                        ?.label
+                    "REMOTE VIDEO",
+                    {
+                        uid,
+                        user,
+                        label:
+                            user.videoTrack
+                            ?._mediaStreamTrack
+                            ?.label,
+
+                        trackId:
+                            user.videoTrack
+                            ?._mediaStreamTrack
+                            ?.id
+                    }
                 );
 
-                const label =
-                    user.videoTrack
-                    ._mediaStreamTrack
-                    ?.label
-                    ?.toLowerCase()
-                    || "";
+                state
+                .participants[
+                    uid
+                ]
+                .videoTrack =
+                    user.videoTrack;
 
-                // REMOTE SCREEN
-                if(
-                    label.includes(
-                        "screen"
-                    )
-                ){
-
-                    state.participants[
-                        "screen"
-                    ] = {
-
-                        uid:
-                            "screen",
-
-                        username:
-                            "Screen",
-
-                        videoTrack:
-                            user.videoTrack,
-
-                        isScreen:
-                            true
-                    };
-
-                    state.screenShare = {
-
-                        active: true,
-
-                        owner: uid
-                    };
-
-                }else{
-
-                    // NORMAL CAMERA
-                    state
-                    .participants[
-                        uid
-                    ]
-                    .videoTrack =
-                        user.videoTrack;
-                }
+                renderParticipants();
             }
 
             if(
