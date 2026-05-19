@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<style>
+
+.live-wrapper{
+
+    width:100%;
+
+    max-width:1400px;
+
+    margin:auto;
+
+    padding:20px;
+}
+
+.video-container{
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(320px,1fr)
+        );
+
+    gap:16px;
+}
+
+.video-tile{
+
+    background:#111;
+
+    border-radius:16px;
+
+    overflow:hidden;
+
+    position:relative;
+
+    height:300px;
+}
+
+.video-player{
+
+    width:100%;
+
+    height:100%;
+}
+
+.video-name{
+
+    position:absolute;
+
+    bottom:10px;
+
+    left:10px;
+
+    background:
+        rgba(0,0,0,.6);
+
+    color:white;
+
+    padding:6px 12px;
+
+    border-radius:8px;
+
+    font-size:14px;
+}
+
+.controls{
+
+    margin-top:20px;
+
+    display:flex;
+
+    gap:12px;
+}
+
+.controls button{
+
+    padding:12px 24px;
+
+    border:none;
+
+    border-radius:10px;
+
+    cursor:pointer;
+}
+
+.join-btn{
+
+    background:#2563eb;
+
+    color:white;
+}
+
+.leave-btn{
+
+    background:#dc2626;
+
+    color:white;
+}
+
+</style>
+
+
+<div class="live-wrapper">
+
+    <h2>
+        Live Class v2
+    </h2>
+
+    <div
+        id="video-container"
+        class="video-container">
+    </div>
+
+    <div class="controls">
+
+        <button
+            id="join-btn"
+            class="join-btn">
+
+            Join Class
+
+        </button>
+
+        <button
+            id="leave-btn"
+            class="leave-btn">
+
+            Leave
+
+        </button>
+
+    </div>
+
+</div>
+
+
+<script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
+
+
+<script type="module">
+
+import {
+    initRTC,
+    joinRoom
+}
+from "{% static 'js/liveclass_v2/rtc.js' %}";
+
+const APP_ID =
+    "68983e3ac34747498d839a7e4c83a9c5";
+
+const CHANNEL =
+    "{{ room_name|default:'test-room' }}";
+
+const USERNAME =
+    "{{ request.user.username }}";
+
+
+await initRTC();
+
+document
+.getElementById(
+    "join-btn"
+)
+.addEventListener(
+    "click",
+    async () => {
+
+    await joinRoom({
+
+        appId:
+            APP_ID,
+
+        channel:
+            CHANNEL,
+
+        token:
+            null,
+
+        uid:
+            String(
+                Date.now()
+            ),
+
+        username:
+            USERNAME
+    });
+});
+
+</script>
+
+{% endblock %}

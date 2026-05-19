@@ -1278,3 +1278,10 @@ def upload_file(request):
         })
 
     return JsonResponse({"error": "Upload failed"})
+
+def live_class_v2(request):
+
+    return render(
+        request,
+        "agora_video_v2.html"
+    )
