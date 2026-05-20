@@ -252,22 +252,24 @@ function registerEvents(){
                     ?._mediaStreamTrack
                     ?.id || "";
 
-                // =========================
+                // ====================
                 // SCREEN SHARE TRACK
-                // =========================
+                // ====================
 
-                if(
+                const isScreenTrack =
                     trackId.includes(
                         "video"
-                    )
-                ){
+                    );
 
+                if(isScreenTrack){
+
+                    // CREATE VIRTUAL SCREEN USER
                     state.participants[
-                        "screen-share"
+                        "teacher-screen"
                     ] = {
 
                         uid:
-                            "screen-share",
+                            "teacher-screen",
 
                         username:
                             "Screen Share",
@@ -276,7 +278,10 @@ function registerEvents(){
                             user.videoTrack,
 
                         isScreen:
-                            true
+                            true,
+
+                        priority:
+                            -1
                     };
 
                     state.screenShare = {
@@ -288,15 +293,12 @@ function registerEvents(){
 
                 }else{
 
-                    // =========================
                     // NORMAL CAMERA
-                    // =========================
-
                     state
                     .participants[
                         uid
                     ]
-                    .cameraTrack =
+                    .videoTrack =
                         user.videoTrack;
                 }
 
@@ -336,7 +338,7 @@ function registerEvents(){
 
             delete state
                 .participants[
-                    "screen-share"
+                    "teacher-screen"
                 ];
 
             state.screenShare = {

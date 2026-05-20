@@ -32,6 +32,23 @@ export function renderParticipants(){
             state.participants
         );
 
+    // TEACHER FIRST
+    participants.sort(
+        (a, b) => {
+
+        if(
+            a.uid ===
+            state.localUid
+        ) return -1;
+
+        if(
+            b.uid ===
+            state.localUid
+        ) return 1;
+
+        return 0;
+    });
+
     if(
         participants.length
         === 0
@@ -49,8 +66,8 @@ export function renderParticipants(){
 
     if(screenUser){
 
-        // FIX SCREEN
-        const screenTile =
+        // FIX SCREEN MAIN
+        const mainTile =
             createTile(
                 screenUser,
                 true
@@ -58,20 +75,21 @@ export function renderParticipants(){
 
         mainStage
             .appendChild(
-                screenTile
+                mainTile
             );
 
         playTrack(
             screenUser
         );
 
-        // EVERYONE IN GRID
-        participants.forEach(
-            p => {
-
-            if(
-                p.isScreen
-            ) return;
+        // GRID:
+        // TEACHER FIRST
+        participants
+        .filter(
+            p =>
+            !p.isScreen
+        )
+        .forEach(p => {
 
             const tile =
                 createTile(
@@ -79,7 +97,8 @@ export function renderParticipants(){
                     false
                 );
 
-            grid.appendChild(
+            grid
+            .appendChild(
                 tile
             );
 
