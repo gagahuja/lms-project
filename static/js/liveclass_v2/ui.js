@@ -3,8 +3,15 @@ import {
 }
 from "./state.js";
 
-
+// PREVENT LOOP
+let isRendering =
+    false;
 export function renderParticipants(){
+
+    if(isRendering)
+        return;
+
+    isRendering = true;
 
     console.log(
         "RENDER UI",
@@ -26,12 +33,19 @@ export function renderParticipants(){
         !grid
     ) return;
 
-    // RESET UI
-    mainStage.innerHTML =
-        "";
+    // CLEAR ONLY
+    // WHEN NOT SHARE
 
-    grid.innerHTML =
-        "";
+    if(
+        !state.shareMode
+    ){
+
+        mainStage
+            .innerHTML = "";
+
+        grid
+            .innerHTML = "";
+    }
 
     const participants =
         Object.values(
@@ -59,65 +73,55 @@ export function renderParticipants(){
                 .sharedScreenUid
             ];
 
-        // FIXED MAIN SCREEN
         if(
             sharer &&
             sharer.screenTrack
         ){
 
-            const screenTile =
-                createTile({
+            // CREATE SCREEN ONLY ONCE
+            if(
+                !document.getElementById(
+                    "player-screen"
+                )
+            ){
 
-                    uid:
-                        "screen",
+                mainStage.innerHTML =
+                    "";
 
-                    username:
-                        "Screen Share"
+                const screenTile =
+                    createTile({
 
-                }, true);
+                        uid:
+                            "screen",
 
-            mainStage
-                .appendChild(
+                        username:
+                            "Screen Share"
+
+                    }, true);
+
+                mainStage.appendChild(
                     screenTile
                 );
 
-            setTimeout(() => {
+                setTimeout(() => {
 
-                playTrack(
+                    playTrack(
 
-                    sharer
-                    .screenTrack,
+                        sharer
+                        .screenTrack,
 
-                    "player-screen"
-                );
-                return;
+                        "player-screen"
+                    );
 
-            }, 100);
+                }, 100);
+            }
         }
 
-        // TEACHER FIRST
-        const sorted =
-            participants.sort(
-                (a, b) => {
+        // RESET GRID
+        grid.innerHTML = "";
 
-                // sharer first
-                if(
-                    a.uid ===
-                    state
-                    .sharedScreenUid
-                ) return -1;
-
-                if(
-                    b.uid ===
-                    state
-                    .sharedScreenUid
-                ) return 1;
-
-                return 0;
-            });
-
-        // GRID
-        sorted.forEach(p => {
+        // SHOW PARTICIPANTS
+        participants.forEach(p => {
 
             const tile =
                 createTile(
@@ -125,10 +129,9 @@ export function renderParticipants(){
                     false
                 );
 
-            grid
-                .appendChild(
-                    tile
-                );
+            grid.appendChild(
+                tile
+            );
 
             playTrack(
 
@@ -138,7 +141,9 @@ export function renderParticipants(){
             );
         });
 
-        // LOCK SHARE MODE
+        isRendering =
+            false;
+
         return;
     }
 
@@ -217,6 +222,7 @@ export function renderParticipants(){
             `player-${p.uid}`
         );
     });
+    isRendering = false;
 }
 
 
