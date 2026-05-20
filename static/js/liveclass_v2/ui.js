@@ -6,6 +6,11 @@ from "./state.js";
 
 export function renderParticipants(){
 
+    console.log(
+        "RENDER UI",
+        Date.now()
+    );
+
     const mainStage =
         document.getElementById(
             "main-stage"
