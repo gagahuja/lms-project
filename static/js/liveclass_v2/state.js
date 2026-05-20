@@ -2,15 +2,14 @@ export const state = {
 
     client: null,
 
+    localUid: null,
+
     localTracks: {
 
         audio: null,
-        video: null
+        camera: null,
+        screen: null
     },
-
-    screenTrack: null,
-
-    localUid: null,
 
     participants: {},
 
@@ -18,10 +17,7 @@ export const state = {
 
     lastSpeakerChange: 0,
 
-    screenShare: {
+    shareMode: false,
 
-        active: false,
-
-        owner: null
-    }
+    sharedScreenUid: null
 };

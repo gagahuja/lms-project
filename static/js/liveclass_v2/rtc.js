@@ -12,8 +12,8 @@ export async function initRTC(){
     state.client =
         AgoraRTC.createClient({
 
-            mode: "rtc",
-            codec: "vp8"
+            mode:"rtc",
+            codec:"vp8"
         });
 
     registerEvents();
@@ -33,6 +33,7 @@ export async function joinRoom({
         state.client;
 
     await client.join(
+
         appId,
         channel,
         token,
@@ -40,38 +41,50 @@ export async function joinRoom({
     );
 
     state.localUid =
-        uid;
+        String(uid);
 
     const tracks =
         await AgoraRTC
         .createMicrophoneAndCameraTracks();
 
-    state.localTracks.audio =
-        tracks[0];
+    state.localTracks
+        .audio =
+            tracks[0];
 
-    state.localTracks.video =
-        tracks[1];
+    state.localTracks
+        .camera =
+            tracks[1];
 
-    state.participants[uid] = {
+    state.participants[
+        uid
+    ] = {
 
-        uid,
+        uid:
+            String(uid),
 
         username,
 
-        videoTrack:
-            state.localTracks.video,
+        cameraTrack:
+            state
+            .localTracks
+            .camera,
+
+        screenTrack:
+            null,
 
         audioTrack:
-            state.localTracks.audio,
-
-        isScreen:
-            false
+            state
+            .localTracks
+            .audio
     };
 
     await client.publish([
 
-        state.localTracks.audio,
-        state.localTracks.video
+        state.localTracks
+            .audio,
+
+        state.localTracks
+            .camera
     ]);
 
     renderParticipants();
@@ -82,68 +95,53 @@ export async function startScreenShare(){
 
     try{
 
-        const tracks =
+        const screenTrack =
             await AgoraRTC
             .createScreenVideoTrack();
 
-        state.screenTrack =
-            Array.isArray(tracks)
-            ? tracks[0]
-            : tracks;
+        state.localTracks
+            .screen =
+                Array.isArray(
+                    screenTrack
+                )
+                ? screenTrack[0]
+                : screenTrack;
 
-        // CAMERA OFF
-        await state.client
-            .unpublish(
-                state
-                .localTracks
-                .video
-            );
-
-        // PUBLISH SCREEN
         await state.client
             .publish(
                 state
-                .screenTrack
+                .localTracks
+                .screen
             );
 
-        // SCREEN USER
+        state.shareMode =
+            true;
+
+        state.sharedScreenUid =
+            state.localUid;
+
         state.participants[
-            "screen"
-        ] = {
+            state.localUid
+        ]
+        .screenTrack =
 
-            uid: "screen",
-
-            username:
-                "Screen",
-
-            videoTrack:
-                state.screenTrack,
-
-            isScreen:
-                true
-        };
-
-        state.screenShare = {
-
-            active: true,
-
-            owner:
-                state.localUid
-        };
+            state
+            .localTracks
+            .screen;
 
         renderParticipants();
 
-        state.screenTrack.on(
-            "track-ended",
-            async () => {
-
-                await stopScreenShare();
-            }
-        );
+        state.localTracks
+            .screen
+            .on(
+                "track-ended",
+                stopScreenShare
+            );
 
     }catch(err){
 
         console.error(
+            "Screen share error",
             err
         );
     }
@@ -152,39 +150,42 @@ export async function startScreenShare(){
 
 export async function stopScreenShare(){
 
-    if(
-        !state.screenTrack
-    ) return;
+    const screen =
+        state
+        .localTracks
+        .screen;
+
+    if(!screen)
+        return;
 
     await state.client
         .unpublish(
-            state.screenTrack
+            screen
         );
 
-    state.screenTrack
-        .close();
+    screen.close();
 
-    state.screenTrack =
+    state.localTracks
+        .screen = null;
+
+    state.shareMode =
+        false;
+
+    state.sharedScreenUid =
         null;
 
-    delete state
-        .participants[
-            "screen"
-        ];
+    if(
+        state.participants[
+            state.localUid
+        ]
+    ){
 
-    await state.client
-        .publish(
-            state
-            .localTracks
-            .video
-        );
-
-    state.screenShare = {
-
-        active:false,
-
-        owner:null
-    };
+        state.participants[
+            state.localUid
+        ]
+        .screenTrack =
+            null;
+    }
 
     renderParticipants();
 }
@@ -197,174 +198,155 @@ function registerEvents(){
 
 
     client.on(
+
         "user-published",
+
         async (
             user,
             mediaType
         ) => {
 
-            await client
-                .subscribe(
-                    user,
-                    mediaType
-                );
+        await client
+            .subscribe(
+                user,
+                mediaType
+            );
 
-            const uid =
-                String(
-                    user.uid
-                );
+        const uid =
+            String(
+                user.uid
+            );
 
-            if(
-                !state
-                .participants[
-                    uid
-                ]
-            ){
+        if(
+            !state
+            .participants[
+                uid
+            ]
+        ){
 
-                state
-                .participants[
-                    uid
-                ] = {
+            state
+            .participants[
+                uid
+            ] = {
 
-                    uid,
+                uid,
 
-                    username:
-                        "User",
+                username:
+                    "User",
 
-                    cameraTrack:
-                        null,
+                cameraTrack:
+                    null,
 
-                    screenTrack:
-                        null,
+                screenTrack:
+                    null,
 
-                    audioTrack:
-                        null
-                };
-            }
-
-            if(
-                mediaType ===
-                "video"
-            ){
-
-                const trackId =
-                    user.videoTrack
-                    ?._mediaStreamTrack
-                    ?.id || "";
-
-                // ====================
-                // SCREEN SHARE TRACK
-                // ====================
-
-                const isScreenTrack =
-                    trackId.includes(
-                        "video"
-                    );
-
-                if(isScreenTrack){
-
-                    // CREATE VIRTUAL SCREEN USER
-                    state.participants[
-                        "teacher-screen"
-                    ] = {
-
-                        uid:
-                            "teacher-screen",
-
-                        username:
-                            "Screen Share",
-
-                        videoTrack:
-                            user.videoTrack,
-
-                        isScreen:
-                            true,
-
-                        priority:
-                            -1
-                    };
-
-                    state.screenShare = {
-
-                        active:true,
-
-                        owner:uid
-                    };
-
-                }else{
-
-                    // NORMAL CAMERA
-                    state
-                    .participants[
-                        uid
-                    ]
-                    .videoTrack =
-                        user.videoTrack;
-                }
-
-                renderParticipants();
-            }
-
-            if(
-                mediaType ===
-                "audio"
-            ){
-
-                state
-                .participants[
-                    uid
-                ]
-                .audioTrack =
-                    user.audioTrack;
-
-                user
-                .audioTrack
-                .play();
-            }
-
-            renderParticipants();
+                audioTrack:
+                    null
+            };
         }
-    );
+
+        if(
+            mediaType ===
+            "video"
+        ){
+
+            const id =
+                user.videoTrack
+                ?._mediaStreamTrack
+                ?.id || "";
+
+            // SCREEN
+            if(
+                id.includes(
+                    "video"
+                )
+            ){
+
+                state
+                .participants[
+                    uid
+                ]
+                .screenTrack =
+                    user.videoTrack;
+
+                state.shareMode =
+                    true;
+
+                state.sharedScreenUid =
+                    uid;
+
+            }else{
+
+                // CAMERA
+                state
+                .participants[
+                    uid
+                ]
+                .cameraTrack =
+                    user.videoTrack;
+            }
+        }
+
+
+        if(
+            mediaType ===
+            "audio"
+        ){
+
+            state
+            .participants[
+                uid
+            ]
+            .audioTrack =
+                user.audioTrack;
+
+            user
+            .audioTrack
+            .play();
+        }
+
+        renderParticipants();
+    });
 
 
     client.on(
+
         "user-left",
+
         user => {
 
-            delete state
-                .participants[
-                    user.uid
-                ];
+        const uid =
+            String(
+                user.uid
+            );
 
-            delete state
-                .participants[
-                    "teacher-screen"
-                ];
+        delete state
+            .participants[
+                uid
+            ];
 
-            state.screenShare = {
+        state.shareMode =
+            false;
 
-                active:false,
+        state.sharedScreenUid =
+            null;
 
-                owner:null
-            };
-
-            renderParticipants();
-        }
-    );
+        renderParticipants();
+    });
 
 
     client.enableAudioVolumeIndicator();
 
     client.on(
+
         "volume-indicator",
+
         volumes => {
 
         // DISABLE
         // DURING SHARE
         if(
-            state
-            .screenShare
-            .active
+            state.shareMode
         ) return;
 
         let loudest =
@@ -400,15 +382,14 @@ function registerEvents(){
 
             if(
 
+                loudest !==
                 state
-                .activeSpeaker
-                !== loudest &&
+                .activeSpeaker &&
 
                 now -
                 state
                 .lastSpeakerChange
                 > 500
-
             ){
 
                 state

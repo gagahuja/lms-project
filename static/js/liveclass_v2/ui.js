@@ -21,6 +21,7 @@ export function renderParticipants(){
         !grid
     ) return;
 
+    // RESET UI
     mainStage.innerHTML =
         "";
 
@@ -32,64 +33,81 @@ export function renderParticipants(){
             state.participants
         );
 
-    // TEACHER FIRST
-    participants.sort(
-        (a, b) => {
-
-        if(
-            a.uid ===
-            state.localUid
-        ) return -1;
-
-        if(
-            b.uid ===
-            state.localUid
-        ) return 1;
-
-        return 0;
-    });
-
     if(
         participants.length
         === 0
     ) return;
 
 
-    // ==========================
+    // ==================================
     // SCREEN SHARE MODE
-    // ==========================
+    // ==================================
 
-    const screenUser =
-        participants.find(
-            p => p.isScreen
-        );
+    if(
+        state.shareMode &&
+        state.sharedScreenUid
+    ){
 
-    if(screenUser){
+        const sharer =
+            state.participants[
+                state
+                .sharedScreenUid
+            ];
 
-        // FIX SCREEN MAIN
-        const mainTile =
-            createTile(
-                screenUser,
-                true
+        // FIXED MAIN SCREEN
+        if(
+            sharer &&
+            sharer.screenTrack
+        ){
+
+            const screenTile =
+                createTile({
+
+                    uid:
+                        "screen",
+
+                    username:
+                        "Screen Share"
+
+                }, true);
+
+            mainStage
+                .appendChild(
+                    screenTile
+                );
+
+            playTrack(
+
+                sharer
+                .screenTrack,
+
+                "player-screen"
             );
+        }
 
-        mainStage
-            .appendChild(
-                mainTile
-            );
-
-        playTrack(
-            screenUser
-        );
-
-        // GRID:
         // TEACHER FIRST
-        participants
-        .filter(
-            p =>
-            !p.isScreen
-        )
-        .forEach(p => {
+        const sorted =
+            participants.sort(
+                (a, b) => {
+
+                // sharer first
+                if(
+                    a.uid ===
+                    state
+                    .sharedScreenUid
+                ) return -1;
+
+                if(
+                    b.uid ===
+                    state
+                    .sharedScreenUid
+                ) return 1;
+
+                return 0;
+            });
+
+        // GRID
+        sorted.forEach(p => {
 
             const tile =
                 createTile(
@@ -98,21 +116,26 @@ export function renderParticipants(){
                 );
 
             grid
-            .appendChild(
-                tile
-            );
+                .appendChild(
+                    tile
+                );
 
-            playTrack(p);
+            playTrack(
+
+                p.cameraTrack,
+
+                `player-${p.uid}`
+            );
         });
 
-        // VERY IMPORTANT
+        // LOCK SHARE MODE
         return;
     }
 
 
-    // ==========================
-    // NORMAL SPEAKER MODE
-    // ==========================
+    // ==================================
+    // NORMAL MODE
+    // ==================================
 
     let mainUser =
         null;
@@ -126,16 +149,19 @@ export function renderParticipants(){
 
         mainUser =
             state.participants[
-                state.activeSpeaker
+                state
+                .activeSpeaker
             ];
     }
 
+    // FALLBACK
     if(!mainUser){
 
         mainUser =
             participants[0];
     }
 
+    // MAIN TILE
     const mainTile =
         createTile(
             mainUser,
@@ -148,11 +174,15 @@ export function renderParticipants(){
         );
 
     playTrack(
+
         mainUser
+        .cameraTrack,
+
+        `player-${mainUser.uid}`
     );
 
-    participants.forEach(
-        p => {
+    // GRID
+    participants.forEach(p => {
 
         if(
             p.uid ===
@@ -171,7 +201,10 @@ export function renderParticipants(){
             );
 
         playTrack(
-            p
+
+            p.cameraTrack,
+
+            `player-${p.uid}`
         );
     });
 }
@@ -216,25 +249,32 @@ function createTile(
 
 
 function playTrack(
-    participant
+    track,
+    playerId
 ){
-
-    const track =
-
-        participant.videoTrack ||
-
-        participant.cameraTrack;
 
     if(!track)
         return;
 
     const player =
-        document.getElementById(
-            `player-${participant.uid}`
+        document
+        .getElementById(
+            playerId
         );
 
     if(!player)
         return;
 
-    track.play(player);
+    try{
+
+        track.play(
+            player
+        );
+
+    }catch(err){
+
+        console.error(
+            err
+        );
+    }
 }
