@@ -95,53 +95,67 @@ export async function startScreenShare(){
 
     try{
 
-        const screenTrack =
+        const screenTracks =
             await AgoraRTC
-            .createScreenVideoTrack();
+            .createScreenVideoTrack({
+
+                encoderConfig:
+                    "1080p_1"
+            });
+
+        // HANDLE ARRAY
+        const screenTrack =
+
+            Array.isArray(
+                screenTracks
+            )
+
+            ? screenTracks[0]
+
+            : screenTracks;
 
         state.localTracks
             .screen =
-                Array.isArray(
-                    screenTrack
-                )
-                ? screenTrack[0]
-                : screenTrack;
+                screenTrack;
 
+        // PUBLISH
         await state.client
             .publish(
-                state
-                .localTracks
-                .screen
+                screenTrack
             );
 
+        // SHARE MODE
         state.shareMode =
             true;
 
         state.sharedScreenUid =
             state.localUid;
 
+        // SAVE SCREEN
         state.participants[
             state.localUid
         ]
         .screenTrack =
-
-            state
-            .localTracks
-            .screen;
+            screenTrack;
 
         renderParticipants();
 
-        state.localTracks
-            .screen
-            .on(
-                "track-ended",
-                stopScreenShare
-            );
+        // AUTO STOP
+        screenTrack.on(
+
+            "track-ended",
+
+            async () => {
+
+                await
+                stopScreenShare();
+            }
+        );
 
     }catch(err){
 
         console.error(
-            "Screen share error",
+            "SCREEN ERROR",
             err
         );
     }

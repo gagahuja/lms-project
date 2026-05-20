@@ -76,13 +76,17 @@ export function renderParticipants(){
                     screenTile
                 );
 
-            playTrack(
+            setTimeout(() => {
 
-                sharer
-                .screenTrack,
+                playTrack(
 
-                "player-screen"
-            );
+                    sharer
+                    .screenTrack,
+
+                    "player-screen"
+                );
+
+            }, 100);
         }
 
         // TEACHER FIRST
