@@ -373,11 +373,14 @@ function registerEvents(){
 
         volumes => {
 
-        // DISABLE
-        // DURING SHARE
+        // HARD LOCK
+        // DURING SCREEN SHARE
         if(
-            state.shareMode
-        ) return;
+            state.shareMode === true
+        ){
+
+            return;
+        }
 
         let loudest =
             null;
@@ -396,9 +399,7 @@ function registerEvents(){
                     v.level;
 
                 loudest =
-                    String(
-                        v.uid
-                    );
+                    String(v.uid);
             }
         });
 
@@ -422,8 +423,7 @@ function registerEvents(){
                 > 500
             ){
 
-                state
-                .activeSpeaker =
+                state.activeSpeaker =
                     loudest;
 
                 state
