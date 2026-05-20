@@ -252,30 +252,46 @@ function registerEvents(){
                     ?._mediaStreamTrack
                     ?.id || "";
 
-                // SCREEN TRACK
+                // =========================
+                // SCREEN SHARE TRACK
+                // =========================
+
                 if(
                     trackId.includes(
                         "video"
                     )
                 ){
 
-                    state
-                    .participants[
-                        uid
-                    ]
-                    .screenTrack =
-                        user.videoTrack;
+                    state.participants[
+                        "screen-share"
+                    ] = {
+
+                        uid:
+                            "screen-share",
+
+                        username:
+                            "Screen Share",
+
+                        videoTrack:
+                            user.videoTrack,
+
+                        isScreen:
+                            true
+                    };
 
                     state.screenShare = {
 
-                        active: true,
+                        active:true,
 
-                        owner: uid
+                        owner:uid
                     };
 
                 }else{
 
-                    // CAMERA
+                    // =========================
+                    // NORMAL CAMERA
+                    // =========================
+
                     state
                     .participants[
                         uid
@@ -320,7 +336,7 @@ function registerEvents(){
 
             delete state
                 .participants[
-                    "screen"
+                    "screen-share"
                 ];
 
             state.screenShare = {

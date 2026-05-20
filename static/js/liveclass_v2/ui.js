@@ -44,7 +44,7 @@ export function renderParticipants(){
 
     const screenUser =
         participants.find(
-            p => p.screenTrack
+            p => p.isScreen
         );
 
     if(screenUser){
@@ -200,27 +200,11 @@ function playTrack(
     participant
 ){
 
-    let track = null;
+    const track =
 
-    // SCREEN MODE
-    if(
-        participant
-        .screenTrack
-    ){
+        participant.videoTrack ||
 
-        track =
-            participant
-            .screenTrack;
-
-    }else{
-
-        track =
-            participant
-            .cameraTrack
-            ||
-            participant
-            .videoTrack;
-    }
+        participant.cameraTrack;
 
     if(!track)
         return;
