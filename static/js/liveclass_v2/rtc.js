@@ -103,7 +103,6 @@ export async function startScreenShare(){
                     "1080p_1"
             });
 
-        // HANDLE ARRAY
         const screenTrack =
 
             Array.isArray(
@@ -118,20 +117,28 @@ export async function startScreenShare(){
             .screen =
                 screenTrack;
 
-        // PUBLISH
+        // IMPORTANT
+        // REMOVE CAMERA FIRST
+        await state.client
+            .unpublish(
+
+                state
+                .localTracks
+                .camera
+            );
+
+        // PUBLISH SCREEN
         await state.client
             .publish(
                 screenTrack
             );
 
-        // SHARE MODE
         state.shareMode =
             true;
 
         state.sharedScreenUid =
             state.localUid;
 
-        // SAVE SCREEN
         state.participants[
             state.localUid
         ]
@@ -140,7 +147,6 @@ export async function startScreenShare(){
 
         renderParticipants();
 
-        // AUTO STOP
         screenTrack.on(
 
             "track-ended",
@@ -172,6 +178,7 @@ export async function stopScreenShare(){
     if(!screen)
         return;
 
+    // REMOVE SCREEN
     await state.client
         .unpublish(
             screen
@@ -181,6 +188,15 @@ export async function stopScreenShare(){
 
     state.localTracks
         .screen = null;
+
+    // RETURN CAMERA
+    await state.client
+        .publish(
+
+            state
+            .localTracks
+            .camera
+        );
 
     state.shareMode =
         false;
