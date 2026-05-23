@@ -280,6 +280,14 @@ function registerEvents(){
             "video"
         ){
 
+            console.log(
+                "REMOTE VIDEO",
+                uid,
+                user.videoTrack,
+                user.videoTrack?._mediaStreamTrack?.label,
+                user.videoTrack?._mediaStreamTrack?.id
+            );
+
             const id =
                 user.videoTrack
                 ?._mediaStreamTrack
