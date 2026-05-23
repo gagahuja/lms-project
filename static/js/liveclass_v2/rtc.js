@@ -230,6 +230,7 @@ function registerEvents(){
     client.on(
 
         "user-published",
+        
 
         async (
             user,
@@ -246,6 +247,13 @@ function registerEvents(){
             String(
                 user.uid
             );
+
+        console.log(
+            "PUBLISHED",
+            uid,
+            mediaType,
+            user.videoTrack?._trackId
+        );
 
         if(
             !state
@@ -371,6 +379,10 @@ function registerEvents(){
                     user.videoTrack;
             }
 
+            console.count(
+                "renderParticipants"
+            );
+
             renderParticipants();
         }
 
@@ -391,6 +403,10 @@ function registerEvents(){
             .audioTrack
             .play();
         }
+
+        console.count(
+            "renderParticipants"
+        );
 
         renderParticipants();
     });
