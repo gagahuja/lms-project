@@ -69,8 +69,7 @@ export function renderParticipants(){
 
         const sharer =
             state.participants[
-                state
-                .sharedScreenUid
+                "screen-share"
             ];
 
         if(
@@ -121,7 +120,12 @@ export function renderParticipants(){
         grid.innerHTML = "";
 
         // SHOW PARTICIPANTS
-        participants.forEach(p => {
+        participants
+        .filter(
+            p =>
+            !p.isScreen
+        )
+        .forEach(p => {
 
             const tile =
                 createTile(

@@ -280,42 +280,89 @@ function registerEvents(){
             "video"
         ){
 
+            const trackId =
+                user.videoTrack
+                ?._trackId || "";
+
             console.log(
-                "REMOTE VIDEO",
-                uid,
-                user.videoTrack,
-                user.videoTrack?._mediaStreamTrack?.label,
-                user.videoTrack?._mediaStreamTrack?.id
+                "TRACK ID:",
+                trackId
             );
 
-            const id =
-                user.videoTrack
-                ?._mediaStreamTrack
-                ?.id || "";
+            // =====================
+            // SCREEN SHARE
+            // =====================
 
-            // SCREEN
             if(
-                id.includes(
-                    "video"
+                trackId.includes(
+                    "track-video"
                 )
             ){
 
-                state
-                .participants[
-                    uid
-                ]
-                .screenTrack =
-                    user.videoTrack;
+                state.participants[
+                    "screen-share"
+                ] = {
+
+                    uid:
+                        "screen-share",
+
+                    username:
+                        "Screen Share",
+
+                    cameraTrack:
+                        null,
+
+                    screenTrack:
+                        user.videoTrack,
+
+                    audioTrack:
+                        null,
+
+                    isScreen:
+                        true
+                };
 
                 state.shareMode =
                     true;
 
                 state.sharedScreenUid =
-                    uid;
+                    "screen-share";
+            }
 
-            }else{
+            // =====================
+            // NORMAL CAMERA
+            // =====================
 
-                // CAMERA
+            else{
+
+                if(
+                    !state
+                    .participants[
+                        uid
+                    ]
+                ){
+
+                    state
+                    .participants[
+                        uid
+                    ] = {
+
+                        uid,
+
+                        username:
+                            "User",
+
+                        cameraTrack:
+                            null,
+
+                        screenTrack:
+                            null,
+
+                        audioTrack:
+                            null
+                    };
+                }
+
                 state
                 .participants[
                     uid
@@ -323,6 +370,8 @@ function registerEvents(){
                 .cameraTrack =
                     user.videoTrack;
             }
+
+            renderParticipants();
         }
 
 
