@@ -446,11 +446,19 @@ function registerEvents(){
 
         volumes => {
 
+        console.log(
+            "SHARE MODE:",
+            state.shareMode
+        );
+
         // HARD LOCK
         // DURING SCREEN SHARE
         if(
             state.shareMode === true
         ){
+            console.log(
+                "BLOCKED SPEAKER SWITCH"
+            );
 
             return;
         }
