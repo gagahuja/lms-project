@@ -301,11 +301,25 @@ function registerEvents(){
             // SCREEN SHARE
             // =====================
 
+            const trackId =
+                user.videoTrack
+                ?._trackId || "";
+
+            console.log(
+                "TRACK:",
+                trackId
+            );
+
+            // SCREEN SHARE
             if(
-                trackId.includes(
+                trackId.startsWith(
                     "track-video"
                 )
             ){
+
+                console.log(
+                    "REMOTE SCREEN DETECTED"
+                );
 
                 state.participants[
                     "screen-share"
@@ -330,6 +344,7 @@ function registerEvents(){
                         true
                 };
 
+                // THIS WAS MISSING
                 state.shareMode =
                     true;
 
@@ -337,11 +352,12 @@ function registerEvents(){
                     "screen-share";
             }
 
-            // =====================
-            // NORMAL CAMERA
-            // =====================
-
+            // CAMERA
             else{
+
+                console.log(
+                    "REMOTE CAMERA DETECTED"
+                );
 
                 if(
                     !state
