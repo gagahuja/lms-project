@@ -301,14 +301,6 @@ function registerEvents(){
             // SCREEN SHARE
             // =====================
 
-            const trackId =
-                user.videoTrack
-                ?._trackId || "";
-
-            console.log(
-                "TRACK:",
-                trackId
-            );
 
             // SCREEN SHARE
             if(
