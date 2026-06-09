@@ -296,6 +296,10 @@ function registerEvents(){
                 "TRACK ID:",
                 trackId
             );
+            console.log(
+                "mediaType:",
+                mediaType
+            );
 
             // =====================
             // SCREEN SHARE
@@ -304,7 +308,7 @@ function registerEvents(){
 
             // SCREEN SHARE
             if(
-                trackId.startsWith(
+                trackId.includes(
                     "track-video"
                 )
             ){
@@ -342,6 +346,8 @@ function registerEvents(){
 
                 state.sharedScreenUid =
                     "screen-share";
+
+                renderParticipants();
             }
 
             // CAMERA
