@@ -119,13 +119,13 @@ export async function startScreenShare(){
 
         // IMPORTANT
         // REMOVE CAMERA FIRST
-        await state.client
-            .unpublish(
+        // await state.client
+        //     .unpublish(
 
-                state
-                .localTracks
-                .camera
-            );
+        //         state
+        //         .localTracks
+        //         .camera
+        //     );
 
         // PUBLISH SCREEN
         await state.client
@@ -190,13 +190,13 @@ export async function stopScreenShare(){
         .screen = null;
 
     // RETURN CAMERA
-    await state.client
-        .publish(
+    // await state.client
+    //     .publish(
 
-            state
-            .localTracks
-            .camera
-        );
+    //         state
+    //         .localTracks
+    //         .camera
+    //     );
 
     state.shareMode =
         false;
@@ -460,6 +460,82 @@ function registerEvents(){
 
         renderParticipants();
     });
+
+    client.on(
+
+    "user-unpublished",
+
+    async (
+        user,
+        mediaType
+    ) => {
+
+        const uid =
+            String(
+                user.uid
+            );
+
+        console.log(
+            "UNPUBLISHED:",
+            uid,
+            mediaType
+        );
+
+        const participant =
+            state.participants[
+                uid
+            ];
+
+        if(
+            !participant
+        ) return;
+
+        // ==================
+        // SCREEN SHARE STOP
+        // ==================
+
+        if(
+
+            mediaType ===
+            "video" &&
+
+            participant
+            .screenTrack
+
+        ){
+
+            console.log(
+                "SCREEN SHARE STOPPED"
+            );
+
+            participant
+            .screenTrack =
+                null;
+
+            state.shareMode =
+                false;
+
+            state.sharedScreenUid =
+                null;
+        }
+
+        // ==================
+        // CAMERA STOP
+        // ==================
+
+        else if(
+            mediaType ===
+            "video"
+        ){
+
+            participant
+            .cameraTrack =
+                null;
+        }
+
+        renderParticipants();
+    }
+);
 
 
     client.enableAudioVolumeIndicator();
