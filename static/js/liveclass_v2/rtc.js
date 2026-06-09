@@ -308,47 +308,57 @@ function registerEvents(){
 
             // SCREEN SHARE
             if(
-                trackId.includes(
-                    "track-video"
-                )
+
+               user.videoTrack &&
+                !state.participants[
+                    uid
+                ]?.cameraTrack
+
             ){
 
                 console.log(
                     "REMOTE SCREEN DETECTED"
                 );
 
-                state.participants[
-                    "screen-share"
-                ] = {
-
-                    uid:
-                        "screen-share",
-
-                    username:
-                        "Screen Share",
-
-                    cameraTrack:
-                        null,
-
-                    screenTrack:
-                        user.videoTrack,
-
-                    audioTrack:
-                        null,
-
-                    isScreen:
-                        true
-                };
-
-                // THIS WAS MISSING
                 state.shareMode =
-                    true;
+                true;
 
                 state.sharedScreenUid =
-                    "screen-share";
+                uid;
 
-                renderParticipants();
-            }
+            if(
+                !state.participants[
+                uid
+                ]
+            ){
+
+            state.participants[
+                uid
+            ] = {
+
+                uid,
+
+                username:
+                "Teacher",
+
+                cameraTrack:
+                null,
+
+                screenTrack:
+                null,
+
+                audioTrack:
+                null
+            };
+        }
+
+        state.participants[
+                uid
+            ].screenTrack =
+            user.videoTrack;
+
+        renderParticipants();
+    }
 
             // CAMERA
             else{
