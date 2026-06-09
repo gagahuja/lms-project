@@ -236,8 +236,7 @@ function createTile(
 ){
 
     const tile =
-        document
-        .createElement(
+        document.createElement(
             "div"
         );
 
@@ -246,10 +245,17 @@ function createTile(
         ? "main-video-tile"
         : "grid-video-tile";
 
+    // FIX PLAYER ID
+    let playerId =
+        participant.uid ===
+        "screen"
+        ? "player-screen"
+        : `player-${participant.uid}`;
+
     tile.innerHTML = `
 
         <div
-            id="player-${participant.uid}"
+            id="${playerId}"
             class="video-player">
         </div>
 
@@ -257,8 +263,8 @@ function createTile(
             class="video-name">
 
             ${
-                participant
-                .username
+                participant.username
+                || "User"
             }
 
         </div>
@@ -266,7 +272,6 @@ function createTile(
 
     return tile;
 }
-
 
 function playTrack(
     track,
