@@ -209,10 +209,11 @@ def dashboard(request):
         # 🧠 QUIZ RESULTS
         quiz_results = QuizResult.objects.filter(student=request.user)
 
-        from .models import Recording
-        recordings = Recording.objects.filter(
-                live_class__course__in=enrolled_courses
-            )
+        #from .models import Recording
+        #recordings = Recording.objects.filter(
+        #        live_class__course__in=enrolled_courses
+        #    )
+        recordings = []
 
         notifications = Notification.objects.filter(
             user=request.user
