@@ -33,19 +33,21 @@ class Enrollment(models.Model):
     def __str__(self):
         return f"{self.student.username} - {self.course.title}"
     
-
+#Live Class Model
 class LiveClass(models.Model):
     title = models.CharField(max_length=200)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     date = models.DateTimeField()
 
     meeting_link = models.URLField(null=True, blank=True)
+    whiteboard_link = models.URLField(null=True, blank=True)
 
     is_live = models.BooleanField(default=False)
     is_completed = models.BooleanField(default=False)
+    teacher_started = models.BooleanField(default=False)
 
-    
-    whiteboard_link = models.URLField(null=True, blank=True)
+    def __str__(self):
+        return self.title
 
 
 from django.db import models

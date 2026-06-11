@@ -342,13 +342,21 @@ def create_live_class(request):
             title=request.POST['title'],
             course_id=request.POST['course'],
             date=request.POST['date'],
+            meeting_link=request.POST['meeting_link'],
             whiteboard_link=request.POST['whiteboard']
         )
+
         return redirect('dashboard')
 
-    courses = Course.objects.filter(teacher=request.user)
+    courses = Course.objects.filter(
+        teacher=request.user
+    )
 
-    return render(request, "create_live_class.html", {"courses": courses})
+    return render(
+        request,
+        "create_live_class.html",
+        {"courses": courses}
+    )
 
 import razorpay
 from django.conf import settings
@@ -827,8 +835,12 @@ def view_handout(request, handout_id):
 
 def start_class(request, class_id):
     cls = LiveClass.objects.get(id=class_id)
+
     cls.is_live = True
+    cls.teacher_started = True
+
     cls.save()
+
     return redirect('dashboard')
 
 
@@ -846,13 +858,25 @@ def join_live_class(request, class_id):
 
     cls = LiveClass.objects.get(id=class_id)
 
-    # MARK ATTENDANCE
+    now = timezone.now()
+
+    can_join = (
+        cls.teacher_started
+        or
+        cls.date - timedelta(minutes=10)
+        <= now
+    )
+
+    if not can_join:
+        return HttpResponse(
+            "Class will unlock 10 minutes before start time."
+        )
+
     Attendance.objects.get_or_create(
         student=request.user,
         live_class=cls
     )
 
-    # REDIRECT TO MEET
     return redirect(cls.meeting_link)
 
 
