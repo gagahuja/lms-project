@@ -873,8 +873,8 @@ def join_live_class(request, class_id):
         )
 
     Attendance.objects.get_or_create(
-        student=request.user,
-        live_class=cls
+        user=request.user,
+        room=cls
     )
 
     return redirect(cls.meeting_link)
