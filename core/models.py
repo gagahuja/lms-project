@@ -66,9 +66,7 @@ class Attendance(models.Model):
         blank=True
     )
 
-    join_time = models.DateTimeField(
-        auto_now_add=True
-    )
+    join_time = models.DateTimeField(auto_now_add=True)
 
     leave_time = models.DateTimeField(
         null=True,
@@ -79,10 +77,6 @@ class Attendance(models.Model):
         if self.leave_time:
             return self.leave_time - self.join_time
         return None
-
-    def __str__(self):
-        return f"{self.student.username} - {self.live_class.title}"
-    
 
 class Module(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
