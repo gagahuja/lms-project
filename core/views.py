@@ -337,26 +337,75 @@ def create_course(request):
 from django.shortcuts import render, redirect
 from .models import LiveClass
 
-def create_live_class(request):
-    if request.method == "POST":
-        LiveClass.objects.create(
-            title=request.POST['title'],
-            course_id=request.POST['course'],
-            date=request.POST['date'],
-            meeting_link=request.POST['meeting_link'],
-            whiteboard_link=request.POST['whiteboard']
-        )
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.utils.dateparse import parse_datetime
 
-        return redirect('dashboard')
+@login_required
+def create_live_class(request):
+
+    if request.user.user_type != "teacher":
+        return redirect("dashboard")
 
     courses = Course.objects.filter(
         teacher=request.user
     )
 
+    if request.method == "POST":
+
+        title = request.POST.get("title")
+        course_id = request.POST.get("course")
+        date = request.POST.get("date")
+        meeting_link = request.POST.get("meeting_link")
+        whiteboard = request.POST.get("whiteboard")
+
+        if not all([
+            title,
+            course_id,
+            date,
+            meeting_link
+        ]):
+            messages.error(
+                request,
+                "Please fill all required fields."
+            )
+
+            return redirect(
+                "create_live_class"
+            )
+
+        parsed_date = parse_datetime(date)
+
+        try:
+            LiveClass.objects.create(
+                title=title,
+                course_id=course_id,
+                date=parsed_date,
+                meeting_link=meeting_link,
+                whiteboard_link=whiteboard
+            )
+
+            messages.success(
+                request,
+                "Live class created successfully!"
+            )
+
+            return redirect(
+                "dashboard"
+            )
+
+        except Exception as e:
+            messages.error(
+                request,
+                str(e)
+            )
+
     return render(
         request,
         "create_live_class.html",
-        {"courses": courses}
+        {
+            "courses": courses
+        }
     )
 
 import razorpay
@@ -874,8 +923,8 @@ def join_live_class(request, class_id):
         )
 
     Attendance.objects.get_or_create(
-        user=request.user,
-        room=cls
+        student=request.user,
+        live_class=cls
     )
 
     return redirect(cls.meeting_link)

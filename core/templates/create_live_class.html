@@ -1,26 +1,111 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<h3>Create Live Class</h3>
+<div class="container mt-4">
 
-<form method="POST">
-    {% csrf_token %}
+    <div class="card shadow-sm p-4">
 
-    <input type="text" name="title" placeholder="Class Title" class="form-control mb-2">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-info">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
 
-    <select name="course" class="form-control mb-2">
-        {% for course in courses %}
-            <option value="{{ course.id }}">{{ course.title }}</option>
-        {% endfor %}
-    </select>
+    <h2>Create Live Class</h2>
+        <h2 class="mb-4 fw-bold">Create Live Class</h2>
 
-    <input type="datetime-local" name="date" class="form-control mb-2">
+        <form method="POST">
+            {% csrf_token %}
 
-    <input type="url" name="meeting_link" placeholder="Google Meet Link" required>
-    
-    <input type="text" name="whiteboard" placeholder="Whiteboard Link" class="form-control mb-2">
+            <!-- Class Title -->
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    Class Title
+                </label>
+                <input 
+                    type="text"
+                    name="title"
+                    class="form-control"
+                    placeholder="Enter Class Title"
+                    required
+                >
+            </div>
 
-    <button class="btn btn-success">Create</button>
-</form>
+            <!-- Course Dropdown -->
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    Select Course
+                </label>
+
+                <select 
+                    name="course"
+                    class="form-control"
+                    required
+                >
+                    <option value="">
+                        Select Course
+                    </option>
+
+                    {% for course in courses %}
+                        <option value="{{ course.id }}">
+                            {{ course.title }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Date & Time -->
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    Class Date & Time
+                </label>
+
+                <input 
+                    type="datetime-local"
+                    name="date"
+                    class="form-control"
+                    required
+                >
+            </div>
+
+            <!-- Meeting Link -->
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    Google Meet / Zoom Link
+                </label>
+
+                <input 
+                    type="url"
+                    name="meeting_link"
+                    class="form-control"
+                    placeholder="https://meet.google.com/..."
+                    required
+                >
+            </div>
+
+            <!-- Whiteboard Link -->
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    Whiteboard Link (Optional)
+                </label>
+
+                <input 
+                    type="url"
+                    name="whiteboard"
+                    class="form-control"
+                    placeholder="https://whiteboard-link.com"
+                >
+            </div>
+
+            <!-- Button -->
+            <button type="submit" class="btn btn-success px-4">
+                Create Class
+            </button>
+
+        </form>
+    </div>
+</div>
 
 {% endblock %}

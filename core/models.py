@@ -54,15 +54,32 @@ from django.db import models
 from django.conf import settings
 
 class Attendance(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    room = models.CharField(max_length=100)
-    join_time = models.DateTimeField(auto_now_add=True)
-    leave_time = models.DateTimeField(null=True, blank=True)
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
+
+    live_class = models.ForeignKey(
+        LiveClass,
+        on_delete=models.CASCADE
+    )
+
+    join_time = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    leave_time = models.DateTimeField(
+        null=True,
+        blank=True
+    )
 
     def duration(self):
         if self.leave_time:
             return self.leave_time - self.join_time
         return None
+
+    def __str__(self):
+        return f"{self.student.username} - {self.live_class.title}"
     
 
 class Module(models.Model):
