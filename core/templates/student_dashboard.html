@@ -58,18 +58,23 @@
 
 {% if next_class %}
 <div class="card p-3 mb-3 border border-warning">
+
     <h5>🔥 Next Class</h5>
 
     <strong>{{ next_class.title }}</strong><br>
-    <small class="live-class-time" data-time="{{ next_class.date }}">
-        {{ cls.date }}
+
+    <small class="live-class-time"
+           data-time="{{ next_class.date }}">
+        {{ next_class.date }}
     </small>
 
     <br>
 
-    <a href="{% url 'join_class' cls.id %} class="btn btn-success btn-sm mt-2">
+    <a href="{% url 'join_live_class' next_class.id %}"
+       class="btn btn-success btn-sm mt-2">
         Join Now
     </a>
+
 </div>
 {% endif %}
 
@@ -118,10 +123,11 @@
 
     {% endif %}
     {% if cls.can_join %}
-        <a href="/live-class/{{ cls.id }}/" target="_blank"
-           class="btn btn-success btn-sm mt-2">
-           Join Class
-        </a>
+        <a href="{% url 'join_live_class' cls.id %}"
+            target="_blank"
+            class="btn btn-success btn-sm mt-2">
+            Join Class
+            </a>
     {% else %}
         <button class="btn btn-secondary btn-sm mt-2" disabled>
             Not Available
