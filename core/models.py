@@ -187,7 +187,9 @@ class Recording(models.Model):
     live_class = models.ForeignKey(
         LiveClass,
         on_delete=models.CASCADE,
-        related_name='recordings'   # ✅ FIX
+        related_name='recordings',   # ✅ FIX
+        null=True,
+        blank=True
     )
     video = models.FileField(upload_to='recordings/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
