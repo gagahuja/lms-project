@@ -122,10 +122,10 @@
         </div>
 
     {% endif %}
-    {% if cls.can_join %}
         <small class="text-muted">
         Leaving the meeting? Simply close the Meet tab to return to your dashboard.
         </small>
+    {% if cls.can_join %}
         <a href="{% url 'join_live_class' cls.id %}"
             target="_blank"
             class="btn btn-success btn-sm mt-2">
