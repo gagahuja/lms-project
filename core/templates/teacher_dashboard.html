@@ -152,18 +152,30 @@ document.addEventListener("DOMContentLoaded", function () {
     <strong>{{ cls.title }}</strong><br>
     <small>{{ cls.date }}</small><br>
 
-    <a href="{% url 'join_class' cls.id %}" target="_blank" class="btn btn-success btn-sm mt-2">
+    <a href="{% url 'join_live_class' cls.id %}"
+        target="_blank"
+        class="btn btn-success btn-sm mt-2">
         Join
     </a>
 
-    {% if not cls.is_active %}
-        <a href="{% url 'start_class' cls.id %}" class="btn btn-primary btn-sm mt-2">
+    {% if not cls.is_live and not cls.is_completed %}
+        <a href="{% url 'start_class' cls.id %}"
+            class="btn btn-primary btn-sm mt-2">
             ▶ Start
         </a>
-    {% else %}
-        <a href="/stop-class/{{ cls.id }}/" class="btn btn-danger btn-sm mt-2">
+    {% endif %}
+
+    {% if cls.is_live %}
+        <a href="{% url 'stop_class' cls.id %}"
+        class="btn btn-danger btn-sm mt-2">
             ⏹ Stop
         </a>
+    {% endif %}
+
+    {% if cls.is_completed %}
+        <span class="badge bg-secondary mt-2">
+            ✔ Completed
+        </span>
     {% endif %}
         <a href="/attendance/{{ cls.id }}/" class="btn btn-info btn-sm mt-2">
             Attendance

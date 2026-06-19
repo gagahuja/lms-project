@@ -98,7 +98,10 @@ def dashboard(request):
             lesson__module__course__in=courses
         ).count()
 
-        live_classes = LiveClass.objects.filter(course__in=courses)
+        live_classes = LiveClass.objects.filter(
+            course__in=courses,
+            is_completed=False
+        )
 
         notifications = Notification.objects.filter(
             user=request.user
