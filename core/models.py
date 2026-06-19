@@ -45,6 +45,7 @@ class LiveClass(models.Model):
     is_live = models.BooleanField(default=False)
     is_completed = models.BooleanField(default=False)
     teacher_started = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True,blank=True)
 
     def __str__(self):
         return self.title

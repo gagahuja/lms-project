@@ -98,9 +98,13 @@ def dashboard(request):
             lesson__module__course__in=courses
         ).count()
 
+        thirty_minutes_ago = timezone.now() - timedelta(minutes=30)
+
         live_classes = LiveClass.objects.filter(
-            course__in=courses,
-            is_completed=False
+            course__in=courses
+        ).exclude(
+            is_completed=True,
+            completed_at__lt=thirty_minutes_ago
         )
 
         notifications = Notification.objects.filter(
@@ -133,7 +137,14 @@ def dashboard(request):
             date__gte=timezone.now()
         ).order_by('date').first()
 
-        live_classes = LiveClass.objects.filter(course__in=enrolled_courses)
+        thirty_minutes_ago = timezone.now() - timedelta(minutes=30)
+
+        live_classes = LiveClass.objects.filter(
+            course__in=enrolled_courses
+        ).exclude(
+            is_completed=True,
+            completed_at__lt=thirty_minutes_ago
+        )
 
         for cls in live_classes:
             now = timezone.now()
@@ -901,6 +912,7 @@ def stop_class(request, class_id):
     cls = LiveClass.objects.get(id=class_id)
     cls.is_live = False
     cls.is_completed = True
+    cls.completed_at = timezone.now()
     cls.save()
     return redirect('dashboard')
 
