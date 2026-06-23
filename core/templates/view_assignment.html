@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
 
@@ -6,7 +7,7 @@
 
 <!-- 🔒 SECURE VIEW -->
 <div style="user-select: none;">
-    <object
+    <!-- <object
         data="{{ assignment.file.url }}"
         type="application/pdf"
         width="100%"
@@ -20,7 +21,7 @@
             </a>
         </p>
 
-    </object>
+    </object> -->
 </div>
 
 <hr>
@@ -36,5 +37,44 @@
         Submit Assignment
     </button>
 </form>
+
+<script type="module">
+
+import * as pdfjsLib from
+"{% static 'pdfjs/pdf.js' %}";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+"{% static 'pdfjs/pdf.worker.js' %}";
+
+const url = "{{ assignment.file.url }}";
+
+pdfjsLib.getDocument(url).promise.then(function(pdf){
+
+    pdf.getPage(1).then(function(page){
+
+        const scale = 1.5;
+
+        const viewport =
+            page.getViewport({ scale });
+
+        const canvas =
+            document.getElementById('pdf-canvas');
+
+        const context =
+            canvas.getContext('2d');
+
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        page.render({
+            canvasContext: context,
+            viewport: viewport
+        });
+
+    });
+
+});
+
+</script>
 
 {% endblock %}
