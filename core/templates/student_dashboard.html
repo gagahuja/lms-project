@@ -89,24 +89,29 @@
 
     <!-- STATUS -->
     {% if cls.is_completed %}
+
         <span class="badge bg-secondary">
             ✔ Completed
         </span>
 
-    {% elif cls.status == "Live" %}
+    {% elif cls.is_live %}
+
         <span class="badge bg-danger">
             🔴 Live
         </span>
 
     {% elif cls.status == "Starting Soon" %}
+
         <span class="badge bg-warning">
             ⏳ Starting Soon
         </span>
 
     {% else %}
+
         <span class="badge bg-info">
             📅 Upcoming
         </span>
+
     {% endif %}
 
     <br>

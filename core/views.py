@@ -908,6 +908,7 @@ def start_class(request, class_id):
     return redirect('dashboard')
 
 
+@login_required
 def stop_class(request, class_id):
     cls = LiveClass.objects.get(id=class_id)
     cls.is_live = False
