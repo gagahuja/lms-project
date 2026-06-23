@@ -6,10 +6,21 @@
 
 <!-- 🔒 SECURE VIEW -->
 <div style="user-select: none;">
-    <iframe src="{{ assignment.file.url }}"
-            width="100%" height="500px"
-            style="border-radius:10px;">
-    </iframe>
+    <object
+        data="{{ assignment.file.url }}"
+        type="application/pdf"
+        width="100%"
+        height="700px">
+
+        <p>
+            PDF preview unavailable.
+
+            <a href="{{ assignment.file.url }}" target="_blank">
+                Open PDF
+            </a>
+        </p>
+
+    </object>
 </div>
 
 <hr>
