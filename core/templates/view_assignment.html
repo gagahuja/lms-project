@@ -50,11 +50,11 @@ body{
 <!-- 🔒 SECURE VIEW -->
 <div id="pdf-container">
 
-    <div class="watermark">
+    <!-- <div class="watermark">
         {{ request.user.username }}
         {{ request.user.email }}
         {{ now|date:"d M Y H:i" }}
-    </div>
+    </div> -->
 
     <div id="pdf-container"></div>
 
@@ -140,7 +140,6 @@ pdfjsLib.getDocument(url).promise.then(function(pdf){
 
 });
 
-</script>
 
 function addWatermark(
     ctx,
@@ -151,29 +150,21 @@ function addWatermark(
 
     ctx.save();
 
-    ctx.globalAlpha = 0.12;
+    ctx.globalAlpha = 0.10;
     ctx.fillStyle = "red";
-    ctx.font = "bold 35px Arial";
+    ctx.font = "bold 28px Arial";
     ctx.textAlign = "center";
 
     const lines =
         text.split("\n");
 
-    for (
-        let x = 250;
-        x < width;
-        x += 400
-    ) {
+    for(let x = 150; x < width; x += 250){
 
-        for (
-            let y = 250;
-            y < height;
-            y += 300
-        ) {
+        for(let y = 150; y < height; y += 250){
 
             ctx.save();
 
-            ctx.translate(x, y);
+            ctx.translate(x,y);
 
             ctx.rotate(
                 -45 * Math.PI / 180
@@ -189,7 +180,7 @@ function addWatermark(
                     offset
                 );
 
-                offset += 40;
+                offset += 30;
 
             });
 
@@ -199,6 +190,8 @@ function addWatermark(
 
     ctx.restore();
 }
+
+</script>
 
 <script>
 document.addEventListener(
@@ -246,25 +239,7 @@ function(e){
 
 </script>
 
-<script>
 
-document.addEventListener(
-'visibilitychange',
-function(){
-
-    const pdf =
-        document.getElementById('pdf-canvas');
-
-    if(document.hidden){
-        pdf.style.filter = 'blur(20px)';
-    }
-    else{
-        pdf.style.filter = 'none';
-    }
-
-});
-
-</script>
 
 <script>
 
