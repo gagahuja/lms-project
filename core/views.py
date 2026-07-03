@@ -841,6 +841,17 @@ from django.shortcuts import get_object_or_404
 def view_assignment(request, assignment_id):
     assignment = get_object_or_404(Assignment, id=assignment_id)
 
+    from django.utils import timezone
+
+    now = timezone.localtime()
+
+    watermark_text = (
+        f"This PDF belongs to:\n"
+        f"{request.user.get_full_name() or request.user.username}\n"
+        f"Downloaded on:\n"
+        f"{now.strftime('%d-%b-%Y %I:%M %p')}"
+    )
+
     if request.method == "POST":
         file = request.FILES.get("file")
 
@@ -860,7 +871,8 @@ def view_assignment(request, assignment_id):
         return redirect('dashboard')
 
     return render(request, "view_assignment.html", {
-        "assignment": assignment
+        "assignment": assignment,
+        "watermark_text": watermark_text,
     })
 
 

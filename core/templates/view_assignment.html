@@ -74,6 +74,11 @@ body{
     </button>
 </form>
 
+<script>
+const watermarkText =
+`{{ watermark_text|escapejs }}`;
+</script>
+
 <script src="{% static 'pdfjs/pdf.js' %}"></script>
 
 <script>
@@ -118,6 +123,15 @@ pdfjsLib.getDocument(url).promise.then(function(pdf){
             page.render({
                 canvasContext: context,
                 viewport: viewport
+            }).promise.then(function(){
+
+                addWatermark(
+                    context,
+                    viewport.width,
+                    viewport.height,
+                    watermarkText
+                );
+
             });
 
         });
@@ -127,6 +141,64 @@ pdfjsLib.getDocument(url).promise.then(function(pdf){
 });
 
 </script>
+
+function addWatermark(
+    ctx,
+    width,
+    height,
+    text
+){
+
+    ctx.save();
+
+    ctx.globalAlpha = 0.12;
+    ctx.fillStyle = "red";
+    ctx.font = "bold 35px Arial";
+    ctx.textAlign = "center";
+
+    const lines =
+        text.split("\n");
+
+    for (
+        let x = 250;
+        x < width;
+        x += 400
+    ) {
+
+        for (
+            let y = 250;
+            y < height;
+            y += 300
+        ) {
+
+            ctx.save();
+
+            ctx.translate(x, y);
+
+            ctx.rotate(
+                -45 * Math.PI / 180
+            );
+
+            let offset = 0;
+
+            lines.forEach(function(line){
+
+                ctx.fillText(
+                    line,
+                    0,
+                    offset
+                );
+
+                offset += 40;
+
+            });
+
+            ctx.restore();
+        }
+    }
+
+    ctx.restore();
+}
 
 <script>
 document.addEventListener(
