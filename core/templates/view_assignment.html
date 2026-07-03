@@ -15,6 +15,16 @@
     max-width:100%;
 }
 
+#pdf-container{
+    text-align:center;
+}
+
+#pdf-container canvas{
+    max-width:100%;
+    border:1px solid #ddd;
+    margin-bottom:20px;
+}
+
 .watermark{
     position:absolute;
     top:100px;
@@ -42,9 +52,11 @@ body{
 
     <div class="watermark">
         {{ request.user.username }}
+        {{ request.user.email }}
+        {{ now|date:"d M Y H:i" }}
     </div>
 
-    <canvas id="pdf-canvas"></canvas>
+    <div id="pdf-container"></div>
 
 </div>
 
@@ -73,28 +85,44 @@ const url = "{{ assignment.file.url }}";
 
 pdfjsLib.getDocument(url).promise.then(function(pdf){
 
-    pdf.getPage(1).then(function(page){
+    const container =
+        document.getElementById("pdf-container");
 
-        const scale = 1.5;
+    for(let pageNumber = 1;
+        pageNumber <= pdf.numPages;
+        pageNumber++){
 
-        const viewport =
-            page.getViewport({ scale });
+        pdf.getPage(pageNumber).then(function(page){
 
-        const canvas =
-            document.getElementById('pdf-canvas');
+            const scale = 1.5;
 
-        const context =
-            canvas.getContext('2d');
+            const viewport =
+                page.getViewport({ scale });
 
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
+            const canvas =
+                document.createElement("canvas");
 
-        page.render({
-            canvasContext: context,
-            viewport: viewport
+            canvas.style.marginBottom = "20px";
+
+            const context =
+                canvas.getContext("2d");
+
+            canvas.height =
+                viewport.height;
+
+            canvas.width =
+                viewport.width;
+
+            container.appendChild(canvas);
+
+            page.render({
+                canvasContext: context,
+                viewport: viewport
+            });
+
         });
 
-    });
+    }
 
 });
 
@@ -160,6 +188,30 @@ function(){
     }
     else{
         pdf.style.filter = 'none';
+    }
+
+});
+
+</script>
+
+<script>
+
+document.addEventListener(
+'visibilitychange',
+function(){
+
+    const pdf =
+        document.getElementById(
+            'pdf-container'
+        );
+
+    if(document.hidden){
+        pdf.style.filter =
+            'blur(25px)';
+    }
+    else{
+        pdf.style.filter =
+            'none';
     }
 
 });
