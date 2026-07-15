@@ -1,3 +1,4 @@
+from cloudinary_storage.storage import RawMediaCloudinaryStorage
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -101,7 +102,10 @@ class Lesson(models.Model):
 class Assignment(models.Model):
     lesson = models.ForeignKey('Lesson', on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
-    file = models.FileField(upload_to='assignments/')
+    file = models.FileField(
+        upload_to='assignments/',
+        storage=RawMediaCloudinaryStorage()
+    )
     due_date = models.DateField()
 
     def __str__(self):
