@@ -37,7 +37,7 @@ urlpatterns = [
     path('stop-class/<int:class_id>/', views.stop_class, name='stop_class'),
     path('join-class/<int:class_id>/', views.join_live_class, name='join_class'),
     path('join-live-class/<int:class_id>/',views.join_live_class,name='join_live_class'),
-    path('attendance/<int:class_id>/', views.view_attendance),
+    path('attendance/<int:class_id>/',views.view_attendance,name='attendance'),
     path('certificate/<int:course_id>/', views.generate_certificate),
     path('subscription/', views.subscription_page),
     path('courses/', views.all_courses, name='all_courses'),
