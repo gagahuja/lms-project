@@ -1,16 +1,56 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
 {% block content %}
 
-<h3>Upload Class Recording</h3>
+<div class="container mt-4">
+
+<h3>🎥 Upload Recording</h3>
+
+<div class="card p-4">
+
+<h5>{{ class_obj.title }}</h5>
+
+<p>{{ class_obj.date }}</p>
+
+{% if recording %}
+<div class="alert alert-success">
+
+Current Recording Available
+
+</div>
+{% endif %}
 
 <form method="POST" enctype="multipart/form-data">
-    {% csrf_token %}
 
-    <input type="file" name="video" class="form-control mb-3">
+{% csrf_token %}
 
-    <button type="submit" class="btn btn-success">
-        Upload
-    </button>
+<div class="mb-3">
+
+<label>Select Video</label>
+
+<input
+type="file"
+name="video"
+accept="video/*"
+class="form-control"
+required>
+
+</div>
+
+<button class="btn btn-primary">
+
+{% if recording %}
+Replace Recording
+{% else %}
+Upload Recording
+{% endif %}
+
+</button>
+
 </form>
+
+</div>
+
+</div>
 
 {% endblock %}

@@ -147,39 +147,66 @@ document.addEventListener("DOMContentLoaded", function () {
 <h5 class="mt-4">📡 Your Live Classes</h5>
 
 {% for cls in live_classes %}
-<div class="card p-3 mb-2">
+<div class="card p-3 mb-3">
 
-    <strong>{{ cls.title }}</strong><br>
-    <small>{{ cls.date }}</small><br>
+    <h5>{{ cls.title }}</h5>
+
+    <small>{{ cls.date }}</small><br><br>
 
     <a href="{% url 'join_live_class' cls.id %}"
-        target="_blank"
-        class="btn btn-success btn-sm mt-2">
+       target="_blank"
+       class="btn btn-success btn-sm">
         Join
     </a>
 
     {% if not cls.is_live and not cls.is_completed %}
         <a href="{% url 'start_class' cls.id %}"
-            class="btn btn-primary btn-sm mt-2">
+           class="btn btn-primary btn-sm">
             ▶ Start
         </a>
     {% endif %}
 
     {% if cls.is_live %}
         <a href="{% url 'stop_class' cls.id %}"
-        class="btn btn-danger btn-sm mt-2">
+           class="btn btn-danger btn-sm">
             ⏹ Stop
         </a>
     {% endif %}
 
+    <a href="{% url 'attendance' cls.id %}"
+       class="btn btn-info btn-sm">
+        Attendance
+    </a>
+
     {% if cls.is_completed %}
-        <span class="badge bg-secondary mt-2">
-            ✔ Completed
-        </span>
+        <hr>
+
+        <h6>🎥 Recording</h6>
+
+        {% if cls.recordings.exists %}
+
+            <a href="{% url 'upload_recording' cls.id %}"
+               class="btn btn-warning btn-sm">
+                Replace Recording
+            </a>
+
+            <a href="{{ cls.recordings.first.video.url }}"
+               target="_blank"
+               class="btn btn-secondary btn-sm">
+                View Recording
+            </a>
+
+        {% else %}
+
+            <a href="{% url 'upload_recording' cls.id %}"
+               class="btn btn-warning btn-sm">
+                Upload Recording
+            </a>
+
+        {% endif %}
+
     {% endif %}
-        <a href="/attendance/{{ cls.id }}/" class="btn btn-info btn-sm mt-2">
-            Attendance
-        </a>
+
 </div>
 {% endfor %}
 

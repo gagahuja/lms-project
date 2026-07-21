@@ -6,6 +6,7 @@ from .models import Course
 from .models import Enrollment
 from .models import LiveClass
 from .models import Attendance
+from .models import Recording
 from .models import Module
 from .models import Assignment
 from .models import Submission
@@ -1304,22 +1305,47 @@ def agora_video(request, class_id):
     })
 
 
+from django.shortcuts import get_object_or_404
+from django.contrib import messages
+
+@login_required
 def upload_recording(request, class_id):
-    from .models import Recording
+    live_class = get_object_or_404(LiveClass, id=class_id)
+
+    # Only the teacher who owns the course can upload
+    if live_class.course.teacher != request.user:
+        return redirect("dashboard")
+
+    recording = Recording.objects.filter(
+        live_class=live_class
+    ).first()
 
     if request.method == "POST":
         video = request.FILES.get("video")
 
-        Recording.objects.create(
-            live_class_id=class_id,
-            video=video
-        )
+        if video:
+            Recording.objects.update_or_create(
+                live_class=live_class,
+                defaults={
+                    "video": video
+                }
+            )
 
-        return redirect("dashboard")
+            messages.success(
+                request,
+                "Recording uploaded successfully."
+            )
 
-    return render(request, "upload_recording.html", {
-        "class_id": class_id
-    })
+            return redirect("dashboard")
+
+    return render(
+        request,
+        "upload_recording.html",
+        {
+            "class_obj": live_class,
+            "recording": recording,
+        }
+    )
 
 
 from django.http import JsonResponse
