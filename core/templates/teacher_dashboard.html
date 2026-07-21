@@ -183,27 +183,31 @@ document.addEventListener("DOMContentLoaded", function () {
 
         <h6>🎥 Recording</h6>
 
-        {% if cls.recordings.exists %}
+        {% with recording=cls.recordings.first %}
 
-            <a href="{% url 'upload_recording' cls.id %}"
-               class="btn btn-warning btn-sm">
-                Replace Recording
-            </a>
+            {% if recording %}
 
-            <a href="{{ cls.recordings.first.video.url }}"
-               target="_blank"
-               class="btn btn-secondary btn-sm">
-                View Recording
-            </a>
+                <a href="{% url 'upload_recording' cls.id %}"
+                class="btn btn-warning btn-sm">
+                    Replace Recording
+                </a>
 
-        {% else %}
+                <a href="{{ recording.video.url }}"
+                target="_blank"
+                class="btn btn-secondary btn-sm">
+                    View Recording
+                </a>
 
-            <a href="{% url 'upload_recording' cls.id %}"
-               class="btn btn-warning btn-sm">
-                Upload Recording
-            </a>
+            {% else %}
 
-        {% endif %}
+                <a href="{% url 'upload_recording' cls.id %}"
+                class="btn btn-warning btn-sm">
+                    Upload Recording
+                </a>
+
+            {% endif %}
+
+        {% endwith %}
 
     {% endif %}
 
