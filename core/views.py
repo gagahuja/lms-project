@@ -1324,19 +1324,24 @@ def upload_recording(request, class_id):
         video = request.FILES.get("video")
 
         if video:
-            Recording.objects.update_or_create(
-                live_class=live_class,
-                defaults={
-                    "video": video
-                }
-            )
+            try:
+                recording, created = Recording.objects.update_or_create(
+                    live_class=live_class,
+                    defaults={
+                        "video": video
+                    }
+                )
 
-            messages.success(
-                request,
-                "Recording uploaded successfully."
-            )
+                messages.success(
+                    request,
+                    "Recording uploaded successfully."
+                )
 
-            return redirect("dashboard")
+                return redirect("dashboard")
+
+            except Exception as e:
+                print("RECORDING ERROR:", str(e))
+                return HttpResponse(f"ERROR: {str(e)}")
 
     return render(
         request,
