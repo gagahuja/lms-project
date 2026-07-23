@@ -20,7 +20,7 @@ urlpatterns = [
     path('payment-success/<int:course_id>/', views.payment_success),
     path('course/<int:course_id>/', views.course_detail, name='course_detail'),
     path('submit/<int:assignment_id>/', views.submit_assignment, name='submit_assignment'),
-    path('submissions/<int:assignment_id>/', views.view_submissions),
+    path('submissions/<int:assignment_id>/',views.view_submissions,name='view_submissions'),
     path('webhook/', views.razorpay_webhook),
     path('home/', views.home, name='home'),
     path('ai-notes/', views.ai_notes),
