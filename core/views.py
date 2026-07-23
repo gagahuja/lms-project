@@ -501,17 +501,57 @@ def submit_assignment(request, assignment_id):
     if request.method == 'POST':
         file = request.FILES.get('file')
 
+        import os
+
+        allowed_extensions = [
+            ".pdf",
+            ".doc",
+            ".docx",
+            ".ppt",
+            ".pptx",
+            ".zip",
+        ]
+
+        extension = os.path.splitext(file.name)[1].lower()
+
+        if extension not in allowed_extensions:
+            messages.error(
+                request,
+                "Only PDF, DOC, DOCX, PPT, PPTX and ZIP files are allowed."
+            )
+            return redirect("submit_assignment", assignment_id=assignment.id)
+
+        MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB
+
+        if file.size > MAX_FILE_SIZE:
+            messages.error(
+                request,
+                "Maximum allowed file size is 20 MB."
+            )
+            return redirect("submit_assignment", assignment_id=assignment.id)
+
         if not file:
             return redirect('dashboard')
+
+        if timezone.now().date() > assignment.due_date:
+            messages.error(
+                request,
+                "Assignment submission deadline has passed."
+            )
+            return redirect("dashboard")
         
-        Submission.objects.create(
+        submission, created = Submission.objects.update_or_create(
             assignment=assignment,
             student=request.user,
-            file=file
+            defaults={
+                "file": file
+            }
         )
-
         # ADD POINTS
-        points_obj, created = Points.objects.get_or_create(student=request.user)
+        if created:
+            points_obj, _ = Points.objects.get_or_create(
+                student=request.user
+            )
         points_obj.points += 10
         points_obj.save()
 
@@ -865,11 +905,13 @@ def view_assignment(request, assignment_id):
         file = request.FILES.get("file")
 
         if file:
-            Submission.objects.create(
-                assignment=assignment,
-                student=request.user,
-                file=file
-            )
+            submission, created = Submission.objects.update_or_create(
+            assignment=assignment,
+            student=request.user,
+            defaults={
+                "file": file
+            }
+        )
 
         # 🔔 NOTIFY STUDENT
         Notification.objects.create(
