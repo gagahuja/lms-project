@@ -29,7 +29,9 @@ from .models import Notification
 from .models import Doubt
 from .models import CallOffer
 from .models import CallAnswer
-
+from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
 
 
 
@@ -83,7 +85,12 @@ def dashboard(request):
 
         return redirect('login')
     
-    recordings = []
+    teacher_recordings = Recording.objects.filter(
+        live_class__course__teacher=request.user
+    ).select_related(
+        "live_class",
+        "live_class__course"
+    ).order_by("-uploaded_at")
 
     if getattr(request.user, 'user_type', None) == 'teacher':
         courses = Course.objects.filter(teacher=request.user)
@@ -126,6 +133,7 @@ def dashboard(request):
             'live_classes': live_classes,
             'notification_count': notification_count,
             'notifications': notifications,
+            "teacher_recordings": teacher_recordings,
         })
         
     else:
@@ -228,7 +236,12 @@ def dashboard(request):
         #recordings = Recording.objects.filter(
         #        live_class__course__in=enrolled_courses
         #    )
-        recordings = []
+        recordings = Recording.objects.filter(
+            live_class__course__in=enrolled_courses
+        ).select_related(
+            "live_class",
+            "live_class__course"
+        ).order_by("-uploaded_at")
 
         notifications = Notification.objects.filter(
             user=request.user
@@ -270,7 +283,6 @@ def enroll(request, course_id):
 
 from django.shortcuts import render
 from django.http import HttpResponse
-from django.contrib.auth.decorators import login_required
 
 @login_required
 def live_class(request, pk):
@@ -351,9 +363,6 @@ def create_course(request):
 
 from django.shortcuts import render, redirect
 from .models import LiveClass
-
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
 from django.utils.dateparse import parse_datetime
 
 @login_required
@@ -671,7 +680,6 @@ def generate_ai_notes(request, lesson_id):
 
 
 def generate_ai_quiz(request, course_id):
-    from django.shortcuts import get_object_or_404, redirect
     from django.http import HttpResponse
     from django.conf import settings
     from openai import OpenAI
@@ -1306,7 +1314,6 @@ def agora_video(request, class_id):
 
 
 from django.shortcuts import get_object_or_404
-from django.contrib import messages
 
 @login_required
 def upload_recording(request, class_id):
@@ -1418,3 +1425,43 @@ def live_class_v2(request):
         request,
         "agora_video_v2.html"
     )
+
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from django.views.decorators.http import require_POST
+
+@require_POST
+@login_required
+def delete_recording(request, recording_id):
+    recording = get_object_or_404(Recording, id=recording_id)
+
+    # Only the course teacher can delete
+    if recording.live_class.course.teacher != request.user:
+        messages.error(request, "You are not authorized to delete this recording.")
+        return redirect("dashboard")
+
+    # Delete the video file from storage
+    try:
+        if recording.video:
+            recording.video.delete(save=False)
+
+        recording.delete()
+
+        messages.success(
+            request,
+            "Recording deleted successfully."
+        )
+
+    except Exception as e:
+        messages.error(
+            request,
+            f"Unable to delete recording: {e}"
+        )
+
+    return redirect("dashboard")
+
+    messages.success(request, "Recording deleted successfully.")
+
+    return redirect("dashboard")

@@ -186,12 +186,25 @@ class Recording(models.Model):
     live_class = models.ForeignKey(
         LiveClass,
         on_delete=models.CASCADE,
-        related_name='recordings',   # ✅ FIX
-        null=True,
+        related_name='recordings'
+    )
+
+    title = models.CharField(
+        max_length=200,
         blank=True
     )
-    video = models.FileField(upload_to='recordings/')
-    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    description = models.TextField(
+        blank=True
+    )
+
+    video = models.FileField(
+        upload_to="recordings/"
+    )
+
+    uploaded_at = models.DateTimeField(
+        auto_now_add=True
+    )
 
 
 class Subscription(models.Model):

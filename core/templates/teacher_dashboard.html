@@ -87,7 +87,8 @@ document.addEventListener("DOMContentLoaded", function () {
     <h5>{{ course.title }}</h5>
 
     <!-- AI QUIZ BUTTON -->
-    <a href="/ai-quiz/{{ course.id }}/" class="btn btn-sm btn-primary mb-2">
+    <a href="{% url 'generate_ai_quiz' course.id %}"
+        class="btn btn-sm btn-primary mb-2">
         🤖 Generate AI Quiz
     </a>
 
@@ -99,18 +100,16 @@ document.addEventListener("DOMContentLoaded", function () {
             {% for lesson in module.lesson_set.all %}
                 <li>
                     🎥 {{ lesson.title }}
-                    <a href="/upload-recording/{{ cls.id }}/" class="btn btn-warning btn-sm">
-                        🎥 Upload Recording
-                    </a>
+                    
                     <!-- ASSIGNMENTS -->
                     {% for assignment in lesson.assignment_set.all %}
                         <div class="card p-2 mt-2">
                             📄 {{ assignment.title }}
 
-                            <a href="/submissions/{{ assignment.id }}/" class="btn btn-sm btn-info">
+                            <a href="{% url 'view_submissions' assignment.id %}">
                             View Submissions
                             </a>
-                            <a href="/check-submissions/{{ assignment.id }}/" class="btn btn-warning btn-sm">
+                            <a href="{% url 'check_submissions' assignment.id %}">
                             Check Submissions
                             </a>
                         </div>
@@ -125,28 +124,14 @@ document.addEventListener("DOMContentLoaded", function () {
 </div>
 {% endfor %}
 
-<!-- ASSIGNMENTS -->
-<h4 class="mt-4">📝 Assignments</h4>
 
-{% for course in courses %}
-    {% if course.assignment_set.all %}
-        
-        <div class="card p-2 mb-2">
-            {{ assignment.title }}
-
-            <a href="/submissions/{{ assignment.id }}/" class="btn btn-sm btn-info">
-                View Submissions
-            </a>
-        </div>
-        
-    {% endif %}
-{% endfor %}
 
 <!-- CHART SCRIPT -->
 
 <h5 class="mt-4">📡 Your Live Classes</h5>
 
 {% for cls in live_classes %}
+
 <div class="card p-3 mb-3">
 
     <h5>{{ cls.title }}</h5>
@@ -178,40 +163,74 @@ document.addEventListener("DOMContentLoaded", function () {
         Attendance
     </a>
 
-    {% if cls.is_completed %}
-        <hr>
+</div>
 
-        <h6>🎥 Recording</h6>
+{% empty %}
 
-        {% with recording=cls.recordings.first %}
+<div class="card p-3 text-center">
+    <h5>📡 No Live Classes</h5>
+    <p class="mb-0">
+        You haven't scheduled any live classes yet.
+    </p>
+</div>
 
-            {% if recording %}
+{% endfor %}   
 
-                <a href="{% url 'upload_recording' cls.id %}"
-                class="btn btn-warning btn-sm">
-                    Replace Recording
-                </a>
 
-                <a href="{{ recording.video.url }}"
-                target="_blank"
-                class="btn btn-secondary btn-sm">
-                    View Recording
-                </a>
+<h4 class="mt-5">🎥 Recorded Classes</h4>
 
-            {% else %}
+{% for rec in teacher_recordings %}
 
-                <a href="{% url 'upload_recording' cls.id %}"
-                class="btn btn-warning btn-sm">
-                    Upload Recording
-                </a>
+<div class="card p-3 mb-3">
 
-            {% endif %}
+    <h5>{{ rec.live_class.title }}</h5>
 
-        {% endwith %}
+    <p>
+        <strong>Course:</strong>
+        {{ rec.live_class.course.title }}
+    </p>
 
-    {% endif %}
+    <small>
+        Uploaded:
+        {{ rec.uploaded_at|date:"d M Y, h:i A" }}
+    </small>
+
+    <br><br>
+
+    <a href="{{ rec.video.url }}"
+        target="_blank"
+        class="btn btn-success btn-sm">
+        ▶ View
+    </a>
+
+    <a href="{% url 'upload_recording' rec.live_class.id %}"
+        class="btn btn-warning btn-sm">
+        Replace
+    </a>
+
+    <form method="post"
+        action="{% url 'delete_recording' rec.id %}"
+        style="display:inline;">
+
+        {% csrf_token %}
+
+        <button type="submit"
+                class="btn btn-danger btn-sm"
+                onclick="return confirm('Are you sure you want to delete this recording?');">
+            🗑 Delete
+        </button>
+
+    </form>
 
 </div>
+
+{% empty %}
+
+<div class="card p-3">
+    No recordings uploaded yet.
+</div>
+
 {% endfor %}
+
 
 {% endblock %}

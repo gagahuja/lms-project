@@ -26,7 +26,7 @@ urlpatterns = [
     path('ai-notes/', views.ai_notes),
     path('quiz/<int:quiz_id>/', views.attempt_quiz),
     path('ai-notes/<int:lesson_id>/', views.generate_ai_notes),
-    path('ai-quiz/<int:course_id>/', views.generate_ai_quiz),
+    path("ai-quiz/<int:course_id>/",views.generate_ai_quiz,name="generate_ai_quiz"),
     path('leaderboard/', views.leaderboard, name='leaderboard'),
     path('complete-lesson/<int:lesson_id>/', views.mark_complete),
     path('ai-insights/', views.ai_insights, name='ai_insights'),
@@ -63,6 +63,7 @@ urlpatterns = [
     path('get-messages/<int:class_id>/', views.get_messages),
     path('ai-help/', views.ai_help),
     path("upload/", views.upload_file),
+    path('delete-recording/<int:recording_id>/',views.delete_recording,name='delete_recording'),
     path(
         "live-v2/",
         views.live_class_v2,
