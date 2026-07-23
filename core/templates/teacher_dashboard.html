@@ -102,7 +102,22 @@ document.addEventListener("DOMContentLoaded", function () {
                     🎥 {{ lesson.title }}
                     
                     <!-- ASSIGNMENTS -->
+                    Lesson ID: {{ lesson.id }}<br>
+
+                    Assignments Count:
+                    {{ lesson.assignment_set.count }}
+
+                    <hr>
+
                     {% for assignment in lesson.assignment_set.all %}
+                        {{ assignment.title }}<br>
+                    {% empty %}
+                        <span style="color:red">
+                            No assignments found for Lesson {{ lesson.id }}
+                        </span>
+                        {% endfor %}
+<!-- 
+ {% for assignment in lesson.assignment_set.all %}
                         <div class="card p-2 mt-2">
                             📄 {{ assignment.title }}
 
@@ -113,7 +128,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             Check Submissions
                             </a>
                         </div>
-                    {% endfor %}
+                    {% endfor %} -->
 
                 </li>
             {% endfor %}
