@@ -92,17 +92,17 @@ document.addEventListener("DOMContentLoaded", function () {
         🤖 Generate AI Quiz
     </a>
 
-    {% for module in course.module_set.all %}
+    {% for module in course.modules.all %}
         <div class="mt-2">
             <strong>📦 {{ module.title }}</strong>
 
             <ul>
-            {% for lesson in module.lesson_set.all %}
+            {% for lesson in module.lessons.all %}
                 <li>
                     🎥 {{ lesson.title }}
                     
                     <!-- ASSIGNMENTS -->
-                    {% for assignment in lesson.assignment_set.all %}
+                    {% for assignment in lesson.assignments.all %}
 
                     <div class="card shadow-sm mt-3">
 

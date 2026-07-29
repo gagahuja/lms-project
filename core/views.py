@@ -97,7 +97,7 @@ def dashboard(request):
             Course.objects
             .filter(teacher=request.user)
             .prefetch_related(
-                "module_set__lesson_set__assignment_set"
+                "modules__lessons__assignments"
             )
         )
 
