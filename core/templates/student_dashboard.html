@@ -191,28 +191,105 @@
 <h4 class="mt-4">📄 Assignments</h4>
 
 {% for item in assignments %}
-<div class="card p-3 mb-2 d-flex justify-content-between align-items-center">
 
-    <div>
-        <strong>{{ item.assignment.title }}</strong>
-    </div>
+<div class="card shadow-sm mb-3">
 
-    <div>
-        {% if item.submitted %}
-            <span class="badge bg-success">Submitted</span>
-        {% else %}
-            <span class="badge bg-danger">Pending</span>
+    <div class="card-body">
 
-            <a href="/submit/{{ item.assignment.id }}/"
-               class="btn btn-sm btn-warning ms-2">
-               Submit
+        <div class="d-flex justify-content-between">
+
+            <div>
+
+                <h5>
+                    📄 {{ item.assignment.title }}
+                </h5>
+
+                {% if item.assignment.description %}
+                    <p class="text-muted">
+                        {{ item.assignment.description }}
+                    </p>
+                {% endif %}
+
+                <small>
+                    <strong>Due:</strong>
+                    {{ item.assignment.due_date|date:"d M Y" }}
+                </small>
+
+                <br>
+
+                <small>
+                    <strong>Maximum Marks:</strong>
+                    {{ item.assignment.max_marks }}
+                </small>
+
+            </div>
+
+            <div>
+
+                {% if item.submitted %}
+
+                    <span class="badge bg-success">
+                        Submitted
+                    </span>
+
+                {% else %}
+
+                    <span class="badge bg-danger">
+                        Pending
+                    </span>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+        <hr>
+
+        <div class="d-flex gap-2">
+
+            <a href="{% url 'view_assignment' item.assignment.id %}"
+               class="btn btn-primary btn-sm">
+
+                👁 View Assignment
+
             </a>
-        {% endif %}
+
+            {% if not item.submitted %}
+
+                <a href="{% url 'submit_assignment' item.assignment.id %}"
+                   class="btn btn-warning btn-sm">
+
+                    📤 Submit
+
+                </a>
+
+            {% else %}
+
+                <button
+                    class="btn btn-success btn-sm"
+                    disabled>
+
+                    ✅ Submitted
+
+                </button>
+
+            {% endif %}
+
+        </div>
+
     </div>
 
 </div>
+
 {% empty %}
-<p>No assignments available</p>
+
+<div class="alert alert-info">
+
+No assignments available.
+
+</div>
+
 {% endfor %}
 
 <h4 class="mt-4">🧠 Quiz Results</h4>
