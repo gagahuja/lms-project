@@ -102,20 +102,53 @@ document.addEventListener("DOMContentLoaded", function () {
                     🎥 {{ lesson.title }}
                     
                     <!-- ASSIGNMENTS -->
-                    Lesson ID: {{ lesson.id }}<br>
-
-                    Assignments Count:
-                    {{ lesson.assignment_set.count }}
-
-                    <hr>
-
                     {% for assignment in lesson.assignment_set.all %}
-                        {{ assignment.title }}<br>
+
+                    <div class="card shadow-sm mt-3">
+
+                        <div class="card-body">
+
+                            <h6 class="mb-2">
+                                📄 {{ assignment.title }}
+                            </h6>
+
+                            <small class="text-muted">
+                                Due Date:
+                                {{ assignment.due_date|date:"d M Y" }}
+                            </small>
+
+                            <br><br>
+
+                            <div class="d-flex gap-2 flex-wrap">
+
+                                <a href="{% url 'view_assignment' assignment.id %}"
+                                class="btn btn-primary btn-sm">
+                                    👁 View
+                                </a>
+
+                                <a href="{% url 'view_submissions' assignment.id %}"
+                                class="btn btn-success btn-sm">
+                                    📥 Submissions
+                                </a>
+
+                                <a href="{% url 'check_submissions' assignment.id %}"
+                                class="btn btn-warning btn-sm">
+                                    ✅ Check
+                                </a>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
                     {% empty %}
-                        <span style="color:red">
-                            No assignments found for Lesson {{ lesson.id }}
-                        </span>
-                        {% endfor %}
+
+                    <div class="alert alert-warning mt-2">
+                        No assignments uploaded yet.
+                    </div>
+
+                    {% endfor %}
 <!-- 
  {% for assignment in lesson.assignment_set.all %}
                         <div class="card p-2 mt-2">

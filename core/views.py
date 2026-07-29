@@ -32,7 +32,7 @@ from .models import CallAnswer
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-
+from django.db.models import Prefetch
 
 
 def is_enrolled(user):
@@ -80,11 +80,10 @@ def dashboard(request):
     from django.utils.timezone import now
 
     if not request.user.is_authenticated:
-        request.user.last_seen = now()
-        request.user.save()
-
-        return redirect('login')
-    
+        return redirect("login")
+        request.user.last_seen = timezone.now()
+        request.user.save(update_fields=["last_seen"])
+        
     teacher_recordings = Recording.objects.filter(
         live_class__course__teacher=request.user
     ).select_related(
@@ -93,7 +92,14 @@ def dashboard(request):
     ).order_by("-uploaded_at")
 
     if getattr(request.user, 'user_type', None) == 'teacher':
-        courses = Course.objects.filter(teacher=request.user)
+
+        courses = (
+            Course.objects
+            .filter(teacher=request.user)
+            .prefetch_related(
+                "module_set__lesson_set__assignment_set"
+            )
+        )
 
         total_students = Enrollment.objects.filter(course__in=courses).count()
         total_classes = LiveClass.objects.filter(course__in=courses).count()
@@ -503,14 +509,14 @@ def submit_assignment(request, assignment_id):
 
         import os
 
-        allowed_extensions = [
+        allowed_extensions = {
             ".pdf",
             ".doc",
             ".docx",
             ".ppt",
             ".pptx",
             ".zip",
-        ]
+        }
 
         extension = os.path.splitext(file.name)[1].lower()
 
@@ -549,11 +555,12 @@ def submit_assignment(request, assignment_id):
         )
         # ADD POINTS
         if created:
-            points_obj, _ = Points.objects.get_or_create(
+            points, _ = Points.objects.get_or_create(
                 student=request.user
             )
-        points_obj.points += 10
-        points_obj.save()
+
+            points.points += 10
+            points.save()
 
         return redirect('dashboard')
 

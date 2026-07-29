@@ -81,7 +81,7 @@ class Attendance(models.Model):
         return None
 
 class Module(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="modules")
     title = models.CharField(max_length=200)
 
     def __str__(self):
@@ -89,7 +89,7 @@ class Module(models.Model):
     
 
 class Lesson(models.Model):
-    module = models.ForeignKey(Module, on_delete=models.CASCADE)
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name="lessons")
     title = models.CharField(max_length=200)
     video_url = models.URLField(blank=True, null=True)
     notes = models.FileField(upload_to='notes/', blank=True, null=True)
@@ -100,7 +100,7 @@ class Lesson(models.Model):
 
 
 class Assignment(models.Model):
-    lesson = models.ForeignKey('Lesson', on_delete=models.CASCADE)
+    lesson = models.ForeignKey('Lesson', on_delete=models.CASCADE, related_name="assignments")
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     file = models.FileField(
@@ -134,7 +134,10 @@ class Submission(models.Model):
 
     status = models.CharField(
         max_length=20,
-        choices=STATUS,
+        choices=[
+            ("submitted", "Submitted"),
+            ("checked", "Checked"),
+        ],
         default="submitted"
     )
 
