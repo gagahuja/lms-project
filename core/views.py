@@ -225,14 +225,15 @@ def dashboard(request):
         assignment_data = []
 
         for assignment in assignments:
-            submitted = Submission.objects.filter(
+            submission = Submission.objects.filter(
                 assignment=assignment,
                 student=request.user
-            ).exists()
+            ).first()
 
             assignment_data.append({
-                'assignment': assignment,
-                'submitted': submitted
+                "assignment": assignment,
+                "submitted": submission is not None,
+                "submission": submission,
             })
 
         # 🧠 QUIZ RESULTS
@@ -935,28 +936,42 @@ def view_assignment(request, assignment_id):
 
 
 def check_submissions(request, assignment_id):
-    assignment = Assignment.objects.get(id=assignment_id)
+    assignment = get_object_or_404(
+        Assignment,
+        id=assignment_id,
+        lesson__module__course__teacher=request.user
+    )
     submissions = Submission.objects.filter(assignment=assignment)
 
     if request.method == "POST":
+
         submission_id = request.POST.get("submission_id")
         remarks = request.POST.get("remarks")
+        marks = request.POST.get("marks")
         checked_file = request.FILES.get("checked_file")
 
-        submission = Submission.objects.get(id=submission_id)
+        submission = get_object_or_404(
+            Submission,
+            id=submission_id,
+            assignment=assignment
+        )
+
         submission.remarks = remarks
+
+        if marks:
+            submission.marks = int(marks)
 
         if checked_file:
             submission.checked_file = checked_file
 
+        submission.status = "checked"
+
         submission.save()
 
-        return redirect('check_submissions', assignment_id=assignment.id)
-
-    return render(request, 'check_submissions.html', {
-        'assignment': assignment,
-        'submissions': submissions
-    })
+        return redirect(
+            "check_submissions",
+            assignment_id=assignment.id
+        )
 
 
 def view_handout(request, handout_id):

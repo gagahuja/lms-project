@@ -7,10 +7,71 @@
 {% for s in submissions %}
 <div class="card p-3 mb-3">
 
-    <p><strong>{{ s.student.username }}</strong></p>
+    <h5>
+        👤 {{ s.student.get_full_name|default:s.student.username }}
+    </h5>
 
-    <a href="{{ s.file.url }}" target="_blank" class="btn btn-primary btn-sm">
-        View Submission
+    <p class="text-muted">
+
+    Submitted:
+    {{ s.submitted_at|date:"d M Y, h:i A" }}
+
+    </p>
+
+    <p>
+
+    <strong>Status:</strong>
+
+    {% if s.status == "checked" %}
+
+    <span class="badge bg-success">
+
+    Checked
+
+    </span>
+
+    {% else %}
+
+    <span class="badge bg-warning text-dark">
+
+    Submitted
+
+    </span>
+
+    {% endif %}
+
+    </p>
+
+    <p class="text-muted">
+
+    Submitted On :
+
+    {{ s.submitted_at|date:"d M Y, h:i A" }}
+
+    </p>
+
+    <div class="mb-2">
+
+    <label>
+
+    Marks
+
+    </label>
+
+    <input
+    type="number"
+    name="marks"
+    class="form-control"
+    value="{{ s.marks }}">
+
+    </div>
+
+    <a href="{{ s.file.url }}"
+        target="_blank"
+        class="btn btn-primary">
+
+        👁 View Submitted File
+
     </a>
 
     {% if s.remarks %}
@@ -31,13 +92,67 @@
 
         <input type="hidden" name="submission_id" value="{{ s.id }}">
 
-        <textarea name="remarks" class="form-control mb-2"
-                  placeholder="Write remarks..."></textarea>
+        <div class="mb-3">
 
-        <input type="file" name="checked_file" class="form-control mb-2">
+        <label class="form-label">
 
-        <button class="btn btn-success btn-sm">
-            Submit Review
+        Marks
+
+        </label>
+
+        <input
+            type="number"
+            name="marks"
+            min="0"
+            max="{{ assignment.max_marks }}"
+            value="{{ s.marks|default_if_none:'' }}"
+            class="form-control">
+
+        </div>
+
+        <label class="form-label">
+
+        Teacher Remarks
+
+        </label>
+
+        <textarea
+            name="remarks"
+            rows="4"
+            class="form-control mb-3"
+            placeholder="Write remarks...">{{ s.remarks }}</textarea>
+
+        <label class="form-label">
+            Upload Checked Copy
+        </label>
+
+        <input
+            type="file"
+            name="checked_file"
+            class="form-control mb-3">
+
+        {% if s.checked_file %}
+
+        <div class="mt-2">
+
+            <a href="{{ s.checked_file.url }}"
+            target="_blank"
+            class="btn btn-outline-success btn-sm">
+
+                📄 Current Checked Copy
+
+            </a>
+
+        </div>
+
+        {% endif %}
+
+        <button
+            type="submit"
+            class="btn btn-success">
+
+            💾 Save Review
+
         </button>
     </form>
 
