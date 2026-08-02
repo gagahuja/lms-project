@@ -222,7 +222,7 @@
 
                 <span class="badge bg-success">
 
-                    Checked
+                    ✅ Checked
 
                 </span>
 
@@ -230,11 +230,43 @@
 
                 <span class="badge bg-warning text-dark">
 
-                    Submitted
+                    📤 Submitted
 
                 </span>
 
             {% endif %}
+
+            {% if item.submission.marks %}
+
+            <div class="mt-2">
+
+            <strong>Marks:</strong>
+
+            {{ item.submission.marks }}
+
+            /
+
+            {{ item.assignment.max_marks }}
+
+            </div>
+
+            {% endif %}
+
+            {% if item.submission.remarks %}
+
+            <div class="mt-2">
+
+            <strong>Teacher Remarks</strong>
+
+                <div class="alert alert-info">
+
+                {{ item.submission.remarks }}
+
+                </div>
+
+            </div>
+
+        {% endif %}
 
         </p>
 
@@ -275,6 +307,15 @@
                class="btn btn-success btn-sm">
 
                 📥 Checked Copy
+
+            </a>
+
+            <a
+            href="{{ item.submission.checked_file.url }}"
+            class="btn btn-primary btn-sm mt-2"
+            target="_blank">
+
+            📥 Download Checked Copy
 
             </a>
 
