@@ -33,7 +33,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Prefetch
-
+from django.db.models import Avg, Max, Min
 
 def is_enrolled(user):
     
@@ -112,6 +112,77 @@ def dashboard(request):
             lesson__module__course__in=courses
         ).count()
 
+        assignment_stats = []
+
+        for assignment in Assignment.objects.filter(
+            lesson__module__course__in=courses
+        ):
+
+            enrolled = Enrollment.objects.filter(
+                course=assignment.lesson.module.course
+            ).count()
+
+            submissions = Submission.objects.filter(
+                assignment=assignment
+            )
+
+            submitted = submissions.count()
+
+            pending = max(enrolled - submitted, 0)
+
+            submission_rate = 0
+
+            if enrolled:
+                submission_rate = round(
+                    (submitted / enrolled) * 100
+                )
+
+            checked = submissions.filter(
+                status="checked",
+                marks__isnull=False
+            )
+
+            avg_marks = None
+            highest = None
+            lowest = None
+
+            if checked.exists():
+
+                avg_marks = round(
+                    checked.aggregate(
+                        Avg("marks")
+                    )["marks__avg"],
+                    1
+                )
+
+                highest = checked.aggregate(
+                    Max("marks")
+                )["marks__max"]
+
+                lowest = checked.aggregate(
+                    Min("marks")
+                )["marks__min"]
+
+            assignment_stats.append({
+
+                "assignment": assignment,
+
+                "enrolled": enrolled,
+
+                "submitted": submitted,
+
+                "pending": pending,
+
+                "submission_rate": submission_rate,
+
+                "average": avg_marks,
+
+                "highest": highest,
+
+                "lowest": lowest,
+
+            })
+
         thirty_minutes_ago = timezone.now() - timedelta(minutes=30)
 
         live_classes = LiveClass.objects.filter(
@@ -130,6 +201,24 @@ def dashboard(request):
             is_read=False
         ).count()
 
+        from django.db.models import Avg
+
+        total_submissions = Submission.objects.filter(
+            assignment__lesson__module__course__in=courses
+        ).count()
+
+        pending_reviews = Submission.objects.filter(
+            assignment__lesson__module__course__in=courses,
+            status="submitted"
+        ).count()
+
+        average_marks = Submission.objects.filter(
+            assignment__lesson__module__course__in=courses,
+            marks__isnull=False
+        ).aggregate(
+            Avg("marks")
+        )["marks__avg"] or 0
+
         return render(request, 'teacher_dashboard.html', {
             'courses': courses,
             'total_students': total_students,
@@ -140,6 +229,11 @@ def dashboard(request):
             'notification_count': notification_count,
             'notifications': notifications,
             "teacher_recordings": teacher_recordings,
+            "assignment_stats": assignment_stats,
+            "assignment_stats": assignment_stats,
+            "total_submissions": total_submissions,
+            "pending_reviews": pending_reviews,
+            "average_marks": round(average_marks, 1),
         })
         
     else:

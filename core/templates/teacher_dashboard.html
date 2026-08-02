@@ -8,31 +8,67 @@
 <div class="row g-4 mb-4">
 
     <div class="col-md-3">
-        <div class="card p-3 text-center">
-            <h3>{{ total_students }}</h3>
-            <p>Total Students</p>
+        <div class="card shadow-sm border-0 text-center p-3">
+            <h2>{{ total_students }}</h2>
+            <small>Total Students</small>
         </div>
     </div>
 
     <div class="col-md-3">
-        <div class="card p-3 text-center">
-            <h3>{{ total_classes }}</h3>
-            <p>Live Classes</p>
+        <div class="card shadow-sm border-0 text-center p-3">
+            <h2>{{ total_classes }}</h2>
+            <small>Live Classes</small>
+        </div>
+    </div>
+
+
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 text-center p-3">
+            <h2>{{ total_assignments }}</h2>
+            <small>Assignments</small>
         </div>
     </div>
 
     <div class="col-md-3">
-        <div class="card p-3 text-center">
-            <h4>₹{{ total_revenue }}</h4>
-            <p>Revenue</p>
+        <div class="card shadow-sm border-0 text-center p-3">
+            <h2>{{ total_submissions }}</h2>
+            <small>Submissions</small>
         </div>
     </div>
 
     <div class="col-md-3">
-        <div class="card p-3 text-center">
-            <h3>{{ total_assignments|default:0 }}</h3>
-            <p>Assignments</p>
+        <div class="card shadow-sm border-0 text-center p-3">
+            <h2>{{ pending_reviews }}</h2>
+            <small>Pending Review</small>
         </div>
+    </div>
+
+</div>
+
+<div class="row g-4 mb-4">
+
+    <div class="col-md-6">
+
+        <div class="card shadow-sm border-0 p-3">
+
+            <h5>Average Marks</h5>
+
+            <h2>{{ average_marks }}/100</h2>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-6">
+
+        <div class="card shadow-sm border-0 p-3">
+
+            <h5>Total Revenue</h5>
+
+            <h2>₹{{ total_revenue }}</h2>
+
+        </div>
+
     </div>
 
 </div>
@@ -104,49 +140,22 @@ document.addEventListener("DOMContentLoaded", function () {
                     <!-- ASSIGNMENTS -->
                     {% for assignment in lesson.assignments.all %}
 
-                    <div class="card shadow-sm mt-3">
+                    <div class="ms-4 mt-2">
 
-                        <div class="card-body">
+                        📄 {{ assignment.title }}
 
-                            <h6 class="mb-2">
-                                📄 {{ assignment.title }}
-                            </h6>
-
-                            <small class="text-muted">
-                                Due Date:
-                                {{ assignment.due_date|date:"d M Y" }}
-                            </small>
-
-                            <br><br>
-
-                            <div class="d-flex gap-2 flex-wrap">
-
-                                <a href="{% url 'view_assignment' assignment.id %}"
-                                class="btn btn-primary btn-sm">
-                                    👁 View
-                                </a>
-
-                                <a href="{% url 'view_submissions' assignment.id %}"
-                                class="btn btn-success btn-sm">
-                                    📥 Submissions
-                                </a>
-
-                                <a href="{% url 'check_submissions' assignment.id %}"
-                                class="btn btn-warning btn-sm">
-                                    ✅ Check
-                                </a>
-
-                            </div>
-
-                        </div>
+                        <a href="{% url 'view_assignment' assignment.id %}"
+                        class="btn btn-outline-primary btn-sm">
+                            View
+                        </a>
 
                     </div>
 
                     {% empty %}
 
-                    <div class="alert alert-warning mt-2">
-                        No assignments uploaded yet.
-                    </div>
+                    <span class="text-muted">
+                    No assignments
+                    </span>
 
                     {% endfor %}
 <!-- 
@@ -171,6 +180,113 @@ document.addEventListener("DOMContentLoaded", function () {
 
 </div>
 {% endfor %}
+
+<hr>
+
+<h4 class="mt-4">📊 Assignment Analytics</h4>
+
+{% for stat in assignment_stats %}
+
+<div class="card shadow-sm mb-3">
+
+    <div class="card-body">
+
+        <h5>
+            📄 {{ stat.assignment.title }}
+        </h5>
+
+        <p>
+            Due:
+            {{ stat.assignment.due_date|date:"d M Y" }}
+        </p>
+
+        <div class="row">
+
+            <div class="col-md-3">
+
+                👨‍🎓 Students
+
+                <h5>{{ stat.enrolled }}</h5>
+
+            </div>
+
+            <div class="col-md-3">
+
+                📤 Submitted
+
+                <h5>{{ stat.submitted }}</h5>
+
+            </div>
+
+            <div class="col-md-3">
+
+                ⏳ Pending
+
+                <h5>{{ stat.pending }}</h5>
+
+            </div>
+
+            <div class="col-md-3">
+
+                📈 {{ stat.submission_rate }}%
+
+            </div>
+
+        </div>
+
+        {% if stat.average %}
+
+        <hr>
+
+        <div class="row">
+
+            <div class="col">
+
+                ⭐ Avg
+
+                {{ stat.average }}
+
+            </div>
+
+            <div class="col">
+
+                🥇 Highest
+
+                {{ stat.highest }}
+
+            </div>
+
+            <div class="col">
+
+                📉 Lowest
+
+                {{ stat.lowest }}
+
+            </div>
+
+        </div>
+
+        {% endif %}
+
+        <hr>
+
+        <a href="{% url 'view_submissions' stat.assignment.id %}"
+           class="btn btn-success btn-sm">
+
+            📥 Submissions
+
+        </a>
+
+        <a href="{% url 'check_submissions' stat.assignment.id %}"
+           class="btn btn-warning btn-sm">
+
+            ✅ Check
+
+        </a>
+
+    </div>
+
+</div>
 
 
 
