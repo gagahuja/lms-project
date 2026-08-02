@@ -935,13 +935,23 @@ def view_assignment(request, assignment_id):
     })
 
 
+from django.contrib.auth.decorators import login_required
+
+@login_required
 def check_submissions(request, assignment_id):
+
+    if request.user.user_type != "teacher":
+        return redirect("dashboard")
+
     assignment = get_object_or_404(
         Assignment,
         id=assignment_id,
         lesson__module__course__teacher=request.user
     )
-    submissions = Submission.objects.filter(assignment=assignment)
+
+    submissions = Submission.objects.filter(
+        assignment=assignment
+    )
 
     if request.method == "POST":
 
@@ -972,6 +982,15 @@ def check_submissions(request, assignment_id):
             "check_submissions",
             assignment_id=assignment.id
         )
+
+    return render(
+        request,
+        "check_submissions.html",
+        {
+            "assignment": assignment,
+            "submissions": submissions,
+        }
+    )
 
 
 def view_handout(request, handout_id):
