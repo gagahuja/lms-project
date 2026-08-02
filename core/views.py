@@ -81,8 +81,7 @@ def dashboard(request):
 
     if not request.user.is_authenticated:
         return redirect("login")
-        request.user.last_seen = timezone.now()
-        request.user.save(update_fields=["last_seen"])
+        
         
     teacher_recordings = Recording.objects.filter(
         live_class__course__teacher=request.user
@@ -201,7 +200,6 @@ def dashboard(request):
             is_read=False
         ).count()
 
-        from django.db.models import Avg
 
         total_submissions = Submission.objects.filter(
             assignment__lesson__module__course__in=courses
@@ -229,7 +227,6 @@ def dashboard(request):
             'notification_count': notification_count,
             'notifications': notifications,
             "teacher_recordings": teacher_recordings,
-            "assignment_stats": assignment_stats,
             "assignment_stats": assignment_stats,
             "total_submissions": total_submissions,
             "pending_reviews": pending_reviews,
