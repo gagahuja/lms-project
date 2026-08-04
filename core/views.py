@@ -738,37 +738,34 @@ def teacher_analytics(request):
 
     }
 
-    context["enrollment_labels_json"] = json.dumps(
-        [
-            x["month"].strftime("%b %Y")
-            for x in monthly_enrollments
-            if x["month"]
-        ]
-    )
+    context["enrollment_labels"] = [
+        x["month"].strftime("%b %Y")
+        for x in monthly_enrollments
+        if x["month"]
+    ]
 
-    context["enrollment_data_json"] = json.dumps(
-        [
-            x["total"]
-            for x in monthly_enrollments
-            if x["month"]
-        ]
-    )
+    context["enrollment_data"] = [
+        x["total"]
+        for x in monthly_enrollments
+        if x["month"]
+    ]
 
-    context["submission_labels_json"] = json.dumps(
-        [
-            x["month"].strftime("%b %Y")
-            for x in monthly_submissions
-            if x["month"]
-        ]
-    )
+    context["submission_labels"] = [
+        x["month"].strftime("%b %Y")
+        for x in monthly_submissions
+        if x["month"]
+    ]
 
-    context["submission_data_json"] = json.dumps(
-        [
-            x["total"]
-            for x in monthly_submissions
-            if x["month"]
-        ]
-    )
+    context["submission_data"] = [
+        x["total"]
+        for x in monthly_submissions
+        if x["month"]
+    ]
+
+    context["enrollment_labels"]
+    context["enrollment_data"]
+    context["submission_labels"]
+    context["submission_data"]
 
     return render(
         request,
@@ -2409,6 +2406,96 @@ def student_report(request, student_id):
 
 
 @login_required
-def teacher_analytics(request):
-    # Analytics code will go here
-    return render(request, "teacher_analytics.html")
+def student_analytics(request):
+
+    if request.user.user_type != "student":
+        return redirect("dashboard")
+
+    enrollments = Enrollment.objects.filter(
+        student=request.user
+    )
+
+    courses = Course.objects.filter(
+        id__in=enrollments.values_list("course_id", flat=True)
+    )
+
+    assignments = Submission.objects.filter(
+        student=request.user
+    )
+
+    checked = assignments.filter(
+        marks__isnull=False
+    )
+
+    quizzes = QuizResult.objects.filter(
+        student=request.user
+    )
+
+    attendance = Attendance.objects.filter(
+        student=request.user
+    )
+
+    average_marks = (
+        checked.aggregate(
+            Avg("marks")
+        )["marks__avg"] or 0
+    )
+
+    average_quiz = (
+        quizzes.aggregate(
+            Avg("score")
+        )["score__avg"] or 0
+    )
+
+    attendance_percent = 0
+
+    if attendance.exists():
+
+        attendance_percent = round(
+            attendance.filter(
+                present=True
+            ).count()
+            * 100
+            / attendance.count()
+        )
+
+    progress = 0
+
+    if assignments.exists():
+
+        total_assignments = assignments.count()
+
+        completed_assignments = assignments.filter(
+            status="checked"
+        ).count()
+
+        if total_assignments:
+
+            progress = round(
+                completed_assignments * 100 /
+                total_assignments
+            )
+
+    context = {
+
+        "course_count": courses.count(),
+
+        "assignment_count": assignments.count(),
+
+        "quiz_count": quizzes.count(),
+
+        "average_marks": round(average_marks,1),
+
+        "average_quiz": round(average_quiz,1),
+
+        "attendance_percent": attendance_percent,
+
+        "progress": progress,
+
+    }
+
+    return render(
+        request,
+        "student_analytics.html",
+        context
+    )

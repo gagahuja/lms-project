@@ -426,14 +426,17 @@
             </a>
         {% endif %}
 
-            <a href="{% url 'teacher_analytics' %}"
-                class="nav-link">
-                📊 Teacher Analytics
-            </a>
+            
 
         <a href="/courses/"><i class="bi bi-book"></i> All Courses</a>
         
         {% if request.user.user_type == 'teacher' %}
+
+            <a href="{% url 'teacher_analytics' %}"
+                class="nav-link">
+                📊 Teacher Analytics
+            </a>    
+
             <a href="/create-course/">
                 <i class="bi bi-plus-circle"></i>
                 <span>Create Course</span>
@@ -446,6 +449,14 @@
         {% endif %}
 
         {% if request.user.user_type == 'student' %}
+
+            <a href="{% url 'student_analytics' %}"
+                class="list-group-item">
+
+                📊 Student Analytics
+
+            </a>
+
             <a href="/leaderboard/">
                 <i class="bi bi-trophy"></i>
                 <span>Leaderboard</span>

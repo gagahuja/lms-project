@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2 class="mb-4">
+📊 Student Analytics
+</h2>
+
+<div class="row g-4">
+
+<div class="col-md-3">
+<div class="card shadow-sm text-center p-4">
+
+<h2>{{ course_count }}</h2>
+
+<small>Courses</small>
+
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card shadow-sm text-center p-4">
+
+<h2>{{ assignment_count }}</h2>
+
+<small>Assignments</small>
+
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card shadow-sm text-center p-4">
+
+<h2>{{ average_marks }}</h2>
+
+<small>Average Marks</small>
+
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card shadow-sm text-center p-4">
+
+<h2>{{ attendance_percent }}%</h2>
+
+<small>Attendance</small>
+
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card shadow-sm text-center p-4">
+
+<h2>{{ quiz_count }}</h2>
+
+<small>Quizzes</small>
+
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card shadow-sm text-center p-4">
+
+<h2>{{ average_quiz }}</h2>
+
+<small>Quiz Average</small>
+
+</div>
+</div>
+
+<div class="col-md-6">
+
+<div class="card shadow-sm p-4">
+
+<h5>Course Progress</h5>
+
+<div class="progress" style="height:30px;">
+
+<div class="progress-bar bg-success"
+
+style="width: {{ progress|default:0 }}%;">
+
+{{ progress }}%
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+{% endblock %}

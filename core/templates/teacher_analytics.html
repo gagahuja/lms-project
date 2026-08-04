@@ -75,7 +75,9 @@
 
             <h5>📈 Monthly Enrollments</h5>
 
-            <canvas id="enrollmentChart"></canvas>
+            <div style="height:320px;">
+                <canvas id="enrollmentChart"></canvas>
+            </div>
 
         </div>
 
@@ -87,7 +89,9 @@
 
             <h5>📥 Monthly Submissions</h5>
 
-            <canvas id="submissionChart"></canvas>
+            <div style="height:320px;">
+                <canvas id="submissionChart"></canvas>
+            </div>
 
         </div>
 
@@ -97,22 +101,33 @@
 
 
 
+{{ enrollment_labels|json_script:"enrollment-labels" }}
+{{ enrollment_data|json_script:"enrollment-data" }}
+
+{{ submission_labels|json_script:"submission-labels" }}
+{{ submission_data|json_script:"submission-data" }}
+
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-    const enrollmentLabels =
-    JSON.parse('{{ enrollment_labels_json|escapejs }}');
+    const enrollmentLabels = JSON.parse(
+        document.getElementById("enrollment-labels").textContent
+    );
 
-    const enrollmentData =
-    JSON.parse('{{ enrollment_data_json|escapejs }}');
+    const enrollmentData = JSON.parse(
+        document.getElementById("enrollment-data").textContent
+    );
 
-    const submissionLabels =
-    JSON.parse('{{ submission_labels_json|escapejs }}');
+    const submissionLabels = JSON.parse(
+        document.getElementById("submission-labels").textContent
+    );
 
-    const submissionData =
-    JSON.parse('{{ submission_data_json|escapejs }}');
+    const submissionData = JSON.parse(
+        document.getElementById("submission-data").textContent
+    );
 
 
     const enrollmentCanvas =
@@ -122,7 +137,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         new Chart(enrollmentCanvas, {
 
-            type: "line",
+            type: "bar",
 
             data: {
 
@@ -134,11 +149,47 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     data: enrollmentData,
 
-                    borderWidth: 3,
+                    backgroundColor: "#4e73df",
 
-                    fill: false
+                    borderRadius: 8,
+
+                    maxBarThickness: 80
 
                 }]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                plugins: {
+
+                    legend: {
+
+                        position: "top"
+
+                    }
+
+                },
+
+                scales: {
+
+                    y: {
+
+                        beginAtZero: true,
+
+                        ticks: {
+
+                            precision: 0
+
+                        }
+
+                    }
+
+                }
 
             }
 
@@ -164,9 +215,49 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     label: "Submissions",
 
-                    data: submissionData
+                    data: submissionData,
+
+                    backgroundColor: "#1cc88a",
+
+                    borderRadius: 8,
+
+                    maxBarThickness: 80
 
                 }]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                plugins: {
+
+                    legend: {
+
+                        position: "top"
+
+                    }
+
+                },
+
+                scales: {
+
+                    y: {
+
+                        beginAtZero: true,
+
+                        ticks: {
+
+                            precision: 0
+
+                        }
+
+                    }
+
+                }
 
             }
 

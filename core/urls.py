@@ -76,6 +76,7 @@ urlpatterns = [
     path("student-performance/",views.student_performance,name="student_performance",),
     path("student-report/<int:student_id>/",views.student_report,name="student_report",),
     path("teacher-analytics/",views.teacher_analytics,name="teacher_analytics",),
+    path("student-analytics/",views.student_analytics,name="student_analytics",),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
