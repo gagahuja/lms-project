@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2 class="mb-4">
+📈 Student Performance Dashboard
+</h2>
+
+<div class="card shadow-sm">
+
+<table class="table table-striped">
+
+<thead class="table-dark">
+
+<tr>
+
+    <th>Student</th>
+
+    <th>Attendance</th>
+
+    <th>Assignments</th>
+
+    <th>Average</th>
+
+    <th>Quiz</th>
+
+    <th>Progress</th>
+
+    <th>Certificate</th>
+
+    <th>Action</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for stat in student_stats %}
+
+<tr>
+
+    <td>
+        <strong>{{ stat.student.username }}</strong>
+    </td>
+
+    <td style="width:180px;">
+
+        <div class="progress">
+
+            <div class="progress-bar bg-info attendance-progress"
+                data-progress="{{ stat.attendance }}"
+                role="progressbar">
+                {{ stat.attendance }}%
+
+            </div>
+
+        </div>
+
+    </td>
+
+    <td>
+
+        {{ stat.submitted }}/{{ stat.submitted|add:stat.pending }}
+
+    </td>
+
+    <td>
+
+        {% if stat.average >= 80 %}
+
+            <span class="badge bg-success">
+                {{ stat.average }}
+            </span>
+
+        {% elif stat.average >= 60 %}
+
+            <span class="badge bg-primary">
+                {{ stat.average }}
+            </span>
+
+        {% elif stat.average >= 40 %}
+
+            <span class="badge bg-warning text-dark">
+                {{ stat.average }}
+            </span>
+
+        {% else %}
+
+            <span class="badge bg-danger">
+                {{ stat.average }}
+            </span>
+
+        {% endif %}
+
+    </td>
+
+    <td>
+
+        {{ stat.quiz_average }}
+
+    </td>
+
+    <td style="width:180px;">
+
+        <div class="progress">
+
+            <div class="progress-bar bg-success progress-progress"
+                data-progress="{{ stat.progress }}"
+                role="progressbar">
+
+                {{ stat.progress }}%
+
+            </div>
+
+        </div>
+
+    </td>
+
+    <td>
+
+        {% if stat.progress >= 80 %}
+
+            <span class="badge bg-success">
+
+                🎓 Eligible
+
+            </span>
+
+        {% else %}
+
+            <span class="badge bg-secondary">
+
+                In Progress
+
+            </span>
+
+        {% endif %}
+
+    </td>
+
+    <td>
+
+        <a href="{% url 'student_report' stat.student.id %}"
+           class="btn btn-primary btn-sm">
+
+            📊 Full Report
+
+        </a>
+
+    </td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    document.querySelectorAll(".progress-progress").forEach(function(bar) {
+
+        const value = bar.dataset.progress || 0;
+
+        bar.style.width = value + "%";
+
+    });
+
+    document.querySelectorAll(".attendance-progress").forEach(function(bar) {
+
+        const value = bar.dataset.progress || 0;
+
+        bar.style.width = value + "%";
+
+    });
+
+});
+</script>
+
+{% endblock %}

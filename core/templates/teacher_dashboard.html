@@ -4,74 +4,248 @@
 
 <h2 class="mb-4">👨‍🏫 Teacher Dashboard</h2>
 
+<div class="mb-3">
+
+<a href="{% url 'gradebook' %}"
+class="btn btn-dark">
+
+📚 Gradebook
+
+</a>
+
+</div>
+
 <!-- STATS -->
-<div class="row g-4 mb-4">
+<div class="row g-3 mb-4">
 
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0 text-center p-3">
-            <h2>{{ total_students }}</h2>
-            <small>Total Students</small>
-        </div>
-    </div>
+<div class="col-md-3">
+<div class="card shadow-sm text-center p-3">
+<h3>{{ total_students }}</h3>
+<p>Total Students</p>
+</div>
+</div>
 
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0 text-center p-3">
-            <h2>{{ total_classes }}</h2>
-            <small>Live Classes</small>
-        </div>
-    </div>
+<div class="col-md-3">
+<div class="card shadow-sm text-center p-3">
+<h3>{{ total_classes }}</h3>
+<p>Live Classes</p>
+</div>
+</div>
 
+<div class="col-md-3">
+<div class="card shadow-sm text-center p-3">
+<h3>{{ total_assignments }}</h3>
+<p>Assignments</p>
+</div>
+</div>
 
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0 text-center p-3">
-            <h2>{{ total_assignments }}</h2>
-            <small>Assignments</small>
-        </div>
-    </div>
+<div class="col-md-3">
+<div class="card shadow-sm text-center p-3">
+<h3>{{ total_submissions }}</h3>
+<p>Submissions</p>
+</div>
+</div>
 
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0 text-center p-3">
-            <h2>{{ total_submissions }}</h2>
-            <small>Submissions</small>
-        </div>
-    </div>
+<div class="col-md-3">
+<div class="card shadow-sm text-center p-3">
+<h3>{{ pending_reviews }}</h3>
+<p>Pending Reviews</p>
+</div>
+</div>
 
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0 text-center p-3">
-            <h2>{{ pending_reviews }}</h2>
-            <small>Pending Review</small>
-        </div>
+<div class="col-md-3">
+<div class="card shadow-sm text-center p-3">
+<h3>{{ average_marks }}</h3>
+<p>Average Marks</p>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card shadow-sm text-center p-3">
+<h3>{{ attendance_percentage }}%</h3>
+<p>Attendance</p>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card shadow-sm text-center p-3">
+<h3>₹{{ total_revenue }}</h3>
+<p>Revenue</p>
+</div>
+</div>
+
+</div>
+
+<div class="card shadow-sm p-4 mb-4">
+
+    <h4>📤 Assignment Submission Rate</h4>
+
+    <div style="max-width:450px;margin:auto;">
+
+        <canvas id="submissionChart"></canvas>
+
     </div>
 
 </div>
 
-<div class="row g-4 mb-4">
+<hr>
 
-    <div class="col-md-6">
+<h4 class="mt-4">🏆 Top Performing Students</h4>
 
-        <div class="card shadow-sm border-0 p-3">
+<div class="card shadow-sm">
 
-            <h5>Average Marks</h5>
+<table class="table table-hover mb-0">
 
-            <h2>{{ average_marks }}/100</h2>
+<thead>
 
-        </div>
+<tr>
 
-    </div>
+<th>#</th>
 
-    <div class="col-md-6">
+<th>Student</th>
 
-        <div class="card shadow-sm border-0 p-3">
+<th>Average</th>
 
-            <h5>Total Revenue</h5>
+<th>Progress</th>
 
-            <h2>₹{{ total_revenue }}</h2>
+</tr>
 
-        </div>
+</thead>
 
-    </div>
+<tbody>
+
+{% for item in top_students %}
+
+<tr>
+
+<td>
+
+{% if forloop.counter == 1 %}
+🥇
+{% elif forloop.counter == 2 %}
+🥈
+{% elif forloop.counter == 3 %}
+🥉
+{% else %}
+{{ forloop.counter }}
+{% endif %}
+
+</td>
+
+<td>
+
+{{ item.student.username }}
+
+</td>
+
+<td>
+
+{{ item.average }}
+
+</td>
+
+<td>
+
+{{ item.progress }}%
+
+</td>
+
+</tr>
+
+{% empty %}
+
+<tr>
+
+<td colspan="4">
+
+No students yet.
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
 
 </div>
+
+<hr>
+
+<h4 class="mt-4">
+🚨 Students Needing Attention
+</h4>
+
+<div class="row">
+
+{% for student in attention_students %}
+
+<div class="col-md-4">
+
+<div class="card border-danger shadow-sm mb-3">
+
+<div class="card-body">
+
+<h5>
+
+{{ student.student.username }}
+
+</h5>
+
+<p>
+
+📉 Progress:
+<strong>{{ student.progress }}%</strong>
+
+</p>
+
+<p>
+
+📝 Pending:
+<strong>{{ student.pending }}</strong>
+
+</p>
+
+<p>
+
+⭐ Average:
+<strong>{{ student.average }}</strong>
+
+</p>
+
+</div>
+
+</div>
+
+</div>
+
+{% empty %}
+
+<div class="col-12">
+
+<div class="alert alert-success">
+
+🎉 Great! No students currently require attention.
+
+</div>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+<a
+href="{% url 'student_performance' %}"
+class="btn btn-success mb-4">
+
+📈 Student Performance Dashboard
+
+</a>
+
+
 
 <!-- 📊 CHART -->
 <div class="card p-4 mb-4">
@@ -110,6 +284,59 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     }
+
+    const submissionCtx =
+    document.getElementById("submissionChart");
+
+    if (submissionCtx) {
+
+        new Chart(submissionCtx, {
+
+            type: "doughnut",
+
+            data: {
+
+                labels: [
+
+                    "Submitted",
+
+                    "Pending"
+
+                ],
+
+                datasets: [{
+
+                    data: [
+
+                        Number("{{ total_submissions }}"),
+
+                        Number("{{ pending_submissions }}")
+
+                    ]
+
+                }]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                plugins: {
+
+                    legend: {
+
+                        position: "bottom"
+
+                    }
+
+                }
+
+            }
+
+        });
+
+    }   
 
 });
 </script>
@@ -183,118 +410,185 @@ document.addEventListener("DOMContentLoaded", function () {
 
 <hr>
 
-<h4 class="mt-4">📊 Assignment Analytics</h4>
+<hr>
 
-{% for stat in assignment_stats %}
+<h4 class="mt-4">
+📋 Recent Activity
+</h4>
 
-<div class="card shadow-sm mb-3">
+<div class="card shadow-sm">
 
-    <div class="card-body">
+<div class="list-group list-group-flush">
 
-        <h5>
-            📄 {{ stat.assignment.title }}
-        </h5>
+{% for activity in activity_feed %}
 
-        <p>
-            Due:
-            {{ stat.assignment.due_date|date:"d M Y" }}
-        </p>
+<div class="list-group-item">
 
-        <div class="row">
+<h6>
 
-            <div class="col-md-3">
+{{ activity.icon }}
 
-                👨‍🎓 Students
+{{ activity.message }}
 
-                <h5>{{ stat.enrolled }}</h5>
+</h6>
 
-            </div>
+<small class="text-muted">
 
-            <div class="col-md-3">
+{{ activity.time|date:"d M Y H:i" }}
 
-                📤 Submitted
-
-                <h5>{{ stat.submitted }}</h5>
-
-            </div>
-
-            <div class="col-md-3">
-
-                ⏳ Pending
-
-                <h5>{{ stat.pending }}</h5>
-
-            </div>
-
-            <div class="col-md-3">
-
-                📈 {{ stat.submission_rate }}%
-
-            </div>
-
-        </div>
-
-        {% if stat.average %}
-
-        <hr>
-
-        <div class="row">
-
-            <div class="col">
-
-                ⭐ Avg
-
-                {{ stat.average }}
-
-            </div>
-
-            <div class="col">
-
-                🥇 Highest
-
-                {{ stat.highest }}
-
-            </div>
-
-            <div class="col">
-
-                📉 Lowest
-
-                {{ stat.lowest }}
-
-            </div>
-
-        </div>
-
-        {% endif %}
-
-        <hr>
-
-        <a href="{% url 'view_submissions' stat.assignment.id %}"
-           class="btn btn-success btn-sm">
-
-            📥 Submissions
-
-        </a>
-
-        <a href="{% url 'check_submissions' stat.assignment.id %}"
-           class="btn btn-warning btn-sm">
-
-            ✅ Check
-
-        </a>
-
-    </div>
+</small>
 
 </div>
 
 {% empty %}
 
-<div class="alert alert-info">
-    No assignments found.
+<div class="list-group-item">
+
+No recent activity.
+
 </div>
 
 {% endfor %}
+
+</div>
+
+</div>
+
+<hr>
+
+<h4 class="mt-4">
+    📊 Assignment Performance Analytics
+</h4>
+
+<div class="card shadow-sm">
+
+    <div class="table-responsive">
+
+        <table class="table table-hover mb-0">
+
+            <thead class="table-dark">
+
+                <tr>
+
+                    <th>Assignment</th>
+                    <th>Submitted</th>
+                    <th>Average</th>
+                    <th>Highest</th>
+                    <th>Lowest</th>
+                    <th>Submission %</th>
+                    <th>Difficulty</th>
+                    <th>Action</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+            {% for stat in assignment_stats %}
+
+                <tr>
+
+                    <td>
+
+                        {{ stat.assignment.title }}
+
+                    </td>
+
+                    <td>
+
+                        {{ stat.submitted }}
+
+                    </td>
+
+                    <td>
+
+                        {{ stat.average|default:"-" }}
+
+                    </td>
+
+                    <td>
+
+                        {{ stat.highest|default:"-" }}
+
+                    </td>
+
+                    <td>
+
+                        {{ stat.lowest|default:"-" }}
+
+                    </td>
+
+                    <td>
+
+                        {% if stat.submission_percentage >= 80 %}
+
+                            <span class="badge bg-success">
+
+                                {{ stat.submission_percentage }}%
+
+                            </span>
+
+                        {% elif stat.submission_percentage >= 50 %}
+
+                            <span class="badge bg-warning text-dark">
+
+                                {{ stat.submission_percentage }}%
+
+                            </span>
+
+                        {% else %}
+
+                            <span class="badge bg-danger">
+
+                                {{ stat.submission_percentage }}%
+
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+
+                        {{ stat.difficulty }}
+
+                    </td>
+
+                    <td>
+
+                        <a href="{% url 'check_submissions' stat.assignment.id %}"
+                           class="btn btn-warning btn-sm">
+
+                            Review
+
+                        </a>
+
+                    </td>
+
+                </tr>
+
+            {% empty %}
+
+                <tr>
+
+                    <td colspan="8">
+
+                        No assignments available.
+
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
 
 
 <!-- CHART SCRIPT -->

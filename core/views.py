@@ -30,10 +30,14 @@ from .models import Doubt
 from .models import CallOffer
 from .models import CallAnswer
 from django.contrib import messages
-from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Prefetch
-from django.db.models import Avg, Max, Min
+from django.db.models import Avg, Max, Min, Count, Sum
+from django.shortcuts import get_object_or_404, redirect, render
+from django.db.models.functions import TruncMonth
+from collections import defaultdict
+
+
 
 def is_enrolled(user):
     
@@ -111,6 +115,52 @@ def dashboard(request):
             lesson__module__course__in=courses
         ).count()
 
+        # -----------------------------
+        # Teacher Analytics
+        # -----------------------------
+
+        submissions = Submission.objects.filter(
+            assignment__lesson__module__course__in=courses
+        )
+
+        total_submissions = submissions.count()
+
+        pending_reviews = submissions.filter(
+            status="submitted"
+        ).count()
+
+        checked_submissions = submissions.filter(
+            status="checked",
+            marks__isnull=False
+        )
+
+        from django.db.models import Avg
+
+        average_marks = (
+            checked_submissions.aggregate(
+                Avg("marks")
+            )["marks__avg"] or 0
+        )
+
+        attendance_records = Attendance.objects.filter(
+            live_class__course__in=courses,
+            leave_time__isnull=False
+        )
+
+        attendance_percentage = 0
+
+        if attendance_records.exists():
+
+            total = attendance_records.count()
+
+            attended = attendance_records.exclude(
+                join_time__isnull=True
+            ).count()
+
+            attendance_percentage = round(
+                attended * 100 / total
+            )
+
         assignment_stats = []
 
         for assignment in Assignment.objects.filter(
@@ -126,6 +176,13 @@ def dashboard(request):
             )
 
             submitted = submissions.count()
+
+            submission_percentage = 0
+
+            if enrolled:
+                submission_percentage = round(
+                    submitted * 100 / enrolled
+                )
 
             pending = max(enrolled - submitted, 0)
 
@@ -162,6 +219,19 @@ def dashboard(request):
                     Min("marks")
                 )["marks__min"]
 
+                difficulty = "Not Enough Data"
+
+                if avg_marks is not None:
+
+                    if avg_marks >= 75:
+                        difficulty = "🟢 Easy"
+
+                    elif avg_marks >= 50:
+                        difficulty = "🟡 Medium"
+
+                    else:
+                        difficulty = "🔴 Difficult"
+
             assignment_stats.append({
 
                 "assignment": assignment,
@@ -174,13 +244,147 @@ def dashboard(request):
 
                 "submission_rate": submission_rate,
 
+                "submission_percentage": submission_percentage,
+
                 "average": avg_marks,
 
                 "highest": highest,
 
                 "lowest": lowest,
 
+                "difficulty": difficulty,
+
             })
+
+            top_students = []
+
+            students = User.objects.filter(
+                enrollment__course__in=courses,
+                user_type="student"
+            ).distinct()
+
+            for student in students:
+
+                checked = Submission.objects.filter(
+                    student=student,
+                    assignment__lesson__module__course__in=courses,
+                    status="checked",
+                    marks__isnull=False
+                )
+
+                avg_marks = checked.aggregate(
+                    Avg("marks")
+                )["marks__avg"] or 0
+
+                total_lessons = Lesson.objects.filter(
+                    module__course__in=courses
+                ).count()
+
+                completed = Progress.objects.filter(
+                    student=student,
+                    lesson__module__course__in=courses,
+                    completed=True
+                ).count()
+
+                progress = 0
+
+                if total_lessons:
+                    progress = round(
+                        completed * 100 / total_lessons
+                    )
+
+                top_students.append({
+
+                    "student": student,
+
+                    "average": round(avg_marks, 1),
+
+                    "progress": progress,
+
+                })
+
+            top_students = sorted(
+                top_students,
+                key=lambda x: x["average"],
+                reverse=True
+            )[:10]
+
+            attention_students = []
+
+            for student in students:
+
+                # Total lessons
+                total_lessons = Lesson.objects.filter(
+                    module__course__in=courses
+                ).count()
+
+                completed = Progress.objects.filter(
+                    student=student,
+                    lesson__module__course__in=courses,
+                    completed=True
+                ).count()
+
+                progress = 0
+
+                if total_lessons:
+                    progress = round(
+                        completed * 100 / total_lessons
+                    )
+
+                # Assignment statistics
+                total_student_assignments = Assignment.objects.filter(
+                    lesson__module__course__in=courses
+                ).count()
+
+                submitted = Submission.objects.filter(
+                    student=student,
+                    assignment__lesson__module__course__in=courses
+                ).count()
+
+                pending = max(
+                    total_student_assignments - submitted,
+                    0
+                )
+
+                checked = Submission.objects.filter(
+                    student=student,
+                    assignment__lesson__module__course__in=courses,
+                    status="checked",
+                    marks__isnull=False
+                )
+
+                average = checked.aggregate(
+                    Avg("marks")
+                )["marks__avg"] or 0
+
+                if (
+                    progress < 50
+                    or pending > 3
+                    or average < 40
+                ):
+
+                    attention_students.append({
+
+                        "student": student,
+
+                        "progress": progress,
+
+                        "pending": pending,
+
+                        "average": round(average,1)
+
+                    })
+
+            total_enrolled = Enrollment.objects.filter(
+                course__in=courses
+            ).count()
+
+            expected_submissions = total_enrolled * total_assignments
+
+            pending_submissions = max(
+                expected_submissions - total_submissions,
+                0
+            )
 
         thirty_minutes_ago = timezone.now() - timedelta(minutes=30)
 
@@ -217,6 +421,97 @@ def dashboard(request):
             Avg("marks")
         )["marks__avg"] or 0
 
+
+        from itertools import chain
+
+        recent_submissions = Submission.objects.filter(
+            assignment__lesson__module__course__in=courses
+        ).select_related(
+            "student",
+            "assignment"
+        ).order_by("-submitted_at")[:5]
+
+        recent_enrollments = Enrollment.objects.filter(
+            course__in=courses
+        ).select_related(
+            "student",
+            "course"
+        ).order_by("-id")[:5]
+
+        recent_live_classes = LiveClass.objects.filter(
+            course__in=courses
+        ).select_related(
+            "course"
+        ).order_by("-date")[:5]
+
+        recent_recordings = Recording.objects.filter(
+            live_class__course__in=courses
+        ).select_related(
+            "live_class"
+        ).order_by("-uploaded_at")[:5]
+
+
+        activity_feed = []
+
+        for s in recent_submissions:
+
+            activity_feed.append({
+
+                "icon": "📝",
+
+                "message":
+                    f"{s.student.username} submitted '{s.assignment.title}'",
+
+                "time": s.submitted_at
+
+            })
+
+        for e in recent_enrollments:
+
+            activity_feed.append({
+
+                "icon": "👨‍🎓",
+
+                "message":
+                    f"{e.student.username} enrolled in {e.course.title}",
+
+                "time": e.created_at
+
+            })
+
+        for c in recent_live_classes:
+
+            activity_feed.append({
+
+                "icon": "🎥",
+
+                "message":
+                    f"Live class '{c.title}' scheduled",
+
+                "time": c.date
+
+            })
+
+        for r in recent_recordings:
+
+            activity_feed.append({
+
+                "icon": "📹",
+
+                "message":
+                    f"Recording uploaded for {r.live_class.title}",
+
+                "time": r.uploaded_at
+
+            })
+
+        activity_feed.sort(
+            key=lambda x: x["time"],
+            reverse=True
+        )
+
+        activity_feed = activity_feed[:10]
+
         return render(request, 'teacher_dashboard.html', {
             'courses': courses,
             'total_students': total_students,
@@ -231,6 +526,12 @@ def dashboard(request):
             "total_submissions": total_submissions,
             "pending_reviews": pending_reviews,
             "average_marks": round(average_marks, 1),
+            "attendance_percentage": attendance_percentage,
+            "expected_submissions": expected_submissions,
+            "pending_submissions": pending_submissions,
+            "top_students": top_students,
+            "attention_students": attention_students,
+            "activity_feed": activity_feed,
         })
         
     else:
@@ -362,6 +663,118 @@ def dashboard(request):
             'notification_count': notification_count,
             'notifications': notifications,
         })
+
+
+@login_required
+def teacher_analytics(request):
+
+    if request.user.user_type != "teacher":
+        return redirect("dashboard")
+
+    courses = Course.objects.filter(
+        teacher=request.user
+    )
+
+    students = Enrollment.objects.filter(
+        course__in=courses
+    )
+
+    assignments = Assignment.objects.filter(
+        lesson__module__course__in=courses
+    )
+
+    submissions = Submission.objects.filter(
+        assignment__lesson__module__course__in=courses
+    )
+
+    recordings = Recording.objects.filter(
+        live_class__course__in=courses
+    )
+
+    live_classes = LiveClass.objects.filter(
+        course__in=courses
+    )
+
+    monthly_enrollments = (
+        students
+        .annotate(month=TruncMonth("created_at"))
+        .values("month")
+        .annotate(total=Count("id"))
+        .order_by("month")
+    )
+
+    monthly_submissions = (
+        submissions
+        .annotate(month=TruncMonth("submitted_at"))
+        .values("month")
+        .annotate(total=Count("id"))
+        .order_by("month")
+    )
+
+    context = {
+
+        "total_courses": courses.count(),
+
+        "total_students": students.count(),
+
+        "total_assignments": assignments.count(),
+
+        "total_submissions": submissions.count(),
+
+        "pending_reviews": submissions.filter(
+            status="submitted"
+        ).count(),
+
+        "average_marks":
+            submissions.filter(
+                marks__isnull=False
+            ).aggregate(
+                Avg("marks")
+            )["marks__avg"] or 0,
+
+        "total_recordings": recordings.count(),
+
+        "total_live_classes": live_classes.count(),
+
+    }
+
+    context["enrollment_labels_json"] = json.dumps(
+        [
+            x["month"].strftime("%b %Y")
+            for x in monthly_enrollments
+            if x["month"]
+        ]
+    )
+
+    context["enrollment_data_json"] = json.dumps(
+        [
+            x["total"]
+            for x in monthly_enrollments
+            if x["month"]
+        ]
+    )
+
+    context["submission_labels_json"] = json.dumps(
+        [
+            x["month"].strftime("%b %Y")
+            for x in monthly_submissions
+            if x["month"]
+        ]
+    )
+
+    context["submission_data_json"] = json.dumps(
+        [
+            x["total"]
+            for x in monthly_submissions
+            if x["month"]
+        ]
+    )
+
+    return render(
+        request,
+        "teacher_analytics.html",
+        context
+    )
     
 
 
@@ -1639,3 +2052,363 @@ def delete_recording(request, recording_id):
     messages.success(request, "Recording deleted successfully.")
 
     return redirect("dashboard")
+
+
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def gradebook(request):
+
+    if request.user.user_type != "teacher":
+        return redirect("dashboard")
+
+    submissions = Submission.objects.filter(
+        assignment__lesson__module__course__teacher=request.user
+    ).select_related(
+        "student",
+        "assignment",
+        "assignment__lesson__module__course"
+    )
+
+    total = submissions.count()
+
+    checked = submissions.filter(
+        status="checked"
+    ).count()
+
+    checked_percent = 0
+
+    if total:
+        checked_percent = round(
+            checked * 100 / total
+        )
+
+    # -----------------------
+    # FILTERS
+    # -----------------------
+
+    student = request.GET.get("student")
+    course = request.GET.get("course")
+    assignment = request.GET.get("assignment")
+    status = request.GET.get("status")
+
+    if student:
+        submissions = submissions.filter(
+            student__username__icontains=student
+        )
+
+    if course:
+        submissions = submissions.filter(
+            assignment__lesson__module__course_id=course
+        )
+
+    if assignment:
+        submissions = submissions.filter(
+            assignment_id=assignment
+        )
+
+    if status:
+        submissions = submissions.filter(
+            status=status
+        )
+
+    stats = submissions.aggregate(
+        average=Avg("marks"),
+        highest=Max("marks"),
+        lowest=Min("marks"),
+        total=Count("id"),
+    )
+
+    pending_reviews = submissions.filter(
+        status="submitted"
+    ).count()
+
+    courses = Course.objects.filter(
+        teacher=request.user
+    )
+
+    assignments = Assignment.objects.filter(
+        lesson__module__course__teacher=request.user
+    )
+
+    return render(
+        request,
+        "gradebook.html",
+        {
+            "submissions": submissions,
+            "courses": courses,
+            "assignments": assignments,
+            "stats": stats,
+            "pending_reviews": pending_reviews,
+            "checked_percent": checked_percent,
+        },
+    )
+
+
+from django.views.decorators.http import require_POST
+
+@require_POST
+@login_required
+def update_grade(request, submission_id):
+
+    if request.user.user_type != "teacher":
+        return redirect("dashboard")
+
+    submission = get_object_or_404(
+        Submission,
+        id=submission_id,
+        assignment__lesson__module__course__teacher=request.user
+    )
+
+    marks = request.POST.get("marks")
+    remarks = request.POST.get("remarks")
+
+    if marks:
+        submission.marks = int(marks)
+
+    submission.remarks = remarks
+    submission.status = "checked"
+    submission.save()
+
+    return redirect("gradebook")
+
+
+
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def student_performance(request):
+
+    if request.user.user_type != "teacher":
+        return redirect("dashboard")
+
+    students = (
+        User.objects.filter(
+            enrollment__course__teacher=request.user
+        )
+        .distinct()
+    )
+
+    student_stats = []
+
+    for student in students:
+
+        # Courses of this teacher in which the student is enrolled
+        enrollments = Enrollment.objects.filter(
+            student=student,
+            course__teacher=request.user
+        )
+
+        courses = [e.course for e in enrollments]
+
+        # ---------- Assignments ----------
+        assignments = Assignment.objects.filter(
+            lesson__module__course__in=courses
+        )
+
+        total_assignments = assignments.count()
+
+        submissions = Submission.objects.filter(
+            assignment__in=assignments,
+            student=student
+        )
+
+        submitted = submissions.count()
+
+        pending = total_assignments - submitted
+
+        # ---------- Marks ----------
+        average_marks = submissions.aggregate(
+            Avg("marks")
+        )["marks__avg"] or 0
+
+        highest_marks = submissions.aggregate(
+            Max("marks")
+        )["marks__max"] or 0
+
+        lowest_marks = submissions.aggregate(
+            Min("marks")
+        )["marks__min"] or 0
+
+        # ---------- Lessons ----------
+        total_lessons = Lesson.objects.filter(
+            module__course__in=courses
+        ).count()
+
+        completed_lessons = Progress.objects.filter(
+            student=student,
+            lesson__module__course__in=courses,
+            completed=True
+        ).count()
+
+        lesson_progress = 0
+
+        if total_lessons:
+            lesson_progress = round(
+                completed_lessons * 100 / total_lessons
+            )
+
+        # ---------- Attendance ----------
+        total_live = LiveClass.objects.filter(
+            course__in=courses
+        ).count()
+
+        attended = Attendance.objects.filter(
+            student=student,
+            live_class__course__in=courses
+        ).count()
+
+        attendance = 0
+
+        if total_live:
+            attendance = round(
+                attended * 100 / total_live
+            )
+
+        # ---------- Quiz ----------
+        quiz_average = QuizResult.objects.filter(
+            student=student,
+            quiz__course__in=courses
+        ).aggregate(
+            Avg("score")
+        )["score__avg"] or 0
+
+        student_stats.append({
+
+            "student": student,
+
+            "submitted": submitted,
+
+            "pending": pending,
+
+            "average": round(average_marks, 1),
+
+            "highest": highest_marks,
+
+            "lowest": lowest_marks,
+
+            "progress": lesson_progress,
+
+            "attendance": attendance,
+
+            "quiz_average": round(quiz_average, 1),
+
+        })
+
+    return render(
+        request,
+        "student_performance.html",
+        {
+            "student_stats": student_stats,
+        }
+    )
+
+
+
+@login_required
+def student_report(request, student_id):
+
+    if request.user.user_type != "teacher":
+        return redirect("dashboard")
+
+    student = get_object_or_404(User, id=student_id)
+
+    courses = Course.objects.filter(
+        teacher=request.user,
+        enrollment__student=student
+    ).distinct()
+
+    assignments = Assignment.objects.filter(
+        lesson__module__course__in=courses
+    )
+
+    submissions = Submission.objects.filter(
+        student=student,
+        assignment__in=assignments
+    )
+
+    total_assignments = assignments.count()
+
+    submitted = submissions.count()
+
+    pending = max(total_assignments - submitted, 0)
+
+    average_marks = submissions.aggregate(
+        Avg("marks")
+    )["marks__avg"] or 0
+
+    highest_marks = submissions.order_by("-marks").first()
+
+    lowest_marks = submissions.exclude(
+        marks__isnull=True
+    ).order_by("marks").first()
+
+    total_lessons = Lesson.objects.filter(
+        module__course__in=courses
+    ).count()
+
+    completed_lessons = Progress.objects.filter(
+        student=student,
+        lesson__module__course__in=courses,
+        completed=True
+    ).count()
+
+    progress = 0
+    remaining_progress = 100
+
+    if total_lessons:
+        progress = round(
+            completed_lessons * 100 / total_lessons
+        )
+
+        remaining_progress = max(0, 100 - progress)
+
+    total_live = LiveClass.objects.filter(
+        course__in=courses
+    ).count()
+
+    attended = Attendance.objects.filter(
+        student=student,
+        live_class__course__in=courses
+    ).count()
+
+    attendance = 0
+
+    if total_live:
+        attendance = round(
+            attended * 100 / total_live
+        )
+
+    quiz_average = QuizResult.objects.filter(
+        student=student,
+        quiz__course__in=courses
+    ).aggregate(
+        Avg("score")
+    )["score__avg"] or 0
+
+    return render(
+        request,
+        "student_report.html",
+        {
+            "student": student,
+            "courses": courses,
+            "submissions": submissions,
+            "attendance": attendance,
+            "progress": progress,
+            "remaining_progress": remaining_progress,
+            "submitted": submitted,
+            "pending": pending,
+            "average_marks": round(average_marks, 1),
+            "highest_marks": highest_marks,
+            "lowest_marks": lowest_marks,
+            "quiz_average": round(quiz_average, 1),
+            "submitted": submitted,
+            "pending": pending,
+        },
+    )
+
+
+@login_required
+def teacher_analytics(request):
+    # Analytics code will go here
+    return render(request, "teacher_analytics.html")

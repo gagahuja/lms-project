@@ -30,6 +30,7 @@ class Course(models.Model):
 class Enrollment(models.Model):
     student = models.ForeignKey(User, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.student.username} - {self.course.title}"
@@ -139,6 +140,16 @@ class Submission(models.Model):
             ("checked", "Checked"),
         ],
         default="submitted"
+    )
+
+    teacher_feedback = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    reviewed_at = models.DateTimeField(
+        blank=True,
+        null=True
     )
 
 

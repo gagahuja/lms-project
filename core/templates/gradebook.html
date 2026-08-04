@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<form method="get" class="row mb-4">
+
+<div class="col-md-3">
+
+<input
+type="text"
+name="student"
+placeholder="Search student..."
+value="{{ request.GET.student }}"
+class="form-control">
+
+</div>
+
+<div class="col-md-3">
+
+<select
+name="course"
+class="form-select">
+
+<option value="">All Courses</option>
+
+{% for c in courses %}
+
+<option
+value="{{ c.id }}"
+{% if request.GET.course == c.id|stringformat:"s" %}selected{% endif %}>
+
+{{ c.title }}
+
+</option>
+
+{% endfor %}
+
+</select>
+
+</div>
+
+<div class="col-md-3">
+
+<select
+name="assignment"
+class="form-select">
+
+<option value="">All Assignments</option>
+
+{% for a in assignments %}
+
+<option
+value="{{ a.id }}"
+{% if request.GET.assignment == a.id|stringformat:"s" %}selected{% endif %}>
+
+{{ a.title }}
+
+</option>
+
+{% endfor %}
+
+</select>
+
+</div>
+
+<div class="col-md-2">
+
+<select
+name="status"
+class="form-select">
+
+<option value="">All</option>
+
+<option value="submitted">Submitted</option>
+
+<option value="checked">Checked</option>
+
+</select>
+
+</div>
+
+<div class="col-md-1">
+
+<button class="btn btn-primary w-100">
+
+Go
+
+</button>
+
+</div>
+
+</form>
+
+<div class="row mb-4">
+
+<div class="col-md-3">
+<div class="card p-3 text-center">
+<h4>{{ stats.total }}</h4>
+<small>Total</small>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card p-3 text-center">
+<h4>{{ pending_reviews }}</h4>
+<small>Pending</small>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card p-3 text-center">
+<h4>{{ stats.average|default:0|floatformat:1 }}</h4>
+<small>Average</small>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card p-3 text-center">
+<h4>{{ stats.highest|default:0 }}</h4>
+<small>Highest</small>
+</div>
+</div>
+
+</div>
+
+<div class="progress mb-4" style="height:30px;">
+
+    <div
+        class="progress-bar bg-success"
+        role="progressbar"
+        style="--progress: {{ checked_percent }}%; width: var(--progress);">
+
+        {{ checked_percent }}% Reviewed
+
+    </div>
+
+</div>
+
+<h2 class="mb-4">📚 Gradebook</h2>
+
+<div class="card shadow-sm">
+
+<div class="table-responsive">
+
+<table class="table table-hover align-middle">
+
+<thead class="table-dark">
+
+<tr>
+
+<th>Student</th>
+
+<th>Course</th>
+
+<th>Assignment</th>
+
+<th>Marks</th>
+
+<th>Status</th>
+
+<th>Submitted</th>
+
+<th>Action</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for s in submissions %}
+
+<tr>
+
+<td>{{ s.student.username }}</td>
+
+<td>{{ s.assignment.lesson.module.course.title }}</td>
+
+<td>{{ s.assignment.title }}</td>
+
+<td>
+
+{% if s.marks %}
+
+<td>
+
+{% if s.marks == None %}
+
+<span class="badge bg-secondary">
+Pending
+</span>
+
+{% elif s.marks >= 80 %}
+
+<span class="badge bg-success">
+{{ s.marks }}/100
+</span>
+
+{% elif s.marks >= 60 %}
+
+<span class="badge bg-primary">
+{{ s.marks }}/100
+</span>
+
+{% elif s.marks >= 40 %}
+
+<span class="badge bg-warning text-dark">
+{{ s.marks }}/100
+</span>
+
+{% else %}
+
+<span class="badge bg-danger">
+{{ s.marks }}/100
+</span>
+
+{% endif %}
+
+</td>
+
+{% else %}
+
+<span class="badge bg-warning">
+
+Pending
+
+</span>
+
+{% endif %}
+
+</td>
+
+<td>
+
+{% if s.status == "checked" %}
+
+<span class="badge bg-success">
+✅ Checked
+</span>
+
+{% elif s.status == "submitted" %}
+
+<span class="badge bg-warning text-dark">
+📤 Submitted
+</span>
+
+{% else %}
+
+<span class="badge bg-secondary">
+Pending
+</span>
+
+{% endif %}
+
+</td>
+
+<td>
+
+{{ s.submitted_at|date:"d M Y" }}
+
+</td>
+
+<td>
+
+<form method="POST"
+      action="{% url 'update_grade' s.id %}">
+
+    {% csrf_token %}
+
+    <input
+        type="number"
+        name="marks"
+        value="{{ s.marks }}"
+        class="form-control mb-2"
+        min="0"
+        max="100">
+
+    <input
+        type="text"
+        name="remarks"
+        value="{{ s.remarks }}"
+        class="form-control mb-2">
+
+    <button class="btn btn-success btn-sm">
+        💾 Save
+    </button>
+
+</form>
+
+</td>
+
+</tr>
+
+{% empty %}
+
+<tr>
+
+<td colspan="7" class="text-center">
+
+No submissions yet.
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+{% endblock %}

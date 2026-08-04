@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2 class="mb-4">
+📊 Teacher Analytics
+</h2>
+
+
+<div class="row g-4">
+
+<div class="col-md-3">
+<div class="card shadow-sm p-3 text-center">
+<h2>{{ total_courses }}</h2>
+<small>Total Courses</small>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card shadow-sm p-3 text-center">
+<h2>{{ total_students }}</h2>
+<small>Total Students</small>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card shadow-sm p-3 text-center">
+<h2>{{ total_assignments }}</h2>
+<small>Assignments</small>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card shadow-sm p-3 text-center">
+<h2>{{ total_submissions }}</h2>
+<small>Submissions</small>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card shadow-sm p-3 text-center">
+<h2>{{ pending_reviews }}</h2>
+<small>Pending Reviews</small>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card shadow-sm p-3 text-center">
+<h2>{{ average_marks|floatformat:1 }}</h2>
+<small>Average Marks</small>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card shadow-sm p-3 text-center">
+<h2>{{ total_live_classes }}</h2>
+<small>Live Classes</small>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card shadow-sm p-3 text-center">
+<h2>{{ total_recordings }}</h2>
+<small>Recordings</small>
+</div>
+</div>
+
+</div>
+
+<div class="row mt-4">
+
+    <div class="col-md-6">
+
+        <div class="card shadow-sm p-4">
+
+            <h5>📈 Monthly Enrollments</h5>
+
+            <canvas id="enrollmentChart"></canvas>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-6">
+
+        <div class="card shadow-sm p-4">
+
+            <h5>📥 Monthly Submissions</h5>
+
+            <canvas id="submissionChart"></canvas>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const enrollmentLabels =
+    JSON.parse('{{ enrollment_labels_json|escapejs }}');
+
+    const enrollmentData =
+    JSON.parse('{{ enrollment_data_json|escapejs }}');
+
+    const submissionLabels =
+    JSON.parse('{{ submission_labels_json|escapejs }}');
+
+    const submissionData =
+    JSON.parse('{{ submission_data_json|escapejs }}');
+
+
+    const enrollmentCanvas =
+    document.getElementById("enrollmentChart");
+
+    if (enrollmentCanvas) {
+
+        new Chart(enrollmentCanvas, {
+
+            type: "line",
+
+            data: {
+
+                labels: enrollmentLabels,
+
+                datasets: [{
+
+                    label: "Enrollments",
+
+                    data: enrollmentData,
+
+                    borderWidth: 3,
+
+                    fill: false
+
+                }]
+
+            }
+
+        });
+
+    }
+
+
+    const submissionCanvas =
+    document.getElementById("submissionChart");
+
+    if (submissionCanvas) {
+
+        new Chart(submissionCanvas, {
+
+            type: "bar",
+
+            data: {
+
+                labels: submissionLabels,
+
+                datasets: [{
+
+                    label: "Submissions",
+
+                    data: submissionData
+
+                }]
+
+            }
+
+        });
+
+    }
+
+});
+</script>
+
+{% endblock %}

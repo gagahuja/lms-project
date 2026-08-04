@@ -3,6 +3,8 @@ from . import views
 from django.conf import settings
 from django.conf.urls.static import static
 from .views import upload_file
+from django.contrib import messages
+import os
 
 
 
@@ -69,6 +71,11 @@ urlpatterns = [
         views.live_class_v2,
         name="live_class_v2"
     ),
+    path("gradebook/",views.gradebook,name="gradebook"),
+    path("update-grade/<int:submission_id>/",views.update_grade,name="update_grade",),
+    path("student-performance/",views.student_performance,name="student_performance",),
+    path("student-report/<int:student_id>/",views.student_report,name="student_report",),
+    path("teacher-analytics/",views.teacher_analytics,name="teacher_analytics",),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
