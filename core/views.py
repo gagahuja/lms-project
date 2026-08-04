@@ -2449,14 +2449,16 @@ def student_analytics(request):
 
     attendance_percent = 0
 
-    if attendance.exists():
+    total_live_classes = LiveClass.objects.filter(
+        course__in=courses
+    ).count()
+
+    attended_classes = attendance.count()
+
+    if total_live_classes > 0:
 
         attendance_percent = round(
-            attendance.filter(
-                present=True
-            ).count()
-            * 100
-            / attendance.count()
+            attended_classes * 100 / total_live_classes
         )
 
     progress = 0
