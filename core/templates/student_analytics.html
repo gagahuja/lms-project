@@ -8,88 +8,258 @@
 
 <div class="row g-4">
 
-<div class="col-md-3">
-<div class="card shadow-sm text-center p-4">
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-4">
+            <h2 class="display-5 fw-bold">{{ course_count }}</h2>
+            <small>Courses</small>
+        </div>
+    </div>
 
-<h2>{{ course_count }}</h2>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-4">
+            <h2 class="display-5 fw-bold">{{ assignment_count }}</h2>
+            <small>Assignments</small>
+        </div>
+    </div>
 
-<small>Courses</small>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-4">
+            <h2 class="display-5 fw-bold">{{ average_marks }}</h2>
+            <small>Average Marks</small>
+        </div>
+    </div>
 
-</div>
-</div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-4">
+            <h2 class="display-5 fw-bold">{{ attendance_percent }}%</h2>
+            <small>Attendance</small>
+        </div>
+    </div>
 
-<div class="col-md-3">
-<div class="card shadow-sm text-center p-4">
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-4">
+            <h2 class="display-5 fw-bold">{{ quiz_count }}</h2>
+            <small>Quizzes</small>
+        </div>
+    </div>
 
-<h2>{{ assignment_count }}</h2>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-4">
+            <h2 class="display-5 fw-bold">{{ average_quiz }}</h2>
+            <small>Quiz Average</small>
+        </div>
+    </div>
 
-<small>Assignments</small>
+    <div class="col-md-6">
+        <div class="card shadow-sm p-4">
 
-</div>
-</div>
+            <h5>Course Progress</h5>
 
-<div class="col-md-3">
-<div class="card shadow-sm text-center p-4">
+            <div class="progress" style="height:30px;">
 
-<h2>{{ average_marks }}</h2>
+                <div class="progress-bar bg-success"
+                     style="width: {{ progress|default:0 }}%;">
 
-<small>Average Marks</small>
+                    {{ progress }}%
 
-</div>
-</div>
+                </div>
 
-<div class="col-md-3">
-<div class="card shadow-sm text-center p-4">
+            </div>
 
-<h2>{{ attendance_percent }}%</h2>
-
-<small>Attendance</small>
-
-</div>
-</div>
-
-<div class="col-md-3">
-<div class="card shadow-sm text-center p-4">
-
-<h2>{{ quiz_count }}</h2>
-
-<small>Quizzes</small>
-
-</div>
-</div>
-
-<div class="col-md-3">
-<div class="card shadow-sm text-center p-4">
-
-<h2>{{ average_quiz }}</h2>
-
-<small>Quiz Average</small>
-
-</div>
-</div>
-
-<div class="col-md-6">
-
-<div class="card shadow-sm p-4">
-
-<h5>Course Progress</h5>
-
-<div class="progress" style="height:30px;">
-
-<div class="progress-bar bg-success"
-
-style="width: {{ progress|default:0 }}%;">
-
-{{ progress }}%
+        </div>
+    </div>
 
 </div>
 
-</div>
+<div class="row mt-4">
+
+    <div class="col-md-6">
+
+        <div class="card shadow-sm p-4">
+
+            <h5>📈 Marks Trend</h5>
+
+            <div style="height:320px;">
+                <canvas id="marksChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="col-md-6">
+
+        <div class="card shadow-sm p-4">
+
+            <h5>📚 Assignment Status</h5>
+
+            <div style="height:320px;">
+                <canvas id="assignmentChart"></canvas>
+            </div>
+        </div>
+
+    </div>
 
 </div>
 
-</div>
+<div class="card shadow-sm p-4 mt-4">
+
+    <h5>📅 Attendance Overview</h5>
+
+    <div style="height:320px;">
+        <canvas id="attendanceChart"></canvas>
+    </div>
 
 </div>
+
+<div class="card shadow-sm p-4 mt-4">
+
+    <h4 class="mb-3">
+        🤖 AI Learning Insights
+    </h4>
+
+    <ul class="list-group">
+
+        {% for insight in ai_insights %}
+
+        <li class="list-group-item">
+
+            {{ insight }}
+
+        </li>
+
+        {% endfor %}
+
+    </ul>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const marksLabels =
+        JSON.parse('{{ marks_labels_json|default:"[]"|escapejs }}');
+
+    const marksData =
+        JSON.parse('{{ marks_data_json|default:"[]"|escapejs }}');
+
+    const assignmentData =
+        JSON.parse('{{ assignment_chart_json|default:"[]"|escapejs }}');
+
+    const attendanceData =
+        JSON.parse('{{ attendance_chart_json|default:"[]"|escapejs }}');
+
+
+    // Marks Chart
+
+    new Chart(document.getElementById("marksChart"), {
+
+        type: "line",
+
+        data: {
+
+            labels: marksLabels,
+
+            datasets: [{
+
+                label: "Average Marks",
+
+                data: marksData,
+
+                borderWidth: 3,
+
+                tension: 0.4,
+
+                fill: true,
+
+                pointRadius: 6
+
+            }]
+
+        },
+
+        options: {
+
+            responsive: true,
+
+            maintainAspectRatio: false,
+
+            scales: {
+
+                y: {
+
+                    beginAtZero: true,
+
+                    max: 100
+
+                }
+
+            }
+
+        }
+
+    });
+
+
+    // Assignment Chart
+
+    new Chart(document.getElementById("assignmentChart"), {
+
+        type: "doughnut",
+
+        data: {
+
+            labels: [
+
+                "Checked",
+
+                "Pending"
+
+            ],
+
+            datasets: [{
+
+                data: assignmentData
+
+            }]
+
+        }
+
+    });
+
+
+    // Attendance Chart
+
+    new Chart(document.getElementById("attendanceChart"), {
+
+        type: "doughnut",
+
+        data: {
+
+            labels: [
+
+                "Attended",
+
+                "Missed"
+
+            ],
+
+            datasets: [{
+
+                label: "Classes",
+
+                data: attendanceData
+
+            }]
+
+        }
+
+    });
+
+});
+
+</script>
 
 {% endblock %}

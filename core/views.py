@@ -2478,6 +2478,94 @@ def student_analytics(request):
                 total_assignments
             )
 
+    # Assignment Chart
+
+    checked_count = assignments.filter(
+        status="checked"
+    ).count()
+
+    pending_count = assignments.filter(
+        status="submitted"
+    ).count()
+
+    # Attendance Chart
+
+
+    missed_classes = max(
+        total_live_classes - attended_classes,
+        0
+    )
+
+    monthly_marks = (
+        checked
+        .annotate(month=TruncMonth("submitted_at"))
+        .values("month")
+        .annotate(avg_marks=Avg("marks"))
+        .order_by("month")
+    )
+
+    # ==========================
+    # AI Learning Insights
+    # ==========================
+
+    ai_insights = []
+
+    # Attendance
+    if attendance_percent >= 90:
+        ai_insights.append(
+            "🎉 Excellent attendance! Keep it up."
+        )
+    elif attendance_percent >= 75:
+        ai_insights.append(
+            "🙂 Good attendance, but there is room for improvement."
+        )
+    else:
+        ai_insights.append(
+            "⚠ Your attendance is low. Attend more live classes regularly."
+        )
+
+
+    # Assignment Completion
+    if progress == 100:
+        ai_insights.append(
+            "✅ Great job! You have completed all your assignments."
+        )
+    elif progress >= 70:
+        ai_insights.append(
+            "📚 You are doing well. Finish the remaining assignments."
+        )
+    else:
+        ai_insights.append(
+            "❗ Complete more assignments to improve your learning."
+        )
+
+
+    # Marks
+    if average_marks >= 80:
+        ai_insights.append(
+            "🏆 Excellent academic performance."
+        )
+    elif average_marks >= 60:
+        ai_insights.append(
+            "📈 Good performance. Keep practising."
+        )
+    else:
+        ai_insights.append(
+            "📖 Spend more time revising weak topics."
+        )
+
+
+    # Quiz
+    if quizzes.count() == 0:
+        ai_insights.append(
+            "📝 You haven't attempted any quizzes yet."
+        )
+    else:
+        ai_insights.append(
+            "🎯 Continue taking quizzes to improve."
+        )
+
+
     context = {
 
         "course_count": courses.count(),
@@ -2494,10 +2582,80 @@ def student_analytics(request):
 
         "progress": progress,
 
+        "assignment_chart_json": json.dumps([
+            checked_count,
+            pending_count
+        ]),
+
+        "attendance_chart_json": json.dumps([
+            attended_classes,
+            missed_classes
+        ]),
+
+        "ai_insights": ai_insights,
+
+        "marks_labels_json": json.dumps(
+            [x["month"].strftime("%b %Y") for x in monthly_marks]
+        ),
+
+        "marks_data_json": json.dumps(
+            [float(x["avg_marks"]) for x in monthly_marks]
+        ),
+
+
     }
 
     return render(
         request,
         "student_analytics.html",
+        context
+    )
+
+
+
+@login_required
+def leaderboard(request):
+
+    rankings = (
+        User.objects.filter(user_type="student")
+        .annotate(
+            average_marks=Avg("submission__marks")
+        )
+        .order_by("-average_marks", "username")
+    )
+
+    leaderboard = []
+
+    user_rank = None
+
+    for index, student in enumerate(rankings, start=1):
+
+        marks = student.average_marks or 0
+
+        leaderboard.append({
+
+            "rank": index,
+
+            "student": student,
+
+            "marks": round(marks, 1)
+
+        })
+
+        if student == request.user:
+
+            user_rank = index
+
+    context = {
+
+        "leaderboard": leaderboard,
+
+        "user_rank": user_rank,
+
+    }
+
+    return render(
+        request,
+        "leaderboard.html",
         context
     )
