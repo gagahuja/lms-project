@@ -2,6 +2,7 @@ from cloudinary_storage.storage import RawMediaCloudinaryStorage
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+
 class User(AbstractUser):
     USER_TYPE_CHOICES = (
         ('teacher', 'Teacher'),
@@ -308,5 +309,67 @@ class ChatFile(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     file = models.FileField(upload_to="chat_files/")
     uploaded_at = models.DateTimeField(auto_now_add=True)
+
+
+class Achievement(models.Model):
+
+    title = models.CharField(max_length=100)
+
+    description = models.TextField()
+
+    icon = models.CharField(
+        max_length=20,
+        default="🏆"
+    )
+
+    xp_reward = models.PositiveIntegerField(
+        default=0
+    )
+
+    def __str__(self):
+        return self.title
+
+
+class StudentProfile(models.Model):
+    student = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="profile"
+    )
+
+    xp = models.PositiveIntegerField(default=0)
+
+    level = models.PositiveIntegerField(default=1)
+
+    streak = models.PositiveIntegerField(default=0)
+
+    longest_streak = models.PositiveIntegerField(default=0)
+
+    achievements = models.ManyToManyField(
+        "Achievement",
+        blank=True
+    )
+
+    last_login_date = models.DateField(
+        null=True,
+        blank=True
+    )
+
+    def __str__(self):
+        return self.student.username
+
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+
+@receiver(post_save, sender=User)
+def create_student_profile(sender, instance, created, **kwargs):
+
+    if created and instance.user_type == "student":
+
+        StudentProfile.objects.get_or_create(
+            student=instance
+        )
 
 

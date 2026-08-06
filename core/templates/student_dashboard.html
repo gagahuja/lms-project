@@ -24,6 +24,95 @@
     </div>
 
 </div>
+
+<div class="card shadow-sm mt-4">
+
+    <div class="card-header">
+
+        🏅 Achievements
+
+    </div>
+
+    <div class="card-body">
+
+        {% if profile.achievements.all %}
+
+            {% for achievement in profile.achievements.all %}
+
+                <span class="badge bg-warning text-dark fs-6 m-1">
+
+                    {{ achievement.icon }}
+                    {{ achievement.title }}
+
+                </span>
+
+            {% endfor %}
+
+        {% else %}
+
+            <p class="text-muted">
+
+                No achievements yet.
+
+            </p>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+<div class="row g-3 mt-2">
+
+    <div class="col-lg-3 col-md-6">
+        <div class="card shadow-sm text-center p-4 h-100">
+            <h1>⭐ {{ profile.level }}</h1>
+            <h5>Level</h5>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="card shadow-sm text-center p-4 h-100">
+            <h1>⚡ {{ profile.xp }}</h1>
+            <h5>XP</h5>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="card shadow-sm text-center p-4 h-100">
+            <h1>🔥 {{ profile.streak }}</h1>
+            <h5>Current Streak</h5>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="card shadow-sm text-center p-4 h-100">
+            <h1>🏆 {{ profile.longest_streak }}</h1>
+            <h5>Best Streak</h5>
+        </div>
+    </div>
+
+</div>
+
+{% if profile.streak >= 30 %}
+
+<div class="alert alert-success">
+🔥 Amazing! You're on a {{ profile.streak }}-day learning streak!
+</div>
+
+{% elif profile.streak >= 7 %}
+
+<div class="alert alert-info">
+👏 Great job! Keep your {{ profile.streak }}-day streak alive.
+</div>
+
+{% else %}
+
+<div class="alert alert-warning">
+📚 Visit every day to build your learning streak.
+</div>
+
+{% endif %}
 {% endfor %}
 
 <!-- 🎓 ENROLLED COURSES -->

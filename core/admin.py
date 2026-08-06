@@ -4,7 +4,7 @@ from .models import User
 from .models import Course
 from .models import Enrollment
 from .models import LiveClass
-from .models import Module, Lesson, Assignment, Submission
+from .models import Module, Lesson, Assignment, Submission, StudentProfile
 from .models import Quiz, Question, StudentAnswer
 from .models import QuizResult
 from .models import Handout
@@ -49,6 +49,23 @@ class SubscriptionAdmin(admin.ModelAdmin):
     list_display = ['user', 'plan', 'is_active', 'start_date']
     list_editable = ['is_active']   # 🔥 toggle directly
 
+
+@admin.register(StudentProfile)
+class StudentProfileAdmin(admin.ModelAdmin):
+    list_display = (
+        "student",
+        "level",
+        "xp",
+        "streak",
+        "achievement_count",
+    )
+
+    def achievement_count(self, obj):
+        return obj.achievements.count()
+
+    achievement_count.short_description = "Achievements"
+
+    
 admin.site.register(Subscription, SubscriptionAdmin)
 admin.site.register(Enrollment, EnrollmentAdmin)
 admin.site.register(Assignment, AssignmentAdmin)

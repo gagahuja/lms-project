@@ -2,34 +2,89 @@
 
 {% block content %}
 
-<h3>🏆 Leaderboard</h3>
+<h2 class="mb-4">
+🏆 Student Leaderboard
+</h2>
 
-<table class="table table-dark table-striped">
-    <tr>
-        <th>Rank</th>
-        <th>Student</th>
-        <th>Score</th>
-    </tr>
+<div class="card shadow-sm">
 
-    {% for item in data %}
-    <tr>
-        <td>#{{ forloop.counter }}</td>
-        <td>{{ item.student.username }}</td>
-        <td>{{ item.score }}</td>
-    </tr>
-    {% endfor %}
-    <td>
-        {{ item.score }}
+<table class="table table-hover align-middle">
 
-        {% if item.score > 50 %}
-            🥇
-        {% elif item.score > 20 %}
-            🥈
-        {% else %}
-            🥉
-        {% endif %}
-    </td>
+<thead>
+
+<tr>
+
+<th>Rank</th>
+
+<th>Student</th>
+
+<th>Average Marks</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for row in leaderboard %}
+
+<tr
+{% if row.student == request.user %}
+class="table-success"
+{% endif %}
+>
+
+<td>
+
+{% if row.rank == 1 %}
+🥇
+
+{% elif row.rank == 2 %}
+🥈
+
+{% elif row.rank == 3 %}
+🥉
+
+{% else %}
+
+{{ row.rank }}
+
+{% endif %}
+
+</td>
+
+<td>
+
+{{ row.student.username }}
+
+</td>
+
+<td>
+
+{{ row.average_marks }}
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
 
 </table>
+
+</div>
+
+{% if user_rank %}
+
+<div class="alert alert-success mt-4">
+
+Your Rank
+
+<strong>#{{ user_rank }}</strong>
+
+</div>
+
+{% endif %}
 
 {% endblock %}

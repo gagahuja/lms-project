@@ -36,7 +36,11 @@ from django.db.models import Avg, Max, Min, Count, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.db.models.functions import TruncMonth
 from collections import defaultdict
-
+from .services.leaderboard_service import get_student_leaderboard
+from core.services.xp_service import add_xp
+from core.services.streak_service import update_streak
+from core.services.achievement_service import award
+from core.services.teacher_dashboard_service import get_basic_stats
 
 
 def is_enrolled(user):
@@ -103,6 +107,8 @@ def dashboard(request):
                 "modules__lessons__assignments"
             )
         )
+
+        basic_stats = get_basic_stats(request.user)
 
         total_students = Enrollment.objects.filter(course__in=courses).count()
         total_classes = LiveClass.objects.filter(course__in=courses).count()
@@ -256,58 +262,6 @@ def dashboard(request):
 
             })
 
-            top_students = []
-
-            students = User.objects.filter(
-                enrollment__course__in=courses,
-                user_type="student"
-            ).distinct()
-
-            for student in students:
-
-                checked = Submission.objects.filter(
-                    student=student,
-                    assignment__lesson__module__course__in=courses,
-                    status="checked",
-                    marks__isnull=False
-                )
-
-                avg_marks = checked.aggregate(
-                    Avg("marks")
-                )["marks__avg"] or 0
-
-                total_lessons = Lesson.objects.filter(
-                    module__course__in=courses
-                ).count()
-
-                completed = Progress.objects.filter(
-                    student=student,
-                    lesson__module__course__in=courses,
-                    completed=True
-                ).count()
-
-                progress = 0
-
-                if total_lessons:
-                    progress = round(
-                        completed * 100 / total_lessons
-                    )
-
-                top_students.append({
-
-                    "student": student,
-
-                    "average": round(avg_marks, 1),
-
-                    "progress": progress,
-
-                })
-
-            top_students = sorted(
-                top_students,
-                key=lambda x: x["average"],
-                reverse=True
-            )[:10]
 
             attention_students = []
 
@@ -375,16 +329,71 @@ def dashboard(request):
 
                     })
 
-            total_enrolled = Enrollment.objects.filter(
-                course__in=courses
-            ).count()
+        total_enrolled = Enrollment.objects.filter(
+            course__in=courses
+        ).count()
 
-            expected_submissions = total_enrolled * total_assignments
+        expected_submissions = (
+            total_enrolled * total_assignments
+        )
 
-            pending_submissions = max(
-                expected_submissions - total_submissions,
-                0
+        pending_submissions = max(
+            expected_submissions - total_submissions,
+            0
+        )
+
+        top_students = []
+        
+        students = User.objects.filter(
+        enrollment__course__in=courses,
+            user_type="student"
+        ).distinct()
+        
+        for student in students:
+        
+            checked = Submission.objects.filter(
+                student=student,
+                assignment__lesson__module__course__in=courses,
+                status="checked",
+                marks__isnull=False
             )
+        
+            avg_marks = checked.aggregate(
+                Avg("marks")
+            )["marks__avg"] or 0
+        
+            total_lessons = Lesson.objects.filter(
+                module__course__in=courses
+            ).count()
+        
+            completed = Progress.objects.filter(
+                student=student,
+                lesson__module__course__in=courses,
+                completed=True
+            ).count()
+        
+            progress = 0
+        
+            if total_lessons:
+                progress = round(
+                    completed * 100 / total_lessons
+                )
+        
+            top_students.append({
+        
+                "student": student,
+        
+                "average": round(avg_marks, 1),
+        
+                "progress": progress,
+        
+            })
+        
+        top_students = sorted(
+            top_students,
+            key=lambda x: x["average"],
+            reverse=True
+        )[:10]
 
         thirty_minutes_ago = timezone.now() - timedelta(minutes=30)
 
@@ -535,7 +544,14 @@ def dashboard(request):
         })
         
     else:
-        enrolled = Enrollment.objects.filter(student=request.user)
+
+        # Update daily streak once when the student opens the dashboard
+        update_streak(request.user)
+
+        enrolled = Enrollment.objects.filter(
+            student=request.user
+        )
+
         enrolled_courses = [e.course for e in enrolled]
 
 
@@ -651,6 +667,12 @@ def dashboard(request):
             is_read=False
         ).count()
 
+        from core.models import StudentProfile
+
+        profile, created = StudentProfile.objects.get_or_create(
+            student=request.user
+        )
+
         return render(request, 'student_dashboard.html', {
             #'courses': courses,
             'enrolled_courses': enrolled_courses,
@@ -662,6 +684,7 @@ def dashboard(request):
             'recordings': recordings,
             'notification_count': notification_count,
             'notifications': notifications,
+            "profile": profile,
         })
 
 
@@ -1292,32 +1315,6 @@ def generate_ai_quiz(request, course_id):
 
     return render(request, "ai_quiz.html", {"course": course})
 
-    
-
-from django.db.models import Sum
-def leaderboard(request):
-    from .models import User, QuizResult
-
-    data = []
-
-    students = User.objects.filter(user_type='student')
-
-    for student in students:
-        total_score = QuizResult.objects.filter(student=student).aggregate(
-            total=Sum('score')
-        )['total'] or 0
-
-        data.append({
-            'student': student,
-            'score': total_score
-        })
-
-    # 🔥 SORT DESCENDING
-    data = sorted(data, key=lambda x: x['score'], reverse=True)
-
-    return render(request, 'leaderboard.html', {
-        'data': data
-    })
 
 
 from django.shortcuts import redirect
@@ -1334,14 +1331,6 @@ def mark_complete(request, lesson_id):
     )
 
     return redirect('dashboard')
-
-
-def leaderboard(request):
-    top_students = Points.objects.select_related('student').order_by('-points')[:10]
-
-    return render(request, 'leaderboard.html', {
-        'students': top_students
-    })
 
 
 def ai_insights(request):
@@ -1478,6 +1467,37 @@ def check_submissions(request, assignment_id):
         submission.status = "checked"
 
         submission.save()
+
+        completed = Submission.objects.filter(
+            student=submission.student,
+            status="checked"
+        ).count()
+
+        if completed >= 10:
+
+            award(
+                submission.student,
+                "Assignment Master"
+            )
+
+        from core.services.xp_service import add_xp
+
+        add_xp(submission.student, 40)
+
+        award(
+            submission.student,
+        "First Submission"
+        )
+
+        if submission.marks >= 90:
+            add_xp(submission.student, 30)
+
+        award(
+            submission.student,
+            "90+ Scorer"
+        )
+
+        add_xp(request.user, 20)
 
         return redirect(
             "check_submissions",
@@ -2612,50 +2632,33 @@ def student_analytics(request):
     )
 
 
-
 @login_required
 def leaderboard(request):
 
-    rankings = (
-        User.objects.filter(user_type="student")
-        .annotate(
-            average_marks=Avg("submission__marks")
-        )
-        .order_by("-average_marks", "username")
-    )
-
-    leaderboard = []
+    leaderboard = get_student_leaderboard()
 
     user_rank = None
 
-    for index, student in enumerate(rankings, start=1):
+    for row in leaderboard:
 
-        marks = student.average_marks or 0
+        if row["student"] == request.user:
 
-        leaderboard.append({
+            user_rank = row["rank"]
 
-            "rank": index,
-
-            "student": student,
-
-            "marks": round(marks, 1)
-
-        })
-
-        if student == request.user:
-
-            user_rank = index
-
-    context = {
-
-        "leaderboard": leaderboard,
-
-        "user_rank": user_rank,
-
-    }
+            break
 
     return render(
+
         request,
+
         "leaderboard.html",
-        context
+
+        {
+
+            "leaderboard": leaderboard,
+
+            "user_rank": user_rank,
+
+        }
+
     )
