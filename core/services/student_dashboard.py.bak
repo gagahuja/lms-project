@@ -1,0 +1,143 @@
+def student_dashboard(request):
+    # Update daily streak once when the student opens the dashboard
+            update_streak(request.user)
+    
+            enrolled = Enrollment.objects.filter(
+                student=request.user
+            )
+    
+            enrolled_courses = [e.course for e in enrolled]
+    
+    
+            next_class = LiveClass.objects.filter(
+                course__in=enrolled_courses,
+                date__gte=timezone.now()
+            ).order_by('date').first()
+    
+            thirty_minutes_ago = timezone.now() - timedelta(minutes=30)
+    
+            live_classes = LiveClass.objects.filter(
+                course__in=enrolled_courses
+            ).exclude(
+                is_completed=True,
+                completed_at__lt=thirty_minutes_ago
+            )
+    
+            for cls in live_classes:
+                now = timezone.now()
+    
+                cls.can_join = False
+                cls.status = "Upcoming"
+    
+                # ⏳ Starting soon (5 min before)
+                if cls.date - timedelta(minutes=5) <= now <= cls.date:
+                    cls.status = "Starting Soon"
+    
+                # 🔴 Live (use correct field)
+                if cls.is_live:
+                    cls.status = "Live"
+    
+                # ✅ Completed
+                if cls.is_completed or now > cls.date + timedelta(hours=2):
+                    cls.status = "Completed"
+    
+                # 🎯 Join condition
+                if cls.is_live or (cls.date - timedelta(minutes=5) <= now <= cls.date + timedelta(hours=2)):
+                    cls.can_join = True
+    
+            
+                
+    
+            # 📈 PROGRESS DATA
+            progress_data = []
+    
+            for course in enrolled_courses:
+                total_lessons = Lesson.objects.filter(module__course=course).count()
+    
+                completed_lessons = Progress.objects.filter(
+                    student=request.user,
+                    lesson__module__course=course,
+                    completed=True
+                ).count()
+    
+                percent = 0
+                if total_lessons > 0:
+                    percent = int((completed_lessons / total_lessons) * 100)
+    
+                # 🎓 CERTIFICATE CONDITION
+                certificate_unlocked = percent >= 80
+    
+                if certificate_unlocked:
+                    Notification.objects.get_or_create(
+                        user=request.user,
+                        message=f"🎓 Certificate unlocked for {course.title}"
+                    )
+    
+                progress_data.append({
+                    'course': course,
+                    'percent': percent,
+                    'certificate': certificate_unlocked
+                })
+    
+            # 📄 ASSIGNMENTS (based on enrolled courses)
+            assignments = Assignment.objects.filter(
+                lesson__module__course__in=enrolled_courses
+            )
+    
+            assignment_data = []
+    
+            for assignment in assignments:
+                submission = Submission.objects.filter(
+                    assignment=assignment,
+                    student=request.user
+                ).first()
+    
+                assignment_data.append({
+                    "assignment": assignment,
+                    "submitted": submission is not None,
+                    "submission": submission,
+                })
+    
+            # 🧠 QUIZ RESULTS
+            quiz_results = QuizResult.objects.filter(student=request.user)
+    
+            #from .models import Recording
+            #recordings = Recording.objects.filter(
+            #        live_class__course__in=enrolled_courses
+            #    )
+            recordings = Recording.objects.filter(
+                live_class__course__in=enrolled_courses
+            ).select_related(
+                "live_class",
+                "live_class__course"
+            ).order_by("-uploaded_at")
+    
+            notifications = Notification.objects.filter(
+                user=request.user
+            ).order_by('-created_at')[:5]
+    
+            notification_count = Notification.objects.filter(
+                user=request.user,
+                is_read=False
+            ).count()
+    
+            from core.models import StudentProfile
+    
+            profile, created = StudentProfile.objects.get_or_create(
+                student=request.user
+            )
+    
+            return render(request, 'student_dashboard.html', {
+                #'courses': courses,
+                'enrolled_courses': enrolled_courses,
+                'live_classes': live_classes,
+                'progress_data': progress_data,
+                'assignments': assignment_data,
+                'quiz_results': quiz_results,
+                'next_class': next_class,
+                'recordings': recordings,
+                'notification_count': notification_count,
+                'notifications': notifications,
+                "profile": profile,
+            })
+    

@@ -2,23 +2,504 @@
 
 {% block content %}
 
-<h3>{{ quiz.title }}</h3>
+<style>
 
-<form method="POST">
-    {% csrf_token %}
+/* =========================================================
+   SCORE SKILL — AI QUIZ
+   ========================================================= */
 
-    {% for q in questions %}
-        <div class="card p-3 mb-3">
-            <strong>{{ q.question }}</strong><br>
+.quiz-page {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 24px 50px;
+    box-sizing: border-box;
+}
 
-            <input type="radio" name="{{ q.id }}" value="{{ q.option1 }}"> {{ q.option1 }}<br>
-            <input type="radio" name="{{ q.id }}" value="{{ q.option2 }}"> {{ q.option2 }}<br>
-            <input type="radio" name="{{ q.id }}" value="{{ q.option3 }}"> {{ q.option3 }}<br>
-            <input type="radio" name="{{ q.id }}" value="{{ q.option4 }}"> {{ q.option4 }}<br>
+
+/* =========================================================
+   QUIZ HEADER
+   ========================================================= */
+
+.quiz-header {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: white;
+    border-radius: 14px;
+    padding: 24px 30px;
+    margin-bottom: 24px;
+    box-shadow: 0 6px 18px rgba(79, 70, 229, 0.18);
+}
+
+.quiz-header h1 {
+    margin: 0 0 8px;
+    font-size: 30px;
+    font-weight: 700;
+}
+
+.quiz-header p {
+    margin: 0;
+    font-size: 15px;
+    opacity: 0.92;
+}
+
+
+/* =========================================================
+   QUESTION CARD
+   ========================================================= */
+
+.question-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 22px 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+    transition: all 0.2s ease;
+}
+
+.question-card:hover {
+    box-shadow: 0 7px 20px rgba(15, 23, 42, 0.10);
+    border-color: #c7d2fe;
+}
+
+
+/* =========================================================
+   QUESTION NUMBER
+   ========================================================= */
+
+.question-number {
+    display: inline-block;
+    background: #eef2ff;
+    color: #4338ca;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 20px;
+    margin-bottom: 13px;
+}
+
+
+/* =========================================================
+   QUESTION TEXT
+   ========================================================= */
+
+.question-text {
+    color: #172033;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.7;
+    margin-bottom: 18px;
+}
+
+
+/* =========================================================
+   OPTIONS
+   ========================================================= */
+
+.option-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.option-label {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    width: 100%;
+    box-sizing: border-box;
+
+    background: #f8fafc;
+    border: 1px solid #dbe3ee;
+    border-radius: 10px;
+
+    padding: 13px 16px;
+
+    cursor: pointer;
+
+    font-size: 16px;
+    color: #263247;
+
+    transition: all 0.18s ease;
+}
+
+.option-label:hover {
+    background: #eef2ff;
+    border-color: #818cf8;
+    transform: translateX(2px);
+}
+
+
+/* =========================================================
+   RADIO BUTTON
+   ========================================================= */
+
+.option-label input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    accent-color: #4f46e5;
+    cursor: pointer;
+}
+
+
+/* =========================================================
+   SELECTED OPTION
+   ========================================================= */
+
+.option-label:has(input[type="radio"]:checked) {
+    background: #eef2ff;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.10);
+}
+
+.option-label:has(input[type="radio"]:checked) .option-text {
+    color: #3730a3;
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   OPTION TEXT
+   ========================================================= */
+
+.option-text {
+    line-height: 1.6;
+    flex: 1;
+}
+
+
+/* =========================================================
+   MATHJAX
+   ========================================================= */
+
+.math-content {
+    line-height: 1.8;
+}
+
+.question-text mjx-container,
+.option-text mjx-container {
+    font-size: 1.05em !important;
+}
+
+
+/* =========================================================
+   SUBMIT AREA
+   ========================================================= */
+
+.submit-area {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 22px 24px;
+    margin-top: 25px;
+    text-align: center;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+}
+
+
+/* =========================================================
+   SUBMIT BUTTON
+   ========================================================= */
+
+.submit-btn {
+    border: none;
+    border-radius: 9px;
+
+    background: linear-gradient(
+        135deg,
+        #4f46e5,
+        #7c3aed
+    );
+
+    color: white;
+
+    padding: 13px 32px;
+
+    font-size: 16px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    box-shadow: 0 5px 12px rgba(79, 70, 229, 0.22);
+
+    transition: all 0.2s ease;
+}
+
+.submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(79, 70, 229, 0.28);
+}
+
+.submit-btn:active {
+    transform: translateY(0);
+}
+
+
+/* =========================================================
+   SUBMIT NOTE
+   ========================================================= */
+
+.submit-note {
+    margin-top: 12px;
+    color: #64748b;
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+    .quiz-page {
+        padding: 14px 12px 35px;
+    }
+
+    .quiz-header {
+        padding: 20px;
+    }
+
+    .quiz-header h1 {
+        font-size: 24px;
+    }
+
+    .question-card {
+        padding: 18px;
+    }
+
+    .question-text {
+        font-size: 16px;
+    }
+
+    .option-label {
+        padding: 12px;
+        font-size: 15px;
+    }
+
+}
+
+
+/* =========================================================
+   VERY SMALL SCREENS
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+    .quiz-header h1 {
+        font-size: 21px;
+    }
+
+    .question-card {
+        padding: 15px;
+    }
+
+    .submit-btn {
+        width: 100%;
+    }
+
+}
+
+</style>
+
+
+<div class="quiz-page">
+
+
+    <!-- =================================================
+         QUIZ HEADER
+         ================================================= -->
+
+    <div class="quiz-header">
+
+        <h1>
+            🧠 {{ quiz.title }}
+        </h1>
+
+        <p>
+            Select the correct answer for each question.
+        </p>
+
+    </div>
+
+
+    <!-- =================================================
+         QUIZ FORM
+         ================================================= -->
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+
+        {% for q in questions %}
+
+        <div class="question-card">
+
+
+            <!-- Question Number -->
+
+            <div class="question-number">
+
+                Question {{ forloop.counter }}
+
+            </div>
+
+
+            <!-- Question -->
+
+            <div class="question-text math-content">
+
+                {{ q.question }}
+
+            </div>
+
+
+            <!-- Options -->
+
+            <div class="option-list">
+
+
+                <!-- Option 1 -->
+
+                <label class="option-label">
+
+                    <input
+                        type="radio"
+                        name="{{ q.id }}"
+                        value="{{ q.option1 }}"
+                        required
+                    >
+
+                    <span class="option-text math-content">
+                        {{ q.option1 }}
+                    </span>
+
+                </label>
+
+
+                <!-- Option 2 -->
+
+                <label class="option-label">
+
+                    <input
+                        type="radio"
+                        name="{{ q.id }}"
+                        value="{{ q.option2 }}"
+                    >
+
+                    <span class="option-text math-content">
+                        {{ q.option2 }}
+                    </span>
+
+                </label>
+
+
+                <!-- Option 3 -->
+
+                <label class="option-label">
+
+                    <input
+                        type="radio"
+                        name="{{ q.id }}"
+                        value="{{ q.option3 }}"
+                    >
+
+                    <span class="option-text math-content">
+                        {{ q.option3 }}
+                    </span>
+
+                </label>
+
+
+                <!-- Option 4 -->
+
+                <label class="option-label">
+
+                    <input
+                        type="radio"
+                        name="{{ q.id }}"
+                        value="{{ q.option4 }}"
+                    >
+
+                    <span class="option-text math-content">
+                        {{ q.option4 }}
+                    </span>
+
+                </label>
+
+
+            </div>
+
         </div>
-    {% endfor %}
 
-    <button class="btn btn-success">Submit Quiz</button>
-</form>
+        {% endfor %}
+
+
+        <!-- =================================================
+             SUBMIT
+             ================================================= -->
+
+        <div class="submit-area">
+
+            <button
+                type="submit"
+                class="submit-btn">
+
+                ✅ Submit Quiz
+
+            </button>
+
+            <div class="submit-note">
+
+                Review your answers carefully before submitting.
+
+            </div>
+
+        </div>
+
+
+    </form>
+
+</div>
+
+
+<!-- =========================================================
+     MATHJAX
+     ========================================================= -->
+
+<script>
+
+window.MathJax = {
+
+    tex: {
+
+        inlineMath: [
+            ['\\(', '\\)'],
+            ['$', '$']
+        ],
+
+        displayMath: [
+            ['\\[', '\\]'],
+            ['$$', '$$']
+        ]
+
+    },
+
+    svg: {
+        fontCache: 'global'
+    }
+
+};
+
+</script>
+
+
+<script
+    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"
+    async>
+</script>
+
 
 {% endblock %}

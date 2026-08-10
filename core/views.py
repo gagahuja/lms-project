@@ -41,6 +41,15 @@ from core.services.xp_service import add_xp
 from core.services.streak_service import update_streak
 from core.services.achievement_service import award
 from core.services.teacher_dashboard_service import get_basic_stats
+from core.services.dashboard_stats import teacher_stats
+from core.services.assignment_analytics_service import (
+    get_assignment_statistics
+)
+from core.services.dashboard_service import (
+    build_teacher_dashboard,
+    build_student_dashboard,
+)
+from .services.quiz_analytics_service import get_quiz_analytics
 
 
 def is_enrolled(user):
@@ -84,609 +93,32 @@ def home(request):
     return render(request, 'home.html')
 
 
+@login_required
 def dashboard(request):
-    from django.utils.timezone import now
 
-    if not request.user.is_authenticated:
-        return redirect("login")
-        
-        
-    teacher_recordings = Recording.objects.filter(
-        live_class__course__teacher=request.user
-    ).select_related(
-        "live_class",
-        "live_class__course"
-    ).order_by("-uploaded_at")
+    if request.user.user_type == "teacher":
 
-    if getattr(request.user, 'user_type', None) == 'teacher':
-
-        courses = (
-            Course.objects
-            .filter(teacher=request.user)
-            .prefetch_related(
-                "modules__lessons__assignments"
-            )
+        context = build_teacher_dashboard(
+            request.user
         )
 
-        basic_stats = get_basic_stats(request.user)
-
-        total_students = Enrollment.objects.filter(course__in=courses).count()
-        total_classes = LiveClass.objects.filter(course__in=courses).count()
-
-        total_revenue = Enrollment.objects.filter(
-            course__in=courses
-        ).count() * 500  # temporary logic
-
-        total_assignments = Assignment.objects.filter(
-            lesson__module__course__in=courses
-        ).count()
-
-        # -----------------------------
-        # Teacher Analytics
-        # -----------------------------
-
-        submissions = Submission.objects.filter(
-            assignment__lesson__module__course__in=courses
+        return render(
+            request,
+            "teacher_dashboard_v2.html",
+            context
         )
 
-        total_submissions = submissions.count()
-
-        pending_reviews = submissions.filter(
-            status="submitted"
-        ).count()
-
-        checked_submissions = submissions.filter(
-            status="checked",
-            marks__isnull=False
-        )
-
-        from django.db.models import Avg
-
-        average_marks = (
-            checked_submissions.aggregate(
-                Avg("marks")
-            )["marks__avg"] or 0
-        )
-
-        attendance_records = Attendance.objects.filter(
-            live_class__course__in=courses,
-            leave_time__isnull=False
-        )
-
-        attendance_percentage = 0
-
-        if attendance_records.exists():
-
-            total = attendance_records.count()
-
-            attended = attendance_records.exclude(
-                join_time__isnull=True
-            ).count()
-
-            attendance_percentage = round(
-                attended * 100 / total
-            )
-
-        assignment_stats = []
-
-        for assignment in Assignment.objects.filter(
-            lesson__module__course__in=courses
-        ):
-
-            enrolled = Enrollment.objects.filter(
-                course=assignment.lesson.module.course
-            ).count()
-
-            submissions = Submission.objects.filter(
-                assignment=assignment
-            )
-
-            submitted = submissions.count()
-
-            submission_percentage = 0
-
-            if enrolled:
-                submission_percentage = round(
-                    submitted * 100 / enrolled
-                )
-
-            pending = max(enrolled - submitted, 0)
-
-            submission_rate = 0
-
-            if enrolled:
-                submission_rate = round(
-                    (submitted / enrolled) * 100
-                )
-
-            checked = submissions.filter(
-                status="checked",
-                marks__isnull=False
-            )
-
-            avg_marks = None
-            highest = None
-            lowest = None
-
-            if checked.exists():
-
-                avg_marks = round(
-                    checked.aggregate(
-                        Avg("marks")
-                    )["marks__avg"],
-                    1
-                )
-
-                highest = checked.aggregate(
-                    Max("marks")
-                )["marks__max"]
-
-                lowest = checked.aggregate(
-                    Min("marks")
-                )["marks__min"]
-
-                difficulty = "Not Enough Data"
-
-                if avg_marks is not None:
-
-                    if avg_marks >= 75:
-                        difficulty = "🟢 Easy"
-
-                    elif avg_marks >= 50:
-                        difficulty = "🟡 Medium"
-
-                    else:
-                        difficulty = "🔴 Difficult"
-
-            assignment_stats.append({
-
-                "assignment": assignment,
-
-                "enrolled": enrolled,
-
-                "submitted": submitted,
-
-                "pending": pending,
-
-                "submission_rate": submission_rate,
-
-                "submission_percentage": submission_percentage,
-
-                "average": avg_marks,
-
-                "highest": highest,
-
-                "lowest": lowest,
-
-                "difficulty": difficulty,
-
-            })
-
-
-            attention_students = []
-
-            for student in students:
-
-                # Total lessons
-                total_lessons = Lesson.objects.filter(
-                    module__course__in=courses
-                ).count()
-
-                completed = Progress.objects.filter(
-                    student=student,
-                    lesson__module__course__in=courses,
-                    completed=True
-                ).count()
-
-                progress = 0
-
-                if total_lessons:
-                    progress = round(
-                        completed * 100 / total_lessons
-                    )
-
-                # Assignment statistics
-                total_student_assignments = Assignment.objects.filter(
-                    lesson__module__course__in=courses
-                ).count()
-
-                submitted = Submission.objects.filter(
-                    student=student,
-                    assignment__lesson__module__course__in=courses
-                ).count()
-
-                pending = max(
-                    total_student_assignments - submitted,
-                    0
-                )
-
-                checked = Submission.objects.filter(
-                    student=student,
-                    assignment__lesson__module__course__in=courses,
-                    status="checked",
-                    marks__isnull=False
-                )
-
-                average = checked.aggregate(
-                    Avg("marks")
-                )["marks__avg"] or 0
-
-                if (
-                    progress < 50
-                    or pending > 3
-                    or average < 40
-                ):
-
-                    attention_students.append({
-
-                        "student": student,
-
-                        "progress": progress,
-
-                        "pending": pending,
-
-                        "average": round(average,1)
-
-                    })
-
-        total_enrolled = Enrollment.objects.filter(
-            course__in=courses
-        ).count()
-
-        expected_submissions = (
-            total_enrolled * total_assignments
-        )
-
-        pending_submissions = max(
-            expected_submissions - total_submissions,
-            0
-        )
-
-        top_students = []
-        
-        students = User.objects.filter(
-        enrollment__course__in=courses,
-            user_type="student"
-        ).distinct()
-        
-        for student in students:
-        
-            checked = Submission.objects.filter(
-                student=student,
-                assignment__lesson__module__course__in=courses,
-                status="checked",
-                marks__isnull=False
-            )
-        
-            avg_marks = checked.aggregate(
-                Avg("marks")
-            )["marks__avg"] or 0
-        
-            total_lessons = Lesson.objects.filter(
-                module__course__in=courses
-            ).count()
-        
-            completed = Progress.objects.filter(
-                student=student,
-                lesson__module__course__in=courses,
-                completed=True
-            ).count()
-        
-            progress = 0
-        
-            if total_lessons:
-                progress = round(
-                    completed * 100 / total_lessons
-                )
-        
-            top_students.append({
-        
-                "student": student,
-        
-                "average": round(avg_marks, 1),
-        
-                "progress": progress,
-        
-            })
-        
-        top_students = sorted(
-            top_students,
-            key=lambda x: x["average"],
-            reverse=True
-        )[:10]
-
-        thirty_minutes_ago = timezone.now() - timedelta(minutes=30)
-
-        live_classes = LiveClass.objects.filter(
-            course__in=courses
-        ).exclude(
-            is_completed=True,
-            completed_at__lt=thirty_minutes_ago
-        )
-
-        notifications = Notification.objects.filter(
-            user=request.user
-        ).order_by('-created_at')[:5]
-
-        notification_count = Notification.objects.filter(
-            user=request.user,
-            is_read=False
-        ).count()
-
-
-        total_submissions = Submission.objects.filter(
-            assignment__lesson__module__course__in=courses
-        ).count()
-
-        pending_reviews = Submission.objects.filter(
-            assignment__lesson__module__course__in=courses,
-            status="submitted"
-        ).count()
-
-        average_marks = Submission.objects.filter(
-            assignment__lesson__module__course__in=courses,
-            marks__isnull=False
-        ).aggregate(
-            Avg("marks")
-        )["marks__avg"] or 0
-
-
-        from itertools import chain
-
-        recent_submissions = Submission.objects.filter(
-            assignment__lesson__module__course__in=courses
-        ).select_related(
-            "student",
-            "assignment"
-        ).order_by("-submitted_at")[:5]
-
-        recent_enrollments = Enrollment.objects.filter(
-            course__in=courses
-        ).select_related(
-            "student",
-            "course"
-        ).order_by("-id")[:5]
-
-        recent_live_classes = LiveClass.objects.filter(
-            course__in=courses
-        ).select_related(
-            "course"
-        ).order_by("-date")[:5]
-
-        recent_recordings = Recording.objects.filter(
-            live_class__course__in=courses
-        ).select_related(
-            "live_class"
-        ).order_by("-uploaded_at")[:5]
-
-
-        activity_feed = []
-
-        for s in recent_submissions:
-
-            activity_feed.append({
-
-                "icon": "📝",
-
-                "message":
-                    f"{s.student.username} submitted '{s.assignment.title}'",
-
-                "time": s.submitted_at
-
-            })
-
-        for e in recent_enrollments:
-
-            activity_feed.append({
-
-                "icon": "👨‍🎓",
-
-                "message":
-                    f"{e.student.username} enrolled in {e.course.title}",
-
-                "time": e.created_at
-
-            })
-
-        for c in recent_live_classes:
-
-            activity_feed.append({
-
-                "icon": "🎥",
-
-                "message":
-                    f"Live class '{c.title}' scheduled",
-
-                "time": c.date
-
-            })
-
-        for r in recent_recordings:
-
-            activity_feed.append({
-
-                "icon": "📹",
-
-                "message":
-                    f"Recording uploaded for {r.live_class.title}",
-
-                "time": r.uploaded_at
-
-            })
-
-        activity_feed.sort(
-            key=lambda x: x["time"],
-            reverse=True
-        )
-
-        activity_feed = activity_feed[:10]
-
-        return render(request, 'teacher_dashboard.html', {
-            'courses': courses,
-            'total_students': total_students,
-            'total_classes': total_classes,
-            'total_revenue': total_revenue,
-            'total_assignments': total_assignments,
-            'live_classes': live_classes,
-            'notification_count': notification_count,
-            'notifications': notifications,
-            "teacher_recordings": teacher_recordings,
-            "assignment_stats": assignment_stats,
-            "total_submissions": total_submissions,
-            "pending_reviews": pending_reviews,
-            "average_marks": round(average_marks, 1),
-            "attendance_percentage": attendance_percentage,
-            "expected_submissions": expected_submissions,
-            "pending_submissions": pending_submissions,
-            "top_students": top_students,
-            "attention_students": attention_students,
-            "activity_feed": activity_feed,
-        })
-        
-    else:
-
-        # Update daily streak once when the student opens the dashboard
-        update_streak(request.user)
-
-        enrolled = Enrollment.objects.filter(
-            student=request.user
-        )
-
-        enrolled_courses = [e.course for e in enrolled]
-
-
-        next_class = LiveClass.objects.filter(
-            course__in=enrolled_courses,
-            date__gte=timezone.now()
-        ).order_by('date').first()
-
-        thirty_minutes_ago = timezone.now() - timedelta(minutes=30)
-
-        live_classes = LiveClass.objects.filter(
-            course__in=enrolled_courses
-        ).exclude(
-            is_completed=True,
-            completed_at__lt=thirty_minutes_ago
-        )
-
-        for cls in live_classes:
-            now = timezone.now()
-
-            cls.can_join = False
-            cls.status = "Upcoming"
-
-            # ⏳ Starting soon (5 min before)
-            if cls.date - timedelta(minutes=5) <= now <= cls.date:
-                cls.status = "Starting Soon"
-
-            # 🔴 Live (use correct field)
-            if cls.is_live:
-                cls.status = "Live"
-
-            # ✅ Completed
-            if cls.is_completed or now > cls.date + timedelta(hours=2):
-                cls.status = "Completed"
-
-            # 🎯 Join condition
-            if cls.is_live or (cls.date - timedelta(minutes=5) <= now <= cls.date + timedelta(hours=2)):
-                cls.can_join = True
+    context = build_student_dashboard(
+        request.user
+    )
+
+    return render(
+        request,
+        "student_dashboard.html",
+        context
+    )
 
         
-            
-
-        # 📈 PROGRESS DATA
-        progress_data = []
-
-        for course in enrolled_courses:
-            total_lessons = Lesson.objects.filter(module__course=course).count()
-
-            completed_lessons = Progress.objects.filter(
-                student=request.user,
-                lesson__module__course=course,
-                completed=True
-            ).count()
-
-            percent = 0
-            if total_lessons > 0:
-                percent = int((completed_lessons / total_lessons) * 100)
-
-            # 🎓 CERTIFICATE CONDITION
-            certificate_unlocked = percent >= 80
-
-            if certificate_unlocked:
-                Notification.objects.get_or_create(
-                    user=request.user,
-                    message=f"🎓 Certificate unlocked for {course.title}"
-                )
-
-            progress_data.append({
-                'course': course,
-                'percent': percent,
-                'certificate': certificate_unlocked
-            })
-
-        # 📄 ASSIGNMENTS (based on enrolled courses)
-        assignments = Assignment.objects.filter(
-            lesson__module__course__in=enrolled_courses
-        )
-
-        assignment_data = []
-
-        for assignment in assignments:
-            submission = Submission.objects.filter(
-                assignment=assignment,
-                student=request.user
-            ).first()
-
-            assignment_data.append({
-                "assignment": assignment,
-                "submitted": submission is not None,
-                "submission": submission,
-            })
-
-        # 🧠 QUIZ RESULTS
-        quiz_results = QuizResult.objects.filter(student=request.user)
-
-        #from .models import Recording
-        #recordings = Recording.objects.filter(
-        #        live_class__course__in=enrolled_courses
-        #    )
-        recordings = Recording.objects.filter(
-            live_class__course__in=enrolled_courses
-        ).select_related(
-            "live_class",
-            "live_class__course"
-        ).order_by("-uploaded_at")
-
-        notifications = Notification.objects.filter(
-            user=request.user
-        ).order_by('-created_at')[:5]
-
-        notification_count = Notification.objects.filter(
-            user=request.user,
-            is_read=False
-        ).count()
-
-        from core.models import StudentProfile
-
-        profile, created = StudentProfile.objects.get_or_create(
-            student=request.user
-        )
-
-        return render(request, 'student_dashboard.html', {
-            #'courses': courses,
-            'enrolled_courses': enrolled_courses,
-            'live_classes': live_classes,
-            'progress_data': progress_data,
-            'assignments': assignment_data,
-            'quiz_results': quiz_results,
-            'next_class': next_class,
-            'recordings': recordings,
-            'notification_count': notification_count,
-            'notifications': notifications,
-            "profile": profile,
-        })
-
 
 @login_required
 def teacher_analytics(request):
@@ -697,6 +129,10 @@ def teacher_analytics(request):
     courses = Course.objects.filter(
         teacher=request.user
     )
+
+    print("Teacher:", request.user.username)
+    print("Courses:", courses.count())
+    print(list(courses.values("id", "title")))
 
     students = Enrollment.objects.filter(
         course__in=courses
@@ -1171,44 +607,96 @@ def create_admin(request):
     
 
 def attempt_quiz(request, quiz_id):
+
     quiz = Quiz.objects.get(id=quiz_id)
     questions = Question.objects.filter(quiz=quiz)
 
     if request.method == 'POST':
+
         score = 0
+        answer_details = []
 
         for q in questions:
+
             selected = request.POST.get(str(q.id))
 
-            if selected == q.correct_answer:
+            is_correct = selected == q.correct_answer
+
+            if is_correct:
                 score += 1
 
+            # Save student's answer
             StudentAnswer.objects.create(
                 student=request.user,
                 question=q,
                 selected_answer=selected
             )
 
-        # SAVE RESULT
+            # Prepare information for result page
+            answer_details.append({
+                'question': q,
+                'selected_answer': selected,
+                'correct_answer': q.correct_answer,
+                'is_correct': is_correct,
+            })
+
+        total = questions.count()
+
+        # Calculate percentage
+        percentage = round((score / total) * 100) if total > 0 else 0
+
+        # Save quiz result
         QuizResult.objects.create(
             student=request.user,
             quiz=quiz,
             score=score,
-            total=questions.count()
+            total=total
         )
 
-        # 🔔 NOTIFICATION (ADD THIS)
+        # Notification
         Notification.objects.create(
             user=request.user,
-            message=f"✅ Quiz submitted. Score: {score}/{questions.count()}"
+            message=f"✅ Quiz submitted. Score: {score}/{total}"
         )
 
-        return HttpResponse(f"Your Score: {score}/{questions.count()}")
+        # Performance message
+        if percentage == 100:
+            performance_message = "Excellent! Perfect score! 🎉"
 
-    return render(request, 'attempt_quiz.html', {
-        'quiz': quiz,
-        'questions': questions
-    })
+        elif percentage >= 80:
+            performance_message = "Great work! You have done very well. 👏"
+
+        elif percentage >= 60:
+            performance_message = "Good effort! Keep practising to improve further. 👍"
+
+        elif percentage >= 40:
+            performance_message = "You are making progress. A little more practice will help. 📚"
+
+        else:
+            performance_message = "Keep practising. You can improve with more practice! 💪"
+
+        # Show result page
+        return render(
+            request,
+            'quiz_result.html',
+            {
+                'quiz': quiz,
+                'score': score,
+                'total': total,
+                'percentage': percentage,
+                'performance_message': performance_message,
+                'answer_details': answer_details,
+            }
+        )
+
+    return render(
+        request,
+        'attempt_quiz.html',
+        {
+            'quiz': quiz,
+            'questions': questions
+        }
+    )
 
 
 def generate_ai_notes(request, lesson_id):
@@ -1252,68 +740,423 @@ def generate_ai_notes(request, lesson_id):
 
 
 def generate_ai_quiz(request, course_id):
+
     from django.http import HttpResponse
     from django.conf import settings
-    from openai import OpenAI
+    from google import genai
+    import re
 
     course = get_object_or_404(Course, id=course_id)
 
-    # 🔒 LOCK AI QUIZ
-    if not is_enrolled(request.user):
-        return HttpResponse("🔒 Buy a course to access AI Quiz")
-    
+    # =========================================================
+    # ACCESS CONTROL
+    # =========================================================
 
-    # 🔒 LOCK
-    if not has_subscription(request.user):
-        return HttpResponse("🔒 Subscription required for AI Quiz")
+    # TEACHER:
+    # A teacher can generate AI quizzes for their own course.
+    if request.user.user_type == "teacher":
 
-    if request.method == "POST":
-        topic = request.POST.get("topic")
-
-        try:
-            client = OpenAI(api_key=settings.OPENAI_API_KEY)
-
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[{
-                    "role": "user",
-                    "content": f"Create 5 MCQs on {topic} in this format:\nQuestion|A|B|C|D|Correct"
-                }]
+        if course.teacher_id != request.user.id:
+            return HttpResponse(
+                "❌ You do not have permission to generate an AI Quiz for this course."
             )
 
-            content = response.choices[0].message.content
+    # STUDENT:
+    # Student must be enrolled and subscribed.
+    else:
 
-            # DEBUG (important)
-            print("AI RESPONSE:", content)
+        if not is_enrolled(request.user):
+            return HttpResponse(
+                "🔒 Buy a course to access AI Quiz"
+            )
 
-            lines = content.strip().split("\n")
+        if not has_subscription(request.user):
+            return HttpResponse(
+                "🔒 Subscription required for AI Quiz"
+            )
 
+    # =========================================================
+    # MATHEMATICAL SYMBOL NORMALIZATION
+    # =========================================================
+
+    def normalize_math_text(text):
+
+        if not text:
+            return text
+
+        text = text.strip()
+
+        # Remove accidental markdown code fences
+        text = text.replace("```text", "")
+        text = text.replace("```", "")
+
+        # -----------------------------------------------------
+        # GEOMETRY SYMBOLS
+        # -----------------------------------------------------
+
+        # Triangle
+        text = re.sub(
+            r"\btriangle\s+([A-Za-z]{1,5})\b",
+            r"△\1",
+            text,
+            flags=re.IGNORECASE
+        )
+
+        text = re.sub(
+            r"\bdelta\s+([A-Za-z]{1,5})\b",
+            r"△\1",
+            text,
+            flags=re.IGNORECASE
+        )
+
+        # Angle
+        text = re.sub(
+            r"\bangle\s+([A-Za-z]{2,5})\b",
+            r"∠\1",
+            text,
+            flags=re.IGNORECASE
+        )
+
+        # Perpendicular
+        text = re.sub(
+            r"\bperpendicular\s+to\b",
+            "⊥",
+            text,
+            flags=re.IGNORECASE
+        )
+
+        # Parallel
+        text = re.sub(
+            r"\bparallel\s+to\b",
+            "∥",
+            text,
+            flags=re.IGNORECASE
+        )
+
+        # Congruent
+        text = re.sub(
+            r"\bcongruent\s+to\b",
+            "≅",
+            text,
+            flags=re.IGNORECASE
+        )
+
+        # Similar
+        text = re.sub(
+            r"\bsimilar\s+to\b",
+            "∼",
+            text,
+            flags=re.IGNORECASE
+        )
+
+        # -----------------------------------------------------
+        # DEGREE SYMBOL
+        # -----------------------------------------------------
+
+        # 30 degrees → 30°
+        text = re.sub(
+            r"(\d+(?:\.\d+)?)\s+degrees?\b",
+            r"\1°",
+            text,
+            flags=re.IGNORECASE
+        )
+
+        # 30 degree → 30°
+        text = re.sub(
+            r"(\d+(?:\.\d+)?)\s+degree\b",
+            r"\1°",
+            text,
+            flags=re.IGNORECASE
+        )
+
+        # -----------------------------------------------------
+        # COMMON MATHEMATICAL OPERATORS
+        # -----------------------------------------------------
+
+        text = re.sub(
+            r"\bmultiplied\s+by\b",
+            "×",
+            text,
+            flags=re.IGNORECASE
+        )
+
+        text = re.sub(
+            r"\btimes\b",
+            "×",
+            text,
+            flags=re.IGNORECASE
+        )
+
+        text = re.sub(
+            r"\bdivided\s+by\b",
+            "÷",
+            text,
+            flags=re.IGNORECASE
+        )
+
+        text = re.sub(
+            r"\bplus\s+or\s+minus\b",
+            "±",
+            text,
+            flags=re.IGNORECASE
+        )
+
+        text = re.sub(
+            r"\bless\s+than\s+or\s+equal\s+to\b",
+            "≤",
+            text,
+            flags=re.IGNORECASE
+        )
+
+        text = re.sub(
+            r"\bgreater\s+than\s+or\s+equal\s+to\b",
+            "≥",
+            text,
+            flags=re.IGNORECASE
+        )
+
+        text = re.sub(
+            r"\bnot\s+equal\s+to\b",
+            "≠",
+            text,
+            flags=re.IGNORECASE
+        )
+
+        text = re.sub(
+            r"\bapproximately\s+equal\s+to\b",
+            "≈",
+            text,
+            flags=re.IGNORECASE
+        )
+
+        # -----------------------------------------------------
+        # COMMON GEOMETRY / NUMBER SYMBOLS
+        # -----------------------------------------------------
+
+        text = re.sub(
+            r"\bpi\b",
+            "π",
+            text,
+            flags=re.IGNORECASE
+        )
+
+        # Square root of 25 → √25
+        text = re.sub(
+            r"\bsquare\s+root\s+of\s+([0-9]+)\b",
+            r"√\1",
+            text,
+            flags=re.IGNORECASE
+        )
+
+        return text.strip()
+
+    # =========================================================
+    # GENERATE AI QUIZ
+    # =========================================================
+
+    if request.method == "POST":
+
+        topic = request.POST.get("topic", "").strip()
+
+        if not topic:
+            return HttpResponse(
+                "❌ Please enter a topic for the AI Quiz."
+            )
+
+        try:
+
+            # -------------------------------------------------
+            # CONNECT TO GEMINI
+            # -------------------------------------------------
+
+            client = genai.Client(
+                api_key=settings.GEMINI_API_KEY
+            )
+
+            # -------------------------------------------------
+            # ASK GEMINI TO CREATE 5 MCQs
+            # -------------------------------------------------
+
+            prompt = f"""
+Create exactly 5 multiple-choice questions for a school-level
+quiz on the topic:
+
+{topic}
+
+Course:
+{course.title}
+
+Return ONLY the questions in this exact format:
+
+Question|Option A|Option B|Option C|Option D|Correct Answer
+
+IMPORTANT MATHEMATICAL FORMATTING RULES:
+
+- Use standard mathematical symbols whenever a symbol exists.
+- NEVER write "degree" or "degrees" when a degree symbol is appropriate.
+  Use ° instead.
+  Example: 60° NOT 60 degrees.
+
+- NEVER write "delta ABC" or "triangle ABC".
+  Use △ABC instead.
+
+- NEVER write "angle ABC".
+  Use ∠ABC instead.
+
+- Use ⊥ for perpendicular.
+- Use ∥ for parallel.
+- Use ≅ for congruent.
+- Use ∼ for similar.
+- Use × for multiplication.
+- Use ÷ for division.
+- Use ≤ and ≥ where appropriate.
+- Use ≠ for not equal.
+- Use ≈ for approximately equal.
+- Use π for pi.
+- Use √ for square root where appropriate.
+
+Examples of the required style:
+
+△ABC has angles 30°, 60° and 90°.
+
+If ∠ABC = 60°, find ∠ACB.
+
+AB ⊥ CD.
+
+AB ∥ CD.
+
+△ABC ≅ △PQR.
+
+- Use standard mathematical notation suitable for Class 9 and Class 10
+  school mathematics.
+- Do not replace mathematical symbols with their English names.
+- Do not use the word "delta" to represent a triangle.
+- Do not use the word "degree" to represent °.
+
+GENERAL RULES:
+
+- Exactly 5 questions.
+- Each question must have exactly 4 options.
+- The correct answer must be the exact text of one of the four options.
+- Do not number the questions.
+- Do not add explanations.
+- Do not add markdown.
+- Do not add headings.
+- Do not use the | character inside a question or option.
+- Keep each question and each option reasonably concise.
+"""
+
+            response = client.models.generate_content(
+                model="gemini-3.5-flash-lite",
+                contents=prompt
+            )
+
+            content = response.text.strip()
+
+            print("GEMINI RESPONSE:")
+            print(content)
+
+            # -------------------------------------------------
             # CREATE QUIZ
+            # -------------------------------------------------
+
             quiz = Quiz.objects.create(
                 course=course,
                 title=f"AI Quiz - {topic}"
             )
 
-            for line in lines:
-                parts = line.split("|")
+            question_count = 0
 
-                if len(parts) == 6:
-                    Question.objects.create(
-                        quiz=quiz,
-                        question=parts[0],
-                        option1=parts[1],
-                        option2=parts[2],
-                        option3=parts[3],
-                        option4=parts[4],
-                        correct_answer=parts[5]
-                    )
+            # -------------------------------------------------
+            # READ GEMINI RESPONSE
+            # -------------------------------------------------
 
-            return redirect(f"/quiz/{quiz.id}/")
+            for line in content.splitlines():
+
+                line = line.strip()
+
+                if not line:
+                    continue
+
+                # Ignore accidental markdown fences
+                if line.startswith("```"):
+                    continue
+
+                # -------------------------------------------------
+                # SPLIT INTO 6 PARTS
+                # -------------------------------------------------
+
+                parts = [
+                    part.strip()
+                    for part in line.split("|", 5)
+                ]
+
+                if len(parts) != 6:
+                    continue
+
+                question_text = normalize_math_text(parts[0])
+                option1 = normalize_math_text(parts[1])
+                option2 = normalize_math_text(parts[2])
+                option3 = normalize_math_text(parts[3])
+                option4 = normalize_math_text(parts[4])
+                correct_answer = normalize_math_text(parts[5])
+
+                # -------------------------------------------------
+                # CREATE QUESTION
+                # -------------------------------------------------
+
+                Question.objects.create(
+                    quiz=quiz,
+                    question=question_text,
+                    option1=option1,
+                    option2=option2,
+                    option3=option3,
+                    option4=option4,
+                    correct_answer=correct_answer
+                )
+
+                question_count += 1
+
+            # -------------------------------------------------
+            # MAKE SURE QUESTIONS WERE CREATED
+            # -------------------------------------------------
+
+            if question_count == 0:
+
+                quiz.delete()
+
+                return HttpResponse(
+                    "❌ Gemini returned an unexpected quiz format. "
+                    "Please try again."
+                )
+
+            # -------------------------------------------------
+            # SEND TEACHER TO QUIZ
+            # -------------------------------------------------
+
+            return redirect(
+                f"/quiz/{quiz.id}/"
+            )
 
         except Exception as e:
-            return HttpResponse(f"ERROR: {str(e)}")
 
-    return render(request, "ai_quiz.html", {"course": course})
+            print("GEMINI ERROR:", str(e))
+
+            return HttpResponse(
+                f"❌ Gemini error: {str(e)}"
+            )
+
+    # =========================================================
+    # GET REQUEST
+    # =========================================================
+
+    return render(
+        request,
+        "ai_quiz.html",
+        {
+            "course": course
+        }
+    )
 
 
 
@@ -1335,52 +1178,312 @@ def mark_complete(request, lesson_id):
 
 def ai_insights(request):
     from django.db.models import Sum
-    from .models import QuizResult
     from django.conf import settings
+    from django.http import HttpResponse
+    from django.shortcuts import render
+    from .models import QuizResult
+    from google import genai
 
-    # 🔒 SUBSCRIPTION LOCK
-    if not has_subscription(request.user):
-        return HttpResponse("🔒 Upgrade to Pro Plan to view AI Insights")
-    
+    # =========================================================
+    # SUBSCRIPTION LOCK
+    # =========================================================
+
     user = request.user
 
-    # 📊 TOTAL SCORE
-    result = QuizResult.objects.filter(student=user).aggregate(total=Sum('score'))
-    total_score = result['total'] or 0
+    # =========================================================
+    # ACCESS CONTROL
+    # =========================================================
 
-    # 🧠 PERFORMANCE LEVEL
-    if total_score < 5:
-        level = "Weak"
-    elif total_score < 15:
-        level = "Average"
+    # Teachers can use AI Insights for their students
+    # without requiring a student subscription.
+    if user.user_type != "teacher":
+
+        if not has_subscription(user):
+            return HttpResponse(
+                "🔒 Upgrade to Pro Plan to view AI Insights"
+            )
+
+    # =========================================================
+    # QUIZ ANALYTICS SERVICE
+    # =========================================================
+
+    analytics = get_quiz_analytics(user)
+    
+
+    # =========================================================
+    # GET ANALYTICS FROM SERVICE
+    # =========================================================
+
+    total_score = analytics["score"]
+    total_possible = analytics["total_possible"]
+    percentage = analytics["percentage"]
+    level = analytics["level"]
+
+    quiz_history = analytics["quiz_history"]
+    performance_trend = analytics["performance_trend"]
+
+    topic_performance = analytics["topic_performance"]
+    strongest_topic = analytics["strongest_topic"]
+    weakest_topic = analytics["weakest_topic"]
+
+    weaknesses = analytics["weaknesses"]
+    focus_topics = analytics["focus_topics"]
+
+
+    # =========================================================
+    # 📚 PERSONALIZED RECOMMENDATIONS
+    # =========================================================
+
+    recommendations = ""
+
+    if weaknesses:
+
+        weakness_text = "\n".join(
+            [
+                f"""
+    Topic: {item['topic']}
+    Question: {item['question']}
+    Student Answer: {item['student_answer']}
+    Correct Answer: {item['correct_answer']}
+    """
+                for item in weaknesses
+            ]
+        )
+
+        recommendation_prompt = f"""
+    You are a school learning mentor for ScoreSkill.
+
+    Based ONLY on the student's actual incorrect quiz answers below,
+    give practical learning recommendations.
+
+    Incorrect answers:
+
+    {weakness_text}
+
+    Rules:
+
+    - Do not invent topics.
+    - Do not invent mistakes.
+    - Do not claim the student is weak overall.
+    - Identify the concept involved only when it is reasonably clear.
+    - Recommend practical study actions.
+    - Keep the language simple and suitable for a school student.
+    - Give exactly 3 recommendations.
+    - Do not mention AI or Gemini.
+    - Do not use markdown symbols.
+    - Do not use bullet symbols.
+    - Use numbered points only.
+
+    Return only the 3 numbered recommendations.
+    """
+
+        try:
+
+            client = genai.Client(
+                api_key=settings.GEMINI_API_KEY
+            )
+
+            recommendation_response = client.models.generate_content(
+                model="gemini-3.6-flash",
+                contents=recommendation_prompt
+            )
+
+            recommendations = recommendation_response.text.strip()
+
+        except Exception as e:
+
+            print(
+                "GEMINI RECOMMENDATION ERROR:",
+                str(e)
+            )
+
+            recommendations = (
+                "1. Review the questions you answered incorrectly "
+                "and understand the correct method.\n\n"
+                "2. Practise a few similar problems from the "
+                "topics where mistakes occurred.\n\n"
+                "3. Reattempt a short quiz after reviewing the "
+                "concepts to check your improvement."
+            )
+
     else:
-        level = "Strong"
 
-    # 🤖 AI FEEDBACK
+        recommendations = (
+            "1. Continue practising mixed-topic questions to "
+            "maintain your current performance.\n\n"
+            "2. Revisit difficult questions occasionally even "
+            "when your answers are correct.\n\n"
+            "3. Try slightly more challenging problems to "
+            "strengthen your understanding."
+        )
+
+
+
+
+
+
+    # =========================================================
+    # 🤖 AI FEEDBACK BASED ON ACTUAL QUIZ ANSWERS
+    # =========================================================
+
     feedback = ""
 
     try:
-        from openai import OpenAI
-        client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{
-                "role": "user",
-                "content": f"A student has {level} performance with score {total_score}. Give short improvement advice."
-            }]
+        from google import genai
+
+        # -----------------------------------------------------
+        # CONNECT TO GEMINI
+        # -----------------------------------------------------
+
+        client = genai.Client(
+            api_key=settings.GEMINI_API_KEY
         )
 
-        feedback = response.choices[0].message.content
+        # -----------------------------------------------------
+        # COLLECT ACTUAL STUDENT ANSWERS
+        # -----------------------------------------------------
 
-    except:
-        feedback = "AI feedback not available"
+        answer_details = []
 
-    return render(request, "ai_insights.html", {
-        "score": total_score,
-        "level": level,
-        "feedback": feedback
-    })
+        results = QuizResult.objects.filter(
+            student=user
+        ).select_related("quiz")
+
+        for result in results:
+
+            quiz = result.quiz
+
+            questions = Question.objects.filter(
+                quiz=quiz
+            )
+
+            for question in questions:
+
+                # Get the latest answer for this question.
+                # Using -id avoids problems if the student
+                # has attempted the same quiz more than once.
+
+                answer = StudentAnswer.objects.filter(
+                    student=user,
+                    question=question
+                ).order_by('-id').first()
+
+                if not answer:
+                    continue
+
+                answer_details.append(
+                    f"""
+    Quiz: {quiz.title}
+    Question: {question.question}
+    Student Answer: {answer.selected_answer}
+    Correct Answer: {question.correct_answer}
+    """
+                )
+
+        # -----------------------------------------------------
+        # CREATE PERFORMANCE INFORMATION FOR GEMINI
+        # -----------------------------------------------------
+
+        performance_data = "\n".join(answer_details)
+
+        # -----------------------------------------------------
+        # GEMINI PROMPT
+        # -----------------------------------------------------
+
+        prompt = f"""
+    You are a helpful school learning mentor for ScoreSkill.
+
+    Analyze the student's actual quiz performance.
+
+    Overall Score:
+    {total_score} / {total_possible}
+
+    Overall Percentage:
+    {percentage}%
+
+    Performance Level:
+    {level}
+
+    Here are the student's actual answers:
+
+    {performance_data}
+
+    Give a short, useful learning review.
+
+    Your response MUST contain these four sections:
+
+    Assessment of Performance
+
+    Strengths and Positive Observations
+
+    Areas for Improvement
+
+    Practical Study Recommendations
+
+    Rules:
+
+    - Base your observations ONLY on the quiz answers provided.
+    - Identify the questions the student got wrong.
+    - Explain the concept or type of mistake involved when it is reasonably clear.
+    - Mention correct answers as strengths when appropriate.
+    - Do not invent subjects, topics, mistakes or weaknesses.
+    - If the student answered everything correctly, clearly say that there are no specific weaknesses identified from these quizzes.
+    - Give exactly two strengths or positive observations when the available data supports them.
+    - Give exactly two areas for improvement when there are mistakes to discuss.
+    - Give exactly three practical study recommendations.
+    - Keep the language simple and suitable for a school student.
+    - Do not mention AI or Gemini.
+    - Do not use markdown symbols such as ** or ##.
+    - Do not use markdown tables.
+    - Do not use bullet symbols such as *.
+    - Use simple headings and numbered points.
+    """
+
+        # -----------------------------------------------------
+        # ASK GEMINI
+        # -----------------------------------------------------
+
+        response = client.models.generate_content(
+            model="gemini-3.6-flash",
+            contents=prompt
+        )
+
+        feedback = response.text.strip()
+
+    except Exception as e:
+
+        print("GEMINI AI INSIGHTS ERROR:", str(e))
+
+        feedback = (
+            "AI feedback is temporarily unavailable. "
+            "Please try again later."
+        )
+
+
+    # =========================================================
+    # DISPLAY INSIGHTS
+    # =========================================================
+
+    return render(
+        request,
+        "ai_insights.html",
+        {
+            "score": total_score,
+            "total_possible": total_possible,
+            "percentage": percentage,
+            "level": level,
+            "feedback": feedback,
+            "quiz_history": quiz_history,
+            "performance_trend": performance_trend,
+            "topic_performance": topic_performance,
+            "strongest_topic": strongest_topic,
+            "weakest_topic": weakest_topic,
+            "weaknesses": weaknesses,
+            "focus_topics": focus_topics,
+            "recommendations": recommendations,
+        }
+    )
 
 
 from django.shortcuts import get_object_or_404

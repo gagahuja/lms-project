@@ -1,0 +1,1480 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Teacher Dashboard{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid py-4">
+
+    <!-- Welcome -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="mb-1">
+                👋 Welcome, {{ request.user.first_name|default:request.user.username }}
+            </h2>
+
+            <p class="text-muted mb-0">
+                Manage your courses, students and live classes from one place.
+            </p>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row g-4">
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <h6>Total Students</h6>
+                    <h2>{{ total_students }}</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <h6>Courses</h6>
+                    <h2>{{ total_courses }}</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <h6>Assignments</h6>
+                    <h2>{{ total_assignments }}</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <h6>Pending Reviews</h6>
+                    <h2>{{ pending_reviews }}</h2>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="row mt-4">
+
+        <div class="col-lg-8">
+
+            <div class="card shadow-sm border-0">
+
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        📈 Student Performance
+                    </h5>
+                </div>
+
+                <div class="card-body">
+
+                    <canvas
+                        id="performanceChart"
+                        height="120">
+                    </canvas>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-lg-4">
+
+            <div class="card shadow-sm border-0">
+
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        📊 Assignment Status
+                    </h5>
+                </div>
+
+                <div class="card-body">
+
+                    <canvas
+                        id="submissionChart">
+                    </canvas>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- =========================================================
+        TOP STUDENTS & STUDENTS NEEDING ATTENTION
+        ========================================================= -->
+
+    <div class="row g-4 mt-1">
+
+        <!-- Top Students -->
+        <div class="col-lg-7">
+
+            <div class="card border-0 shadow-sm h-100">
+
+                <div class="card-header bg-white border-0 py-3">
+                    <h5 class="mb-0">
+                        🏆 Top Performing Students
+                    </h5>
+
+                    <small class="text-muted">
+                        Students with the highest average marks
+                    </small>
+                </div>
+
+                <div class="card-body pt-0">
+
+                    {% if top_students %}
+
+                    <div class="table-responsive">
+
+                        <table class="table align-middle mb-0">
+
+                            <thead>
+                                <tr>
+                                    <th style="width: 70px;">Rank</th>
+                                    <th>Student</th>
+                                    <th>Average</th>
+                                    <th>Progress</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+
+                                {% for row in top_students %}
+
+                                <tr>
+
+                                    <td>
+                                        {% if forloop.counter == 1 %}
+                                            🥇
+                                        {% elif forloop.counter == 2 %}
+                                            🥈
+                                        {% elif forloop.counter == 3 %}
+                                            🥉
+                                        {% else %}
+                                            {{ forloop.counter }}
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        <strong>
+                                            {{ row.student.username }}
+                                        </strong>
+                                    </td>
+
+                                    <td>
+                                        <span class="badge text-bg-success">
+                                            {{ row.average }}
+                                        </span>
+                                    </td>
+
+                                    <td style="min-width: 150px;">
+
+                                        <div class="d-flex align-items-center gap-2">
+
+                                            <div class="progress flex-grow-1"
+                                                style="height: 8px;">
+
+                                                <div
+                                                    class="progress-bar"
+                                                    role="progressbar"
+                                                    data-progress="{{ row.progress }}"
+                                                    aria-valuenow="{{ row.progress }}"
+                                                    aria-valuemin="0"
+                                                    aria-valuemax="100">
+                                                </div>
+
+                                            </div>
+
+                                            <small>
+                                                {{ row.progress }}%
+                                            </small>
+
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+
+                                {% endfor %}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                    {% else %}
+
+                    <div class="text-center text-muted py-5">
+                        <div class="fs-2 mb-2">📊</div>
+                        <p class="mb-0">
+                            No student performance data available yet.
+                        </p>
+                    </div>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Students Needing Attention -->
+        <div class="col-lg-5">
+
+            <div class="card border-0 shadow-sm h-100">
+
+                <div class="card-header bg-white border-0 py-3">
+
+                    <h5 class="mb-0">
+                        ⚠️ Students Needing Attention
+                    </h5>
+
+                    <small class="text-muted">
+                        Students who may need additional support
+                    </small>
+
+                </div>
+
+                <div class="card-body pt-0">
+
+                    {% if attention_students %}
+
+                        {% for row in attention_students %}
+
+                        <div class="border rounded-3 p-3 mb-3">
+
+                            <div class="d-flex justify-content-between
+                                        align-items-center mb-2">
+
+                                <strong>
+                                {{ row.student.username }}
+                                </strong>
+
+                                <span class="badge text-bg-warning">
+                                    Attention
+                                </span>
+
+                            </div>
+
+
+                            <div class="small text-muted mb-2">
+
+                                {% if row.average < 40 %}
+                                    ⚠️ Low average marks:
+                                    {{ row.average }}
+
+                                {% elif row.progress < 50 %}
+                                    📉 Low course progress:
+                                    {{ row.progress }}%
+
+                                {% else %}
+                                    📝 Pending assignments:
+                                    {{ row.pending }}
+                                {% endif %}
+
+                            </div>
+
+
+                            <div class="d-flex justify-content-between
+                                        small mb-1">
+
+                                <span>Progress</span>
+
+                                <span>
+                                    {{ row.progress }}%
+                                </span>
+
+                            </div>
+
+                            <div class="progress mb-2"
+                                style="height: 7px;">
+
+                                <div
+                                    class="progress-bar bg-warning"
+                                    role="progressbar"
+                                    data-progress="{{ row.progress }}"
+                                    aria-valuenow="{{ row.progress }}"
+                                    aria-valuemin="0"
+                                    aria-valuemax="100">
+                                </div>
+
+                            </div>
+
+
+                            <div class="small text-muted">
+
+                                Average:
+                                <strong>{{ row.average }}</strong>
+
+                                &nbsp; • &nbsp;
+
+                                Pending:
+                                <strong>{{ row.pending }}</strong>
+
+                            </div>
+
+                        </div>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <div class="text-center py-5">
+
+                            <div class="fs-1 mb-2">
+                                🎉
+                            </div>
+
+                            <h6 class="mb-1">
+                                Great!
+                            </h6>
+
+                            <p class="text-muted mb-0">
+                                No students currently need attention.
+                            </p>
+
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =========================================================
+     LIVE CLASSES
+     ========================================================= -->
+
+<div class="card border-0 shadow-sm mt-4">
+
+    <!-- Header -->
+    <div class="card-header bg-white border-0 py-3">
+
+        <div class="d-flex justify-content-between align-items-center">
+
+            <div>
+                <h5 class="mb-0">
+                    🎥 Your Live Classes
+                </h5>
+
+                <small class="text-muted">
+                    Manage your scheduled and active classes
+                </small>
+            </div>
+
+            <a href="{% url 'create_live_class' %}"
+               class="btn btn-primary btn-sm">
+
+                + Create Live Class
+
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <!-- Body -->
+    <div class="card-body">
+
+        {% for cls in live_classes %}
+
+        <div class="border rounded-3 p-3 mb-3">
+
+            <div class="row align-items-center">
+
+                <!-- CLASS INFORMATION -->
+                <div class="col-lg-5">
+
+                    <div class="d-flex align-items-center gap-3">
+
+                        <!-- Icon -->
+                        <div
+                            class="rounded-circle bg-primary bg-opacity-10
+                                   d-flex align-items-center justify-content-center"
+                            style="width:50px;height:50px;">
+
+                            🎥
+
+                        </div>
+
+
+                        <!-- Details -->
+                        <div>
+
+                            <h6 class="mb-1">
+                                {{ cls.title }}
+                            </h6>
+
+                            {% if cls.course %}
+
+                            <div class="small text-muted">
+
+                                📚 {{ cls.course.title }}
+
+                            </div>
+
+                            {% endif %}
+
+
+                            <div class="small text-muted">
+
+                                🕐 {{ cls.date|date:"d M Y, h:i A" }}
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- STATUS -->
+                <div class="col-lg-2 text-lg-center mt-3 mt-lg-0">
+
+                    {% if cls.is_completed %}
+
+                        <span class="badge rounded-pill text-bg-secondary">
+
+                            ✓ Completed
+
+                        </span>
+
+                    {% elif cls.is_live %}
+
+                        <span class="badge rounded-pill text-bg-success">
+
+                            🟢 LIVE
+
+                        </span>
+
+                    {% elif cls.teacher_started %}
+
+                        <span class="badge rounded-pill text-bg-warning">
+
+                            Starting...
+
+                        </span>
+
+                    {% else %}
+
+                        <span class="badge rounded-pill text-bg-primary">
+
+                            Upcoming
+
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+
+                <!-- ACTIONS -->
+                <div class="col-lg-5 text-lg-end mt-3 mt-lg-0">
+
+                    <!-- LIVE CLASS -->
+                    {% if cls.is_live and not cls.is_completed %}
+
+                        <a href="{% url 'join_live_class' cls.id %}"
+                           target="_blank"
+                           class="btn btn-success btn-sm me-1">
+
+                            ▶ Join
+
+                        </a>
+
+
+                        <a href="{% url 'stop_class' cls.id %}"
+                           class="btn btn-danger btn-sm me-1">
+
+                            ⏹ Stop
+
+                        </a>
+
+                    <!-- UPCOMING CLASS -->
+                    {% elif not cls.is_completed %}
+
+                        <a href="{% url 'start_class' cls.id %}"
+                           class="btn btn-primary btn-sm me-1">
+
+                            ▶ Start
+
+                        </a>
+
+                    {% endif %}
+
+
+                    <!-- ATTENDANCE -->
+                    {% if cls.is_live or cls.is_completed %}
+
+                        <a href="{% url 'attendance' cls.id %}"
+                           class="btn btn-info btn-sm">
+
+                            👥 Attendance
+
+                        </a>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+            <!-- COMPLETION INFORMATION -->
+            {% if cls.is_completed %}
+
+            <div class="border-top mt-3 pt-2">
+
+                <small class="text-muted">
+
+                    ✓ This class has been completed.
+
+                    {% if cls.completed_at %}
+
+                        Completed:
+                        {{ cls.completed_at|date:"d M Y, h:i A" }}
+
+                    {% endif %}
+
+                </small>
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+
+        {% empty %}
+
+        <!-- EMPTY STATE -->
+
+        <div class="text-center py-5">
+
+            <div class="fs-1 mb-3">
+                🎥
+            </div>
+
+            <h6>
+                No Live Classes
+            </h6>
+
+            <p class="text-muted mb-3">
+
+                You haven't scheduled any live classes yet.
+
+            </p>
+
+            <a href="{% url 'create_live_class' %}"
+               class="btn btn-primary">
+
+                + Create Your First Class
+
+            </a>
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     RECENT ACTIVITY
+     ========================================================= -->
+
+<div class="card border-0 shadow-sm mt-4">
+
+    <div class="card-header bg-white border-0 py-3">
+
+        <div class="d-flex justify-content-between align-items-center">
+
+            <div>
+                <h5 class="mb-0">
+                    🕘 Recent Activity
+                </h5>
+
+                <small class="text-muted">
+                    Latest activity from your students and courses
+                </small>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="card-body p-0">
+
+        {% if activity_feed %}
+
+            <div class="list-group list-group-flush">
+
+                {% for activity in activity_feed %}
+
+                <div class="list-group-item px-4 py-3">
+
+                    <div class="d-flex align-items-start gap-3">
+
+                        <!-- Activity Icon -->
+                        <div
+                            class="rounded-circle bg-primary bg-opacity-10
+                                   d-flex align-items-center justify-content-center
+                                   flex-shrink-0"
+                            style="width:42px;height:42px;">
+
+                            {{ activity.icon|default:"🔔" }}
+
+                        </div>
+
+
+                        <!-- Activity Details -->
+                        <div class="flex-grow-1">
+
+                            <div class="fw-semibold">
+
+                                {{ activity.message }}
+
+                            </div>
+
+                            {% if activity.time %}
+
+                            <small class="text-muted">
+
+                                🕐
+                                {{ activity.time|date:"d M Y, h:i A" }}
+
+                            </small>
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+
+            <div class="text-center py-5">
+
+                <div class="fs-1 mb-2">
+                    🕘
+                </div>
+
+                <h6>
+                    No recent activity
+                </h6>
+
+                <p class="text-muted mb-0">
+                    Student and course activity will appear here.
+                </p>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     ASSIGNMENT PERFORMANCE ANALYTICS
+     ========================================================= -->
+
+<div class="card border-0 shadow-sm mt-4">
+
+    <div class="card-header bg-white border-0 py-3">
+
+        <div class="d-flex justify-content-between align-items-center">
+
+            <div>
+
+                <h5 class="mb-0">
+                    📊 Assignment Performance
+                </h5>
+
+                <small class="text-muted">
+                    Monitor submission and student performance
+                </small>
+
+            </div>
+
+            <a href="{% url 'gradebook' %}"
+               class="btn btn-outline-primary btn-sm">
+
+                📚 Gradebook
+
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <div class="card-body p-0">
+
+        {% if assignment_stats %}
+
+        <div class="table-responsive">
+
+            <table class="table align-middle mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th class="ps-4">
+                            Assignment
+                        </th>
+
+                        <th>
+                            Submitted
+                        </th>
+
+                        <th>
+                            Average
+                        </th>
+
+                        <th>
+                            Highest
+                        </th>
+
+                        <th>
+                            Lowest
+                        </th>
+
+                        <th>
+                            Submission
+                        </th>
+
+                        <th>
+                            Difficulty
+                        </th>
+
+                        <th class="text-end pe-4">
+                            Action
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                {% for stat in assignment_stats %}
+
+                    <tr>
+
+                        <!-- Assignment -->
+                        <td class="ps-4">
+
+                            <div class="fw-semibold">
+
+                                {{ stat.assignment.title }}
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- Submitted -->
+                        <td>
+
+                            <span class="badge text-bg-primary">
+
+                                {{ stat.submitted }}
+
+                            </span>
+
+                        </td>
+
+
+                        <!-- Average -->
+                        <td>
+
+                            {% if stat.average is not None %}
+
+                                <strong>
+                                    {{ stat.average }}
+                                </strong>
+
+                            {% else %}
+
+                                <span class="text-muted">
+                                    —
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- Highest -->
+                        <td>
+
+                            {% if stat.highest is not None %}
+
+                                <span class="text-success fw-semibold">
+
+                                    {{ stat.highest }}
+
+                                </span>
+
+                            {% else %}
+
+                                <span class="text-muted">
+                                    —
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- Lowest -->
+                        <td>
+
+                            {% if stat.lowest is not None %}
+
+                                <span class="text-danger fw-semibold">
+
+                                    {{ stat.lowest }}
+
+                                </span>
+
+                            {% else %}
+
+                                <span class="text-muted">
+                                    —
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- Submission Percentage -->
+                        <td style="min-width:160px;">
+
+                            <div class="d-flex align-items-center gap-2">
+
+                                <div
+                                    class="progress flex-grow-1"
+                                    style="height:8px;">
+
+                                    <div
+                                        class="progress-bar
+                                        {% if stat.submission_percentage >= 80 %}
+                                            bg-success
+                                        {% elif stat.submission_percentage >= 50 %}
+                                            bg-warning
+                                        {% else %}
+                                            bg-danger
+                                        {% endif %}"
+                                        role="progressbar"
+                                        data-submission="{{ stat.submission_percentage }}"
+                                        aria-valuenow="{{ stat.submission_percentage }}"
+                                        aria-valuemin="0"
+                                        aria-valuemax="100">
+                                    </div>
+
+                                </div>
+
+                                <small class="text-muted">
+
+                                    {{ stat.submission_percentage }}%
+
+                                </small>
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- Difficulty -->
+                        <td>
+
+                            {% if stat.difficulty == "Easy" %}
+
+                                <span class="badge text-bg-success">
+                                    Easy
+                                </span>
+
+                            {% elif stat.difficulty == "Medium" %}
+
+                                <span class="badge text-bg-warning">
+                                    Medium
+                                </span>
+
+                            {% elif stat.difficulty == "Hard" %}
+
+                                <span class="badge text-bg-danger">
+                                    Hard
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge text-bg-secondary">
+                                    {{ stat.difficulty }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- Action -->
+                        <td class="text-end pe-4">
+
+                            <a
+                                href="{% url 'check_submissions' stat.assignment.id %}"
+                                class="btn btn-warning btn-sm">
+
+                                Review
+
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        {% else %}
+
+        <!-- Empty State -->
+
+        <div class="text-center py-5">
+
+            <div class="fs-1 mb-2">
+                📊
+            </div>
+
+            <h6>
+                No assignment data yet
+            </h6>
+
+            <p class="text-muted mb-0">
+
+                Assignment performance will appear here
+                once students submit their work.
+
+            </p>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     RECORDED CLASSES
+     ========================================================= -->
+
+<div class="card border-0 shadow-sm mt-4">
+
+    <!-- Header -->
+    <div class="card-header bg-white border-0 py-3">
+
+        <div class="d-flex justify-content-between align-items-center">
+
+            <div>
+
+                <h5 class="mb-0">
+                    🎬 Recorded Classes
+                </h5>
+
+                <small class="text-muted">
+                    Access and manage your recorded lessons
+                </small>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- Body -->
+    <div class="card-body">
+
+        {% if teacher_recordings %}
+
+            <div class="row g-3">
+
+                {% for rec in teacher_recordings %}
+
+                <div class="col-12 col-xl-6">
+
+                    <div class="border rounded-3 p-3 h-100">
+
+                        <!-- Recording Header -->
+
+                        <div class="d-flex align-items-start gap-3 mb-3">
+
+                            <div
+                                class="rounded-circle bg-primary bg-opacity-10
+                                       d-flex align-items-center justify-content-center
+                                       flex-shrink-0"
+                                style="width:48px;height:48px;">
+
+                                🎬
+
+                            </div>
+
+
+                            <div class="flex-grow-1">
+
+                                <h6 class="mb-1">
+
+                                    {% if rec.title %}
+
+                                        {{ rec.title }}
+
+                                    {% else %}
+
+                                        {{ rec.live_class.title }}
+
+                                    {% endif %}
+
+                                </h6>
+
+
+                                {% if rec.live_class.course %}
+
+                                <div class="small text-muted">
+
+                                    📚
+                                    {{ rec.live_class.course.title }}
+
+                                </div>
+
+                                {% endif %}
+
+
+                                <div class="small text-muted">
+
+                                    🕐 Uploaded:
+                                    {{ rec.uploaded_at|date:"d M Y, h:i A" }}
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Description -->
+
+                        {% if rec.description %}
+
+                        <p class="small text-muted mb-3">
+
+                            {{ rec.description|truncatewords:25 }}
+
+                        </p>
+
+                        {% endif %}
+
+
+                        <!-- Actions -->
+
+                        <div class="d-flex flex-wrap gap-2">
+
+                            {% if rec.video %}
+
+                            <a
+                                href="{{ rec.video.url }}"
+                                target="_blank"
+                                class="btn btn-success btn-sm">
+
+                                ▶ View Recording
+
+                            </a>
+
+                            {% endif %}
+
+
+                            <a
+                                href="{% url 'upload_recording' rec.live_class.id %}"
+                                class="btn btn-warning btn-sm">
+
+                                🔄 Replace
+
+                            </a>
+
+
+                            <form
+                                method="post"
+                                action="{% url 'delete_recording' rec.id %}"
+                                class="d-inline">
+
+                                {% csrf_token %}
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-danger btn-sm"
+                                    onclick="return confirm('Are you sure you want to delete this recording?');">
+
+                                    🗑 Delete
+
+                                </button>
+
+                            </form>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+
+        {% else %}
+
+            <!-- Empty State -->
+
+            <div class="text-center py-5">
+
+                <div class="fs-1 mb-3">
+                    🎬
+                </div>
+
+                <h6>
+                    No Recorded Classes
+                </h6>
+
+                <p class="text-muted mb-0">
+
+                    Recorded classes will appear here
+                    after you upload them.
+
+                </p>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     COURSES & CONTENT
+     ========================================================= -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <!-- Header -->
+
+    <div class="card-header bg-white border-0 py-3">
+
+        <div class="d-flex justify-content-between align-items-center">
+
+            <div>
+
+                <h5 class="mb-1">
+                    📚 Your Courses & Content
+                </h5>
+
+                <small class="text-muted">
+                    Manage your courses, modules, lessons and assignments
+                </small>
+
+            </div>
+
+            <a href="{% url 'create_course' %}"
+               class="btn btn-primary btn-sm">
+
+                ➕ Create Course
+
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <!-- Courses -->
+
+    <div class="card-body">
+
+        {% for course in courses %}
+
+        <div class="border rounded-3 p-3 mb-3">
+
+            <!-- Course Header -->
+
+            <div class="d-flex justify-content-between
+                        align-items-center flex-wrap gap-2 mb-3">
+
+                <div>
+
+                    <h5 class="mb-1">
+
+                        📘 {{ course.title }}
+
+                    </h5>
+
+                </div>
+
+
+                <a href="{% url 'generate_ai_quiz' course.id %}"
+                   class="btn btn-primary btn-sm">
+
+                    🤖 Generate AI Quiz
+
+                </a>
+
+            </div>
+
+
+            <!-- Modules -->
+
+            {% for module in course.modules.all %}
+
+            <div class="border rounded-3 p-3 mb-2 bg-light">
+
+                <h6 class="mb-3">
+
+                    📦 {{ module.title }}
+
+                </h6>
+
+
+                <!-- Lessons -->
+
+                {% for lesson in module.lessons.all %}
+
+                <div class="bg-white border rounded p-2 mb-2">
+
+                    <div class="d-flex align-items-center
+                                justify-content-between
+                                flex-wrap gap-2">
+
+                        <span>
+
+                            🎥
+                            <strong>{{ lesson.title }}</strong>
+
+                        </span>
+
+                    </div>
+
+
+                    <!-- Assignments -->
+
+                    {% for assignment in lesson.assignments.all %}
+
+                    <div class="ms-4 mt-2
+                                d-flex align-items-center
+                                justify-content-between
+                                flex-wrap gap-2">
+
+                        <span class="small">
+
+                            📄 {{ assignment.title }}
+
+                        </span>
+
+
+                        <a href="{% url 'view_assignment' assignment.id %}"
+                           class="btn btn-outline-primary btn-sm">
+
+                            View
+
+                        </a>
+
+                    </div>
+
+                    {% empty %}
+
+                    <div class="ms-4 mt-2">
+
+                        <small class="text-muted">
+
+                            No assignments for this lesson.
+
+                        </small>
+
+                    </div>
+
+                    {% endfor %}
+
+                </div>
+
+
+                {% empty %}
+
+                <div class="text-muted small">
+
+                    No lessons in this module yet.
+
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+
+            {% empty %}
+
+            <div class="alert alert-light border">
+
+                No modules have been added to this course yet.
+
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        {% empty %}
+
+        <!-- No Courses -->
+
+        <div class="text-center py-5">
+
+            <div class="fs-1 mb-3">
+                📚
+            </div>
+
+            <h6>
+                No Courses Yet
+            </h6>
+
+            <p class="text-muted mb-3">
+
+                Create your first course to start adding
+                modules, lessons and assignments.
+
+            </p>
+
+            <a href="{% url 'create_course' %}"
+               class="btn btn-primary">
+
+                ➕ Create Your First Course
+
+            </a>
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+</div>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+const totalStudents = Number("{{ total_students|default:0 }}");
+const totalCourses = Number("{{ total_courses|default:0 }}");
+const totalAssignments = Number("{{ total_assignments|default:0 }}");
+const totalSubmissions = Number("{{ total_submissions|default:0 }}");
+const pendingReviews = Number("{{ pending_reviews|default:0 }}");
+
+new Chart(document.getElementById("performanceChart"), {
+    type: "bar",
+    data: {
+        labels: [
+            "Students",
+            "Courses",
+            "Assignments"
+        ],
+        datasets: [{
+            label: "Statistics",
+            data: [
+                totalStudents,
+                totalCourses,
+                totalAssignments
+            ]
+        }]
+    }
+});
+
+new Chart(document.getElementById("submissionChart"), {
+    type: "doughnut",
+    data: {
+        labels: [
+            "Checked",
+            "Pending"
+        ],
+        datasets: [{
+            data: [
+                totalSubmissions,
+                pendingReviews
+            ]
+        }]
+    }
+});
+
+</script>
+
+<script>
+document.querySelectorAll("[data-progress]").forEach(function (bar) {
+    const progress = Number(bar.dataset.progress || 0);
+
+    bar.style.width = progress + "%";
+});
+</script>
+
+<script>
+document.querySelectorAll("[data-submission]").forEach(function (bar) {
+    const submission = Number(bar.dataset.submission || 0);
+
+    bar.style.width = submission + "%";
+});
+</script>
+
+
+
+{% endblock %}
