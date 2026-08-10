@@ -50,6 +50,10 @@ from core.services.dashboard_service import (
     build_student_dashboard,
 )
 from .services.quiz_analytics_service import get_quiz_analytics
+from .services.ai_feedback_service import (
+    generate_recommendations,
+    generate_ai_feedback,
+)
 
 
 def is_enrolled(user):
@@ -1178,11 +1182,10 @@ def mark_complete(request, lesson_id):
 
 def ai_insights(request):
     from django.db.models import Sum
-    from django.conf import settings
     from django.http import HttpResponse
     from django.shortcuts import render
     from .models import QuizResult
-    from google import genai
+    
 
     # =========================================================
     # SUBSCRIPTION LOCK
@@ -1231,235 +1234,72 @@ def ai_insights(request):
 
 
     # =========================================================
-    # 📚 PERSONALIZED RECOMMENDATIONS
+    # PERSONALIZED RECOMMENDATIONS
     # =========================================================
 
-    recommendations = ""
-
-    if weaknesses:
-
-        weakness_text = "\n".join(
-            [
-                f"""
-    Topic: {item['topic']}
-    Question: {item['question']}
-    Student Answer: {item['student_answer']}
-    Correct Answer: {item['correct_answer']}
-    """
-                for item in weaknesses
-            ]
-        )
-
-        recommendation_prompt = f"""
-    You are a school learning mentor for ScoreSkill.
-
-    Based ONLY on the student's actual incorrect quiz answers below,
-    give practical learning recommendations.
-
-    Incorrect answers:
-
-    {weakness_text}
-
-    Rules:
-
-    - Do not invent topics.
-    - Do not invent mistakes.
-    - Do not claim the student is weak overall.
-    - Identify the concept involved only when it is reasonably clear.
-    - Recommend practical study actions.
-    - Keep the language simple and suitable for a school student.
-    - Give exactly 3 recommendations.
-    - Do not mention AI or Gemini.
-    - Do not use markdown symbols.
-    - Do not use bullet symbols.
-    - Use numbered points only.
-
-    Return only the 3 numbered recommendations.
-    """
-
-        try:
-
-            client = genai.Client(
-                api_key=settings.GEMINI_API_KEY
-            )
-
-            recommendation_response = client.models.generate_content(
-                model="gemini-3.6-flash",
-                contents=recommendation_prompt
-            )
-
-            recommendations = recommendation_response.text.strip()
-
-        except Exception as e:
-
-            print(
-                "GEMINI RECOMMENDATION ERROR:",
-                str(e)
-            )
-
-            recommendations = (
-                "1. Review the questions you answered incorrectly "
-                "and understand the correct method.\n\n"
-                "2. Practise a few similar problems from the "
-                "topics where mistakes occurred.\n\n"
-                "3. Reattempt a short quiz after reviewing the "
-                "concepts to check your improvement."
-            )
-
-    else:
-
-        recommendations = (
-            "1. Continue practising mixed-topic questions to "
-            "maintain your current performance.\n\n"
-            "2. Revisit difficult questions occasionally even "
-            "when your answers are correct.\n\n"
-            "3. Try slightly more challenging problems to "
-            "strengthen your understanding."
-        )
-
-
-
-
+    recommendations = generate_recommendations(
+        weaknesses
+    )
 
 
     # =========================================================
-    # 🤖 AI FEEDBACK BASED ON ACTUAL QUIZ ANSWERS
+    # SUBSCRIPTION LOCK
     # =========================================================
 
-    feedback = ""
+    user = request.user
 
-    try:
+    # =========================================================
+    # ACCESS CONTROL
+    # =========================================================
 
-        from google import genai
+    if user.user_type != "teacher":
 
-        # -----------------------------------------------------
-        # CONNECT TO GEMINI
-        # -----------------------------------------------------
-
-        client = genai.Client(
-            api_key=settings.GEMINI_API_KEY
-        )
-
-        # -----------------------------------------------------
-        # COLLECT ACTUAL STUDENT ANSWERS
-        # -----------------------------------------------------
-
-        answer_details = []
-
-        results = QuizResult.objects.filter(
-            student=user
-        ).select_related("quiz")
-
-        for result in results:
-
-            quiz = result.quiz
-
-            questions = Question.objects.filter(
-                quiz=quiz
+        if not has_subscription(user):
+            return HttpResponse(
+                "🔒 Upgrade to Pro Plan to view AI Insights"
             )
 
-            for question in questions:
+    # =========================================================
+    # QUIZ ANALYTICS SERVICE
+    # =========================================================
 
-                # Get the latest answer for this question.
-                # Using -id avoids problems if the student
-                # has attempted the same quiz more than once.
+    analytics = get_quiz_analytics(user)
 
-                answer = StudentAnswer.objects.filter(
-                    student=user,
-                    question=question
-                ).order_by('-id').first()
+    # =========================================================
+    # GET ANALYTICS FROM SERVICE
+    # =========================================================
 
-                if not answer:
-                    continue
+    total_score = analytics["score"]
+    total_possible = analytics["total_possible"]
+    percentage = analytics["percentage"]
+    level = analytics["level"]
 
-                answer_details.append(
-                    f"""
-    Quiz: {quiz.title}
-    Question: {question.question}
-    Student Answer: {answer.selected_answer}
-    Correct Answer: {question.correct_answer}
-    """
-                )
+    quiz_history = analytics["quiz_history"]
+    performance_trend = analytics["performance_trend"]
 
-        # -----------------------------------------------------
-        # CREATE PERFORMANCE INFORMATION FOR GEMINI
-        # -----------------------------------------------------
+    topic_performance = analytics["topic_performance"]
+    strongest_topic = analytics["strongest_topic"]
+    weakest_topic = analytics["weakest_topic"]
 
-        performance_data = "\n".join(answer_details)
+    weaknesses = analytics["weaknesses"]
+    focus_topics = analytics["focus_topics"]
 
-        # -----------------------------------------------------
-        # GEMINI PROMPT
-        # -----------------------------------------------------
+    # =========================================================
+    # PERSONALIZED RECOMMENDATIONS
+    # =========================================================
 
-        prompt = f"""
-    You are a helpful school learning mentor for ScoreSkill.
+    recommendations = generate_recommendations(
+        weaknesses
+    )
 
-    Analyze the student's actual quiz performance.
+    # =========================================================
+    # AI FEEDBACK
+    # =========================================================
 
-    Overall Score:
-    {total_score} / {total_possible}
-
-    Overall Percentage:
-    {percentage}%
-
-    Performance Level:
-    {level}
-
-    Here are the student's actual answers:
-
-    {performance_data}
-
-    Give a short, useful learning review.
-
-    Your response MUST contain these four sections:
-
-    Assessment of Performance
-
-    Strengths and Positive Observations
-
-    Areas for Improvement
-
-    Practical Study Recommendations
-
-    Rules:
-
-    - Base your observations ONLY on the quiz answers provided.
-    - Identify the questions the student got wrong.
-    - Explain the concept or type of mistake involved when it is reasonably clear.
-    - Mention correct answers as strengths when appropriate.
-    - Do not invent subjects, topics, mistakes or weaknesses.
-    - If the student answered everything correctly, clearly say that there are no specific weaknesses identified from these quizzes.
-    - Give exactly two strengths or positive observations when the available data supports them.
-    - Give exactly two areas for improvement when there are mistakes to discuss.
-    - Give exactly three practical study recommendations.
-    - Keep the language simple and suitable for a school student.
-    - Do not mention AI or Gemini.
-    - Do not use markdown symbols such as ** or ##.
-    - Do not use markdown tables.
-    - Do not use bullet symbols such as *.
-    - Use simple headings and numbered points.
-    """
-
-        # -----------------------------------------------------
-        # ASK GEMINI
-        # -----------------------------------------------------
-
-        response = client.models.generate_content(
-            model="gemini-3.6-flash",
-            contents=prompt
-        )
-
-        feedback = response.text.strip()
-
-    except Exception as e:
-
-        print("GEMINI AI INSIGHTS ERROR:", str(e))
-
-        feedback = (
-            "AI feedback is temporarily unavailable. "
-            "Please try again later."
-        )
-
+    feedback = generate_ai_feedback(
+        user,
+        analytics
+    )
 
     # =========================================================
     # DISPLAY INSIGHTS
@@ -1484,6 +1324,7 @@ def ai_insights(request):
             "recommendations": recommendations,
         }
     )
+
 
 
 from django.shortcuts import get_object_or_404
