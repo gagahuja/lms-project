@@ -42,4 +42,35 @@ if settings.DEBUG:
 
 
 
+# =========================================================
+# GLOBAL 500 ERROR LOGGER
+# =========================================================
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def custom_500(request):
+    logger.exception(
+        "Unhandled server error: path=%s user=%s",
+        request.path,
+        (
+            request.user.username
+            if request.user.is_authenticated
+            else "anonymous"
+        ),
+    )
+
+    from django.shortcuts import render
+
+    return render(
+        request,
+        "500.html",
+        status=500
+    )
+
+
+handler500 = "config.urls.custom_500"
+
 

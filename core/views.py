@@ -59,7 +59,9 @@ from .services.course_learning_service import (
     build_course_learning_context,
     get_lesson_learning_context,
 )
+import logging
 
+logger = logging.getLogger(__name__)
 
 
 
@@ -170,6 +172,12 @@ def home(request):
 @login_required
 def dashboard(request):
 
+    logger.info(
+        "Dashboard opened by user=%s user_type=%s",
+        request.user.username,
+        request.user.user_type,
+    )
+
     if request.user.user_type == "teacher":
 
         context = build_teacher_dashboard(
@@ -185,6 +193,8 @@ def dashboard(request):
     context = build_student_dashboard(
         request.user
     )
+
+   
 
     return render(
         request,
@@ -2041,6 +2051,12 @@ def generate_certificate(request, course_id):
     course = Course.objects.get(id=course_id)
     user = request.user
 
+    logger.info(
+        "Certificate generation requested: user=%s course_id=%s",
+        user.username,
+        course.id,
+    )
+
     # =========================================================
     # PDF RESPONSE
     # =========================================================
@@ -2074,16 +2090,15 @@ def generate_certificate(request, course_id):
     purple = colors.HexColor("#5B4BDB")
     purple_dark = colors.HexColor("#4338CA")
     gold = colors.HexColor("#C9A227")
-    gold_light = colors.HexColor("#E8D28A")
     light_bg = colors.HexColor("#FAFAF7")
     grey = colors.HexColor("#64748B")
-    white = colors.white
 
     # =========================================================
     # BACKGROUND
     # =========================================================
 
     p.setFillColor(light_bg)
+
     p.rect(
         0,
         0,
@@ -2338,7 +2353,9 @@ def generate_certificate(request, course_id):
         f"{completion_date.strftime('%Y%m%d')}"
     )
 
-    # LEFT INFORMATION
+    # =========================================================
+    # DATE
+    # =========================================================
 
     left_x = 150
 
@@ -2368,7 +2385,9 @@ def generate_certificate(request, course_id):
         completion_date.strftime("%d %B %Y")
     )
 
-    # RIGHT INFORMATION
+    # =========================================================
+    # CERTIFICATE ID
+    # =========================================================
 
     right_x = width - 250
 
@@ -2409,7 +2428,7 @@ def generate_certificate(request, course_id):
     )
 
     # =========================================================
-    # SIGNATURE SECTION
+    # SIGNATURE
     # =========================================================
 
     signature_x = center_x
@@ -2526,6 +2545,12 @@ def generate_certificate(request, course_id):
 
     p.showPage()
     p.save()
+
+    logger.info(
+        "Certificate generated successfully: user=%s course_id=%s",
+        user.username,
+        course.id,
+    )
 
     return response
 
