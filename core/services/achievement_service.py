@@ -5,11 +5,16 @@ from core.services.xp_service import add_xp
 
 def award(student, title):
 
-    profile = student.profile
-
-    achievement = Achievement.objects.get(
-        title=title
+    profile, created = StudentProfile.objects.get_or_create(
+        student=student
     )
+
+    achievement = Achievement.objects.filter(
+        title=title
+    ).first()
+
+    if not achievement:
+        return False
 
     if profile.achievements.filter(
         id=achievement.id

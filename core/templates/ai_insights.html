@@ -559,6 +559,31 @@
 
     }
 
+    .history-review-btn {
+        display: inline-block;
+        margin-left: 10px;
+        padding: 5px 10px;
+        border-radius: 6px;
+        background: #eef2ff;
+        color: #4338ca;
+        border: 1px solid #c7d2fe;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .history-review-btn:hover {
+        background: #e0e7ff;
+        color: #3730a3;
+        text-decoration: none;
+    }
+
+    .quiz-attempt-info {
+        font-size: 12px;
+        color: #64748b;
+        margin-top: 4px;
+    }
+
 
 </style>
 
@@ -1005,8 +1030,22 @@
 
                     <div class="quiz-history-top">
 
-                        <div class="quiz-history-title">
-                            {{ quiz.title }}
+                        <div>
+
+                            <div class="quiz-history-title">
+                                {{ quiz.title }}
+                            </div>
+
+                            <div class="quiz-attempt-info">
+
+                                Attempt {{ quiz.attempt_number }}
+
+                                •
+                                
+                                {{ quiz.attempted_at|date:"d M Y, h:i A" }}
+
+                            </div>
+
                         </div>
 
                         <div class="quiz-score">
@@ -1056,6 +1095,15 @@
                             </span>
 
                         {% endif %}
+
+
+                        <a
+                            href="{% url 'quiz_attempt_review' quiz.result_id %}"
+                            class="history-review-btn">
+
+                            📋 Review
+
+                        </a>
 
                     </div>
 

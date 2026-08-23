@@ -1,0 +1,535 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+
+.lesson-section {
+    background: white;
+    border: 1px solid #d9dee7;
+    border-radius: 8px;
+    margin-top: 20px;
+    overflow: hidden;
+}
+
+.section-header {
+    background: #f8fafc;
+    border-bottom: 1px solid #d9dee7;
+    padding: 12px 16px;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.section-body {
+    padding: 16px;
+}
+
+.video-container {
+    padding: 0;
+    background: #000;
+}
+
+.video-container iframe {
+    display: block;
+    width: 100%;
+    border: 0;
+}
+
+.ai-notes-content {
+    line-height: 1.7;
+    color: #334155;
+    background: #f8fafc;
+}
+
+.course-progress {
+    width: 100%;
+    height: 10px;
+    border: none;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.course-progress::-webkit-progress-bar {
+    background: #e2e8f0;
+    border-radius: 20px;
+}
+
+.course-progress::-webkit-progress-value {
+    background: linear-gradient(90deg, #5b4bdb, #7c3aed);
+    border-radius: 20px;
+}
+
+.course-progress::-moz-progress-bar {
+    background: linear-gradient(90deg, #5b4bdb, #7c3aed);
+    border-radius: 20px;
+}
+
+</style>
+
+
+<div class="container py-4">
+
+    <div class="mb-4">
+
+        <a href="{% url 'course_detail' course.id %}"
+           class="btn btn-outline-secondary btn-sm">
+            ← Back to Course
+        </a>
+
+    </div>
+
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-body">
+
+            <div class="text-muted mb-2">
+                {{ course.title }}
+                /
+                {{ module.title }}
+            </div>
+
+            <h1 class="mb-2">
+                {{ lesson.title }}
+            </h1>
+
+            <div
+                style="
+                    color:#64748b;
+                    font-size:14px;
+                    margin-bottom:16px;
+                "
+            >
+                Lesson {{ current_position }} of {{ total_lessons }}
+            </div>
+
+            <div>
+
+                <div
+                    style="
+                        display:flex;
+                        justify-content:space-between;
+                        align-items:center;
+                        font-size:13px;
+                        margin-bottom:6px;
+                    "
+                >
+
+                    <span>
+                        Course Progress
+                    </span>
+
+                    <strong>
+                        {{ course_progress }}%
+                    </strong>
+
+                </div>
+
+                <progress
+                    class="course-progress"
+                    value="{{ course_progress }}"
+                    max="100"
+                ></progress>
+
+                <div
+                    style="
+                        font-size:12px;
+                        color:#64748b;
+                        margin-top:6px;
+                    "
+                >
+                    {{ completed_course_lessons }}
+                    of
+                    {{ total_course_lessons }}
+                    lessons completed
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- VIDEO -->
+
+    {% if lesson.video_url %}
+
+    <div class="lesson-section">
+
+        <div class="section-header">
+            🎥 Lesson Video
+        </div>
+
+        <div class="section-body video-container">
+
+            <iframe
+                src="https://www.youtube.com/embed?v=OMNLF31NZOs&list=PLsXCuZM8LbGt6yfqmuLfooWdhL3BO0Xi0"
+                width="100%"
+                height="500"
+                frameborder="0"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allow="accelerometer; autoplay; encrypted-media; picture-in-picture"
+                allowfullscreen>
+            </iframe>
+
+        </div>
+
+    </div>
+
+    {% endif %}
+
+
+    <!-- LESSON NOTES -->
+
+    {% if lesson.notes %}
+
+    <div class="lesson-section">
+
+        <div class="section-header">
+            📄 Lesson Notes
+        </div>
+
+        <div class="section-body">
+
+            <a
+                href="{{ lesson.notes.url }}"
+                target="_blank"
+                class="btn btn-primary">
+
+                📄 View Lesson Notes
+
+            </a>
+
+        </div>
+
+    </div>
+
+    {% endif %}
+
+
+    <!-- HANDOUTS -->
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-header">
+            📚 Handouts
+        </div>
+
+        <div class="card-body">
+
+            {% for handout in lesson.handout_set.all %}
+
+                <a
+                    href="{% url 'view_handout' handout.id %}"
+                    class="btn btn-info btn-sm mb-2">
+
+                    {{ handout.title }}
+
+                </a>
+
+                <br>
+
+            {% empty %}
+
+                <p class="text-muted mb-0">
+                    No handouts available for this lesson.
+                </p>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+
+    <!-- AI NOTES -->
+
+    <div class="lesson-section">
+
+        <div class="section-header">
+            🤖 AI Learning Notes
+        </div>
+
+        <div class="section-body">
+
+            {% if lesson.ai_notes %}
+
+                <div class="ai-notes-content">
+                    {{ lesson.ai_notes|linebreaksbr }}
+                </div>
+
+            {% else %}
+
+                <p class="text-muted mb-0">
+                    AI notes have not been generated for this lesson yet.
+                </p>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+        ASSIGNMENTS
+        ===================================================== -->
+
+    <div class="lesson-section">
+
+        <div class="section-header">
+            📝 Assignments
+        </div>
+
+        <div class="section-body">
+
+            {% for assignment in lesson.assignments.all %}
+
+                <div
+                    style="
+                        display:flex;
+                        justify-content:space-between;
+                        align-items:center;
+                        gap:15px;
+                        padding:14px 0;
+                        border-bottom:1px solid #edf0f4;
+                    "
+                >
+
+                    <div>
+
+                        <div style="font-weight:600;">
+                            {{ assignment.title }}
+                        </div>
+
+                        {% if assignment.description %}
+
+                            <div
+                                style="
+                                    font-size:13px;
+                                    color:#64748b;
+                                    margin-top:4px;
+                                "
+                            >
+                                {{ assignment.description }}
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                    <div
+                        style="
+                            display:flex;
+                            gap:8px;
+                            flex-shrink:0;
+                        "
+                    >
+
+                        <a
+                            href="{% url 'view_assignment' assignment.id %}"
+                            class="btn btn-primary btn-sm"
+                        >
+                            👁 View Assignment
+                        </a>
+
+                        
+
+                    </div>
+
+                </div>
+
+            {% empty %}
+
+                <p class="text-muted mb-0">
+                    No assignments for this lesson.
+                </p>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+        COMPLETION
+        ===================================================== -->
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-body text-center">
+
+            {% if is_completed %}
+
+                <div class="alert alert-success mb-3">
+
+                    <h5 class="mb-1">
+                        ✅ Lesson Completed
+                    </h5>
+
+                    <div>
+                        Well done! You have completed this lesson.
+                    </div>
+
+                </div>
+
+
+                {% if next_lesson %}
+
+                    <div class="mt-3">
+
+                        <div class="text-muted mb-2">
+                            Continue your learning journey
+                        </div>
+
+                        <a
+                            href="{% url 'lesson_detail' next_lesson.id %}"
+                            class="btn btn-primary btn-lg">
+
+                            ▶ Continue to Next Lesson
+
+                        </a>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="alert alert-success mt-3 mb-0">
+
+                        <h4 class="mb-2">
+                            🎓 Course Completed!
+                        </h4>
+
+                        <p class="mb-0">
+                            Congratulations! You have completed
+                            all lessons in {{ course.title }}.
+                        </p>
+
+                    </div>
+
+                {% endif %}
+
+
+            {% else %}
+
+                <div class="mb-3 text-muted">
+
+                    Complete this lesson after studying
+                    the material and finishing the required work.
+
+                </div>
+
+                <a
+                    href="{% url 'complete_lesson' lesson.id %}"
+                    class="btn btn-success btn-lg">
+
+                    ✅ Mark Lesson Complete
+
+                </a>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+        LESSON NAVIGATION
+        ===================================================== -->
+
+    <div
+        class="lesson-section"
+        style="margin-bottom:40px;"
+    >
+
+        <div class="section-body">
+
+            <div
+                style="
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                    gap:15px;
+                "
+            >
+
+                <!-- PREVIOUS -->
+
+                <div>
+
+                    {% if previous_lesson %}
+
+                        <a
+                            href="{% url 'lesson_detail' previous_lesson.id %}"
+                            class="btn btn-outline-primary"
+                        >
+                            ← Previous Lesson
+                        </a>
+
+                    {% else %}
+
+                        <span
+                            class="btn btn-outline-secondary disabled"
+                        >
+                            ← Previous Lesson
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+
+                <!-- POSITION -->
+
+                <div
+                    style="
+                        text-align:center;
+                        font-size:13px;
+                        color:#64748b;
+                    "
+                >
+
+                    <strong>
+                        Lesson {{ current_position }}
+                        of {{ total_lessons }}
+                    </strong>
+
+                </div>
+
+
+                <!-- NEXT -->
+
+                <div>
+
+                    {% if next_lesson %}
+
+                        <a
+                            href="{% url 'lesson_detail' next_lesson.id %}"
+                            class="btn btn-primary"
+                        >
+                            Next Lesson →
+                        </a>
+
+                    {% else %}
+
+                        <a
+                            href="{% url 'course_detail' course.id %}"
+                            class="btn btn-success"
+                        >
+                            🎓 Back to Course
+                        </a>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

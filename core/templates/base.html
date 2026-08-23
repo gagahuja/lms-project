@@ -370,15 +370,19 @@
                 🔔
 
                 {% if notification_count > 0 %}
-                <span style="
-                    position:absolute;
-                    top:-5px;
-                    right:-10px;
-                    background:red;
-                    color:white;
-                    border-radius:50%;
-                    padding:3px 7px;
-                    font-size:12px;">
+                <span
+                    id="notifCount"
+                    style="
+                        position:absolute;
+                        top:-5px;
+                        right:-10px;
+                        background:red;
+                        color:white;
+                        border-radius:50%;
+                        padding:3px 7px;
+                        font-size:12px;
+                    "
+                >
                     {{ notification_count }}
                 </span>
                 {% endif %}
@@ -558,11 +562,11 @@ function checkClassReminder() {
 setInterval(checkClassReminder, 60000); // every 1 min
 </script>
 
-<script>
+<!-- <script>
 setInterval(function(){
     fetch('/notifications/')
 }, 10000); // every 10 sec
-</script>
+</script> -->
 
 <script>
 function toggleNotifications() {

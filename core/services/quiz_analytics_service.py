@@ -15,7 +15,10 @@ def get_quiz_analytics(user):
 
     results = QuizResult.objects.filter(
         student=user
-    ).select_related("quiz")
+    ).select_related("quiz").order_by(
+        "created_at",
+        "id"
+    )
 
 
     # =========================================================
@@ -96,7 +99,7 @@ def get_quiz_analytics(user):
 
     quiz_history = []
 
-    for result in results:
+    for attempt_number, result in enumerate(results, start=1):
 
         if result.total > 0:
 
@@ -124,11 +127,23 @@ def get_quiz_analytics(user):
 
 
         quiz_history.append({
+
             "title": result.quiz.title,
+
             "score": result.score,
+
             "total": result.total,
+
             "percentage": result_percentage,
+
             "level": result_level,
+
+            "attempt_number": attempt_number,
+
+            "attempted_at": result.created_at,
+
+            "result_id": result.id,
+
         })
 
 
@@ -262,8 +277,9 @@ def get_quiz_analytics(user):
             # Get the latest answer for this question
             answer = StudentAnswer.objects.filter(
                 student=user,
-                question=question
-            ).order_by("-id").first()
+                question=question,
+                quiz_result=result
+            ).first()
 
 
             if not answer:

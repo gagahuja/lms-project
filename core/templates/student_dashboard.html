@@ -2,484 +2,1674 @@
 
 {% block content %}
 
-<h2 class="mb-4">🎓 Student Dashboard</h2>
+<style>
+
+/* =========================================================
+   STUDENT DASHBOARD
+   ========================================================= */
+
+.student-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+
+/* =========================================================
+   HERO
+   ========================================================= */
+
+.student-hero {
+    background: linear-gradient(135deg, #5b4ee8, #7c3aed);
+    color: white;
+    padding: 28px 32px;
+    border-radius: 16px;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 24px rgba(79, 70, 229, 0.18);
+}
+
+.student-hero h1 {
+    margin: 0;
+    font-size: 32px;
+    font-weight: 700;
+}
+
+.student-hero p {
+    margin: 8px 0 0;
+    opacity: 0.9;
+    font-size: 15px;
+}
+
+
+/* =========================================================
+   QUICK STATS
+   ========================================================= */
+
+.student-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    min-height: 125px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 18px 14px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    text-align: center;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+}
+
+.stat-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+}
+
+.stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #172033;
+}
+
+.stat-label {
+    margin-top: 5px;
+    color: #64748b;
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   SECTION HEADER
+   ========================================================= */
+
+.dashboard-section {
+    margin-bottom: 24px;
+}
+
+.section-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.section-title h2 {
+    margin: 0;
+    font-size: 21px;
+    color: #172033;
+}
+
+.section-subtitle {
+    color: #64748b;
+    font-size: 13px;
+    margin-top: 3px;
+}
+
+
+/* =========================================================
+   COURSE CARD
+   ========================================================= */
+
+.course-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 22px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+}
+
+.course-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #172033;
+    margin-bottom: 14px;
+}
+
+.course-progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 7px;
+    font-size: 13px;
+    color: #475569;
+}
+
+.progress-track {
+    width: 100%;
+    height: 10px;
+    background: #e2e8f0;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    width: var(--progress);
+    background: linear-gradient(90deg, #5b4ee8, #7c3aed);
+    border-radius: 999px;
+    transition: width 0.4s ease;
+}
+
+.course-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+}
+
+.course-btn {
+    text-decoration: none;
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.course-btn-primary {
+    background: #5b4ee8;
+    color: white;
+}
+
+.course-btn-secondary {
+    background: #eef2ff;
+    color: #4338ca;
+}
+
+.course-btn-success {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+
+/* =========================================================
+   TWO COLUMN AREA
+   ========================================================= */
+
+.dashboard-two-column {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.info-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 22px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+}
+
+.info-card h3 {
+    margin: 0 0 14px;
+    font-size: 18px;
+    color: #172033;
+}
+
+.empty-state {
+    padding: 22px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+    .student-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .dashboard-two-column {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+@media (max-width: 600px) {
+
+    .student-page {
+        padding: 12px;
+    }
+
+    .student-hero {
+        padding: 22px;
+    }
+
+    .student-hero h1 {
+        font-size: 25px;
+    }
+
+    .student-stats {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .stat-card {
+        padding: 16px 10px;
+    }
+
+    .stat-value {
+        font-size: 23px;
+    }
+
+}
+
+
+/* =====================================================
+   COURSE TOPICS
+   ===================================================== */
+
+.course-topics {
+    margin-top: 18px;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 14px;
+}
+
+.course-topics > summary {
+    cursor: pointer;
+    list-style: none;
+    font-weight: 600;
+    font-size: 15px;
+    color: #334155;
+    padding: 8px 0;
+}
+
+.course-topics > summary::-webkit-details-marker {
+    display: none;
+}
+
+.course-topics > summary::before {
+    content: "▶";
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 11px;
+    transition: transform 0.2s ease;
+}
+
+.course-topics[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+.course-topics-inner {
+    margin-top: 12px;
+}
+
+.course-topics summary:hover {
+    color: #5b4bdb;
+}
+
+/* =========================================================
+   MODULE
+   ========================================================= */
+
+.topic-module {
+    border: 1px solid #dbe2ea;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    background: #ffffff;
+}
+
+.topic-module > summary {
+    cursor: pointer;
+    list-style: none;
+}
+
+.topic-module > summary::-webkit-details-marker {
+    display: none;
+}
+
+.topic-module-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 13px 15px;
+    background: #f8fafc;
+    color: #334155;
+    font-weight: 600;
+}
+
+.topic-module-header::before {
+    content: "▶";
+    font-size: 10px;
+    margin-right: 4px;
+}
+
+.topic-module[open] .topic-module-header::before {
+    transform: rotate(90deg);
+}
+
+.topic-module-count {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 400;
+}
+
+/* =========================================================
+   LESSON LIST
+   ========================================================= */
+
+.topic-list {
+    border-top: 1px solid #e2e8f0;
+}
+
+.topic-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 58px;
+    padding: 10px 14px;
+    text-decoration: none;
+    color: #1e293b;
+    border-bottom: 1px solid #edf2f7;
+    transition:
+        background 0.15s ease,
+        transform 0.15s ease;
+}
+
+.topic-item:last-child {
+    border-bottom: none;
+}
+
+.topic-item:hover {
+    background: #f8fafc;
+    text-decoration: none;
+    transform: translateX(2px);
+}
+
+/* =========================================================
+   STATUS ICON
+   ========================================================= */
+
+.topic-status {
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+
+.topic-completed {
+    color: #15803d;
+    background: #dcfce7;
+}
+
+.topic-next {
+    color: #ffffff;
+    background: #5b4bdb;
+}
+
+.topic-not-started {
+    color: #64748b;
+    background: #f1f5f9;
+}
+
+/* =========================================================
+   LESSON CONTENT
+   ========================================================= */
+
+.topic-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.topic-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #334155;
+}
+
+.topic-status-text {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+/* =========================================================
+   ACTION
+   ========================================================= */
+
+.topic-action {
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.topic-review {
+    color: #15803d;
+}
+
+.topic-open {
+    color: #5b4bdb;
+}
+
+/* =========================================================
+   NEXT LESSON
+   ========================================================= */
+
+.topic-item-next {
+    background: #faf8ff;
+}
+
+.topic-item-next .topic-title {
+    color: #4c1d95;
+}
+
+.topic-item-next:hover {
+    background: #f5f3ff;
+}
+
+/* =========================================================
+   COMPLETED LESSON
+   ========================================================= */
+
+.topic-item-completed .topic-title {
+    color: #475569;
+}
+
+.topic-item-completed .topic-status-text {
+    color: #16a34a;
+}
+
+/* =========================================================
+   EMPTY MODULE
+   ========================================================= */
+
+.topic-empty {
+    padding: 15px;
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    .topic-item {
+        padding: 10px;
+        gap: 8px;
+    }
+
+    .topic-action {
+        font-size: 11px;
+    }
+
+    .topic-module-header {
+        padding: 12px;
+    }
+
+    .topic-status {
+        width: 25px;
+        min-width: 25px;
+        height: 25px;
+    }
+
+}
+
+.topic-next-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #5b4bdb;
+    background: #eef2ff;
+    padding: 3px 7px;
+    border-radius: 10px;
+}
+
+/* =====================================================
+   ACHIEVEMENTS
+   ===================================================== */
 
-<a href="/ai-insights/" class="btn ai-btn mb-3">
-    🤖 AI Insights
-</a>
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 18px;
+}
 
-<!-- 📈 PROGRESS -->
-<h4>📈 My Progress</h4>
+@media (max-width: 700px) {
+    .achievements-grid {
+        grid-template-columns: 1fr;
+    }
+}
 
-{% for item in progress_data %}
-<div class="card p-3 mb-3">
 
-    <h5>{{ item.course.title }}</h5>
-
-    <div class="progress">
-        <div class="progress-bar bg-success progress-fill"
-            data-width="{{ item.percent|default:0 }}">
-            {{ item.percent|default:0 }}%
-        </div>
-    </div>
-
-</div>
-
-<div class="card shadow-sm mt-4">
-
-    <div class="card-header">
-
-        🏅 Achievements
-
-    </div>
-
-    <div class="card-body">
-
-        {% if profile.achievements.all %}
-
-            {% for achievement in profile.achievements.all %}
-
-                <span class="badge bg-warning text-dark fs-6 m-1">
-
-                    {{ achievement.icon }}
-                    {{ achievement.title }}
-
-                </span>
-
-            {% endfor %}
-
-        {% else %}
-
-            <p class="text-muted">
-
-                No achievements yet.
-
-            </p>
-
-        {% endif %}
-
-    </div>
-
-</div>
-
-<div class="row g-3 mt-2">
-
-    <div class="col-lg-3 col-md-6">
-        <div class="card shadow-sm text-center p-4 h-100">
-            <h1>⭐ {{ profile.level }}</h1>
-            <h5>Level</h5>
-        </div>
-    </div>
-
-    <div class="col-lg-3 col-md-6">
-        <div class="card shadow-sm text-center p-4 h-100">
-            <h1>⚡ {{ profile.xp }}</h1>
-            <h5>XP</h5>
-        </div>
-    </div>
-
-    <div class="col-lg-3 col-md-6">
-        <div class="card shadow-sm text-center p-4 h-100">
-            <h1>🔥 {{ profile.streak }}</h1>
-            <h5>Current Streak</h5>
-        </div>
-    </div>
-
-    <div class="col-lg-3 col-md-6">
-        <div class="card shadow-sm text-center p-4 h-100">
-            <h1>🏆 {{ profile.longest_streak }}</h1>
-            <h5>Best Streak</h5>
-        </div>
-    </div>
-
-</div>
-
-{% if profile.streak >= 30 %}
-
-<div class="alert alert-success">
-🔥 Amazing! You're on a {{ profile.streak }}-day learning streak!
-</div>
-
-{% elif profile.streak >= 7 %}
-
-<div class="alert alert-info">
-👏 Great job! Keep your {{ profile.streak }}-day streak alive.
-</div>
-
-{% else %}
-
-<div class="alert alert-warning">
-📚 Visit every day to build your learning streak.
-</div>
-
-{% endif %}
-{% endfor %}
-
-<!-- 🎓 ENROLLED COURSES -->
-<h4 class="mt-4">🎓 My Courses</h4>
-
-{% if enrolled_courses %}
-    {% for course in enrolled_courses %}
-        <div class="card p-3 mb-3">
-            <h5>{{ course.title }}</h5>
-            <a href="/course/{{ course.id }}/" class="btn btn-primary">
-                Open Course
-            </a>
-            <a href="/chat/{{ course.teacher.id }}/{{ course.id }}/"
-                class="btn btn-info mt-2">
-                💬 Chat with Teacher
-            </a>
-            {% for p in progress_data %}
-                {% if p.course.id == course.id and p.certificate %}
-                    <a href="/certificate/{{ course.id }}/" class="btn btn-success mt-2">
-                        🎓 Download Certificate
-                    </a>
-                {% endif %}
-            {% endfor %}
-        </div>
-    {% endfor %}
-{% else %}
-    <div class="card p-3 text-center">
-        No courses enrolled yet
-    </div>
-{% endif %}
-
-
-{% if next_class %}
-<div class="card p-3 mb-3 border border-warning">
-
-    <h5>🔥 Next Class</h5>
-
-    <strong>{{ next_class.title }}</strong><br>
-
-    <small class="live-class-time"
-           data-time="{{ next_class.date }}">
-        {{ next_class.date }}
-    </small>
-
-    <br>
-
-    <a href="{% url 'join_live_class' next_class.id %}"
-       class="btn btn-success btn-sm mt-2">
-        Join Now
-    </a>
-
-</div>
-{% endif %}
-
-<!-- 🔴 LIVE CLASSES -->
-<h5 class="mt-4">📡 Live Classes</h5>
-
-{% for cls in live_classes %}
-<div class="card p-3 mb-3">
-
-    <strong>{{ cls.title }}</strong><br>
-    <small>{{ cls.date }}</small><br>
-
-    <!-- STATUS -->
-    {% if cls.is_completed %}
-
-        <span class="badge bg-secondary">
-            ✔ Completed
-        </span>
-
-    {% elif cls.is_live %}
-
-        <span class="badge bg-danger">
-            🔴 Live
-        </span>
-
-    {% elif cls.status == "Starting Soon" %}
-
-        <span class="badge bg-warning">
-            ⏳ Starting Soon
-        </span>
-
-    {% else %}
-
-        <span class="badge bg-info">
-            📅 Upcoming
-        </span>
-
-    {% endif %}
-
-    <br>
-
-    <!-- JOIN BUTTON -->
-    {% if request.user.user_type == "teacher" %}
-
-        <div class="mt-2">
-
-            {% if not cls.is_live and not cls.is_completed %}
-                <a href="/start-class/{{ cls.id }}/"
-                class="btn btn-warning btn-sm">
-                ▶ Start
-                </a>
-            {% endif %}
-
-            {% if cls.is_live %}
-            <a href="/stop-class/{{ cls.id }}/"
-               class="btn btn-danger btn-sm">
-               ⏹ Stop
-            </a>
-            {% endif %}
-
-        </div>
-
-    {% endif %}
-        <small class="text-muted">
-        Leaving the meeting? Simply close the Meet tab to return to your dashboard.
-        </small>
-    {% if cls.is_completed %}
-        <button class="btn btn-secondary btn-sm mt-2" disabled>
-            ✔ Class Completed
-        </button>
-
-    {% elif cls.can_join %}
-        <a href="{% url 'join_live_class' cls.id %}"
-            target="_blank"
-            class="btn btn-success btn-sm mt-2">
-            Join Class
-        </a>
-
-    {% else %}
-        <button class="btn btn-secondary btn-sm mt-2" disabled>
-            Not Available
-        </button>
-    {% endif %}
-
-</div>
-{% empty %}
-<div class="card p-3 text-center">
-    No live classes available
-</div>
-{% endfor %}
-
-<h5 class="mt-4">🎥 Class Recordings</h5>
-
-{% for course in enrolled_courses %}
-    {% for cls in course.liveclass_set.all %}
-        {% for rec in cls.recordings.all %}
-
-            <div class="card p-2 mb-2">
-                <strong>{{ cls.title }}</strong>
-
-                <video width="100%" controls class="mt-2">
-                    <source src="{{ rec.video.url }}">
-                </video>
-            </div>
-
-        {% endfor %}
-    {% endfor %}
-{% empty %}
-    <div class="card p-3 text-center">
-        No recordings available
-    </div>
-{% endfor %}
-
-<h4 class="mt-4">📄 Assignments</h4>
-
-{% for item in assignments %}
-
-<div class="card p-3 mb-3">
-
-    <h5>{{ item.assignment.title }}</h5>
-
-    <p>
-
-        <strong>Due:</strong>
-
-        {{ item.assignment.due_date }}
-
-    </p>
-
-    <p>
-
-        <strong>Maximum Marks:</strong>
-
-        {{ item.assignment.max_marks }}
-
-    </p>
-
-    {% if item.submission %}
+.achievement-card {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 18px;
+
+    padding: 20px;
+
+    background: #ffffff;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 14px;
+
+    box-shadow:
+        0 4px 12px
+        rgba(15, 23, 42, 0.06);
+
+}
+
+
+.achievement-icon {
+
+    font-size: 42px;
+
+    min-width: 60px;
+
+    text-align: center;
+
+}
+
+
+.achievement-content {
+
+    flex: 1;
+
+}
+
+
+.achievement-content h3 {
+
+    margin: 0 0 6px 0;
+
+    font-size: 17px;
+
+    font-weight: 700;
+
+}
+
+
+.achievement-content p {
+
+    margin: 0;
+
+    font-size: 13px;
+
+    color: #64748b;
+
+    line-height: 1.5;
+
+}
+
+
+.achievement-xp {
+
+    display: inline-block;
+
+    margin-top: 10px;
+
+    padding:
+        5px 10px;
+
+    border-radius: 20px;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    background: #f1f5f9;
+
+    color: #475569;
+
+}
+
+/* =====================================================
+   ASSIGNMENTS
+   ===================================================== */
+
+.assignment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.assignment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.assignment-info {
+    min-width: 0;
+    flex: 1;
+}
+
+.assignment-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #334155;
+}
+
+.assignment-meta {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.assignment-status {
+    display: inline-block;
+    margin-top: 7px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.assignment-status.checked {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.assignment-status.submitted {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.assignment-status.pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.assignment-action {
+    flex-shrink: 0;
+}
+
+</style>
+
+
+<div class="student-page">
+
+
+    <!-- =====================================================
+         HERO
+         ===================================================== -->
+
+    <div class="student-hero">
+
+        <h1>
+            👋 Welcome, {{ request.user.first_name|default:request.user.username }}
+        </h1>
 
         <p>
+            Continue your learning journey with ScoreSkill.
+        </p>
 
-            <strong>Status:</strong>
+    </div>
 
-            {% if item.submission.status == "checked" %}
 
-                <span class="badge bg-success">
+    <!-- =====================================================
+         QUICK STATS
+         ===================================================== -->
 
-                    ✅ Checked
+        <div class="student-stats">
 
-                </span>
+
+        <!-- Courses -->
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                📚
+            </div>
+
+            <div class="stat-value">
+                {{ enrolled_courses|length }}
+            </div>
+
+            <div class="stat-label">
+                My Courses
+            </div>
+
+        </div>
+
+
+        <!-- Course Progress -->
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                📈
+            </div>
+
+            <div class="stat-value">
+
+                {% if progress_data %}
+
+                    {{ progress_data.0.percent }}%
+
+                {% else %}
+
+                    0%
+
+                {% endif %}
+
+            </div>
+
+            <div class="stat-label">
+                Course Progress
+            </div>
+
+        </div>
+
+
+        <!-- Quiz Performance -->
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                🧠
+            </div>
+
+            {% if quiz_performance.quiz_count > 0 %}
+
+                <div class="stat-value">
+                    {{ quiz_performance.percentage }}%
+                </div>
+
+                <div class="stat-label">
+                    Quiz Performance
+                </div>
+
+                <div
+                    style="
+                        font-size:12px;
+                        margin-top:6px;
+                        color:#64748b;
+                    "
+                >
+                    {{ quiz_performance.level }}
+                    ·
+                    {{ quiz_performance.quiz_count }}
+                    attempt{{ quiz_performance.quiz_count|pluralize }}
+                </div>
 
             {% else %}
 
-                <span class="badge bg-warning text-dark">
+                <div class="stat-value">
+                    —
+                </div>
 
-                    📤 Submitted
+                <div class="stat-label">
+                    Quiz Performance
+                </div>
 
-                </span>
+                <div
+                    style="
+                        font-size:12px;
+                        margin-top:6px;
+                        color:#64748b;
+                    "
+                >
+                    No quiz attempts yet
+                </div>
 
             {% endif %}
 
-            {% if item.submission.marks %}
+        </div>
 
-            <div class="mt-2">
 
-            <strong>Marks:</strong>
+        <!-- XP -->
 
-            {{ item.submission.marks }}
+        <div class="stat-card">
 
-            /
+            <div class="stat-icon">
+                ⚡
+            </div>
 
-            {{ item.assignment.max_marks }}
+            <div class="stat-value">
+                {{ profile.xp }}
+            </div>
+
+            <div class="stat-label">
+                Total XP
+            </div>
+
+        </div>
+
+
+        <!-- Level -->
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                🏆
+            </div>
+
+            <div class="stat-value">
+                {{ profile.level }}
+            </div>
+
+            <div class="stat-label">
+                Current Level
+            </div>
+
+        </div>
+
+        <!-- Achievements -->
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                🏅
+            </div>
+
+            <div class="stat-value">
+                {{ profile.achievements.count }}
+            </div>
+
+            <div class="stat-label">
+                Achievements
+            </div>
+
+        </div>
+
+
+        <!-- Streak -->
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                🔥
+            </div>
+
+            <div class="stat-value">
+                {{ profile.streak }}
+            </div>
+
+            <div class="stat-label">
+                Day Streak
+            </div>
+
+        </div>
+
+
+    </div>
+
+    <!-- =====================================================
+        MY ACHIEVEMENTS
+        ===================================================== -->
+
+    <section class="dashboard-section">
+
+        <div class="section-title">
+
+            <h2>
+                🏅 My Achievements
+            </h2>
+
+            <p>
+                Track the milestones you have unlocked.
+            </p>
+
+        </div>
+
+
+        {% if achievements %}
+
+            <div class="achievements-grid">
+
+                {% for achievement in achievements %}
+
+                    <div class="achievement-card">
+
+                        <div class="achievement-icon">
+                            {{ achievement.icon }}
+                        </div>
+
+
+                        <div class="achievement-content">
+
+                            <h3>
+                                {{ achievement.title }}
+                            </h3>
+
+                            <p>
+                                {{ achievement.description }}
+                            </p>
+
+
+                            {% if achievement.xp_reward > 0 %}
+
+                                <div class="achievement-xp">
+
+                                    ⚡ +{{ achievement.xp_reward }} XP
+
+                                </div>
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+                {% endfor %}
 
             </div>
 
-            {% endif %}
+        {% else %}
 
-            {% if item.submission.remarks %}
+            <div class="empty-state">
 
-            <div class="mt-2">
+                <div style="font-size:32px;">
+                    🏅
+                </div>
 
-            <strong>Teacher Remarks</strong>
+                <strong>
+                    No achievements unlocked yet.
+                </strong>
 
-                <div class="alert alert-info">
+                <p>
+                    Complete lessons, courses, and other learning milestones to unlock achievements.
+                </p>
 
-                {{ item.submission.remarks }}
+            </div>
+
+        {% endif %}
+
+    </section>
+
+
+    <!-- =====================================================
+         CONTINUE LEARNING
+         ===================================================== -->
+
+    <div class="dashboard-section">
+
+        <div class="section-title">
+
+            <div>
+
+                <h2>
+                    📚 Continue Learning
+                </h2>
+
+                <div class="section-subtitle">
+                    Pick up where you left off.
+                </div>
+
+            </div>
+
+        </div>
+
+
+        {% for item in progress_data %}
+
+            <div class="course-card">
+
+                <div class="course-title">
+                    {{ item.course.title }}
+                </div>
+
+
+                <div class="course-progress-info">
+
+                    <span>
+                        Course Progress
+                    </span>
+
+                    <strong>
+                        {{ item.percent }}%
+                    </strong>
+
+                </div>
+
+
+                {% if item.next_lesson %}
+
+                    <div
+                        style="
+                            font-size: 13px;
+                            color: #64748b;
+                            margin-top: 6px;
+                        "
+                    >
+
+                        Next:
+                        <strong>
+                            {{ item.next_lesson.title }}
+                        </strong>
+
+                    </div>
+
+                {% elif item.course_completed %}
+
+                    <div
+                        style="
+                            font-size: 13px;
+                            color: #198754;
+                            margin-top: 6px;
+                        "
+                    >
+
+                        ✓ All lessons completed
+
+                    </div>
+
+                {% endif %}
+
+
+                <div class="progress-track">
+
+                    <div
+                        class="progress-fill"
+                        style="--progress: {{ item.percent }}%;">
+                    </div>
+
+                </div>
+
+                <!-- =====================================================
+                    COURSE TOPICS / FULL LEARNING PATH
+                    ===================================================== -->
+
+                {% if item.course_topics %}
+
+                    <details class="course-topics">
+
+                        <summary>
+                            📚 View All Course Topics
+                        </summary>
+
+                        <div class="course-topics-inner">
+
+                            {% for topic_module in item.course_topics %}
+
+                                <details class="topic-module">
+
+                                    <summary class="topic-module-header">
+
+                                        <span>
+                                            📘 {{ topic_module.module.title }}
+                                        </span>
+
+                                        <span class="topic-module-count">
+                                            {{ topic_module.lessons|length }}
+                                            lesson{{ topic_module.lessons|length|pluralize }}
+                                        </span>
+
+                                    </summary>
+
+
+                                    <div class="topic-list">
+
+                                        {% for topic in topic_module.lessons %}
+
+                                            <a
+                                                href="{% url 'lesson_detail' topic.lesson.id %}"
+                                                class="topic-item
+                                                    {% if topic.completed %}
+                                                        topic-item-completed
+                                                    {% elif topic.is_next %}
+                                                        topic-item-next
+                                                    {% else %}
+                                                        topic-item-pending
+                                                    {% endif %}"
+                                            >
+
+                                                <!-- STATUS -->
+
+                                                <span class="topic-status">
+
+                                                    {% if topic.completed %}
+
+                                                        <span
+                                                            class="topic-completed"
+                                                            title="Completed"
+                                                        >
+                                                            ✓
+                                                        </span>
+
+                                                    {% elif topic.is_next %}
+
+                                                        <span
+                                                            class="topic-next"
+                                                            title="Next lesson"
+                                                        >
+                                                            ▶
+                                                        </span>
+
+                                                    {% else %}
+
+                                                        <span
+                                                            class="topic-not-started"
+                                                            title="Not started"
+                                                        >
+                                                            ○
+                                                        </span>
+
+                                                    {% endif %}
+
+                                                </span>
+
+
+                                                <!-- LESSON INFORMATION -->
+
+                                                <span class="topic-content">
+
+                                                    <span class="topic-title">
+                                                        {{ topic.lesson.title }}
+                                                    </span>
+
+                                                    <span class="topic-status-text">
+
+                                                        {% if topic.completed %}
+
+                                                            Completed
+
+                                                        {% elif topic.is_next %}
+
+                                                            Next lesson
+
+                                                        {% else %}
+
+                                                            Not started
+
+                                                        {% endif %}
+
+                                                    </span>
+
+                                                </span>
+
+
+                                                <!-- RIGHT SIDE ACTION -->
+
+                                                <span class="topic-action">
+
+                                                    {% if topic.completed %}
+
+                                                        <span class="topic-review">
+                                                            Review →
+                                                        </span>
+
+                                                    {% elif topic.is_next %}
+
+                                                        <span class="topic-open">
+                                                            Continue →
+                                                        </span>
+
+                                                    {% else %}
+
+                                                        <span class="topic-open">
+                                                            Open →
+                                                        </span>
+
+                                                    {% endif %}
+
+                                                </span>
+
+
+                                            </a>
+
+                                        {% empty %}
+
+                                            <div class="topic-empty">
+                                                No lessons available in this module.
+                                            </div>
+
+                                        {% endfor %}
+
+                                    </div>
+
+                                </details>
+
+                            {% endfor %}
+
+                        </div>
+
+                    </details>
+
+                {% endif %}
+
+
+                <div class="course-actions">
+
+                    {% if item.course_completed %}
+
+                        <!-- COMPLETED COURSE -->
+
+                        <a
+                            href="{% url 'course_detail' item.course.id %}"
+                            class="course-btn course-btn-primary">
+
+                            📖 Review Course
+
+                        </a>
+
+
+                    {% elif item.next_lesson %}
+
+                        <!-- CONTINUE FROM NEXT UNFINISHED LESSON -->
+
+                        <a
+                            href="{% url 'lesson_detail' item.next_lesson.id %}"
+                            class="course-btn course-btn-primary">
+
+                            ▶ Continue Learning
+
+                        </a>
+
+
+                    {% elif item.first_lesson %}
+
+                        <!-- COURSE NOT STARTED -->
+
+                        <a
+                            href="{% url 'lesson_detail' item.first_lesson.id %}"
+                            class="course-btn course-btn-primary">
+
+                            ▶ Start Learning
+
+                        </a>
+
+
+                    {% else %}
+
+                        <!-- COURSE HAS NO LESSONS -->
+
+                        <a
+                            href="{% url 'course_detail' item.course.id %}"
+                            class="course-btn course-btn-primary">
+
+                            📖 View Course
+
+                        </a>
+
+                    {% endif %}
+
+
+                    {% if item.certificate %}
+
+                    <a
+                        href="{% url 'generate_certificate' item.course.id %}"
+                        class="course-btn course-btn-success"
+                    >
+                        🎓 View Certificate
+                    </a>
+
+                {% endif %}
+
+                </div>
+            </div>
+
+        {% empty %}
+
+            <div class="course-card">
+
+                <div class="empty-state">
+
+                    You are not enrolled in any course yet.
 
                 </div>
 
             </div>
 
-        {% endif %}
-
-        </p>
-
-    {% else %}
-
-        <span class="badge bg-danger">
-
-            Pending
-
-        </span>
-
-    {% endif %}
-
-    <div class="mt-3">
-
-        <a href="{% url 'view_assignment' item.assignment.id %}"
-           class="btn btn-primary btn-sm">
-
-            👁 View Assignment
-
-        </a>
-
-        {% if not item.submitted %}
-
-            <a href="{% url 'submit_assignment' item.assignment.id %}"
-               class="btn btn-warning btn-sm">
-
-                📤 Submit
-
-            </a>
-
-        {% endif %}
-
-        {% if item.submission and item.submission.checked_file %}
-
-            <a href="{{ item.submission.checked_file.url }}"
-               target="_blank"
-               class="btn btn-success btn-sm">
-
-                📥 Checked Copy
-
-            </a>
-
-            <a
-            href="{{ item.submission.checked_file.url }}"
-            class="btn btn-primary btn-sm mt-2"
-            target="_blank">
-
-            📥 Download Checked Copy
-
-            </a>
-
-        {% endif %}
+        {% endfor %}
 
     </div>
 
-    {% if item.submission %}
 
-        {% if item.submission.status == "checked" %}
+    <!-- =====================================================
+        SMART LEARNING RECOMMENDATION
+        ===================================================== -->
 
-            <hr>
+    {% if recommendation %}
 
-            <p>
+    <div class="dashboard-section">
 
-                <strong>Marks:</strong>
+        <div class="section-title">
 
-                {{ item.submission.marks }}/{{ item.assignment.max_marks }}
+            <div>
 
-            </p>
+                <h2>
+                    🎯 Recommended for You
+                </h2>
 
-            <p>
+                <div class="section-subtitle">
+                    Based on your recent quiz performance.
+                </div>
 
-                <strong>Teacher Remarks:</strong>
+            </div>
 
-                {{ item.submission.remarks }}
+        </div>
 
-            </p>
 
-        {% endif %}
+        <div class="course-card">
+
+            <div class="course-title">
+                {{ recommendation.topic }}
+            </div>
+
+
+            <div
+                style="
+                    margin-top: 6px;
+                    color: #64748b;
+                    font-size: 14px;
+                "
+            >
+
+                {% if recommendation.mistakes == 1 %}
+
+                    You made
+                    <strong>1 mistake</strong>
+                    in this topic across your quiz attempts.
+
+                {% else %}
+
+                    You made
+                    <strong>{{ recommendation.mistakes }} mistakes</strong>
+                    in this topic across your quiz attempts.
+
+                {% endif %}
+
+            </div>
+
+
+            <div
+                style="
+                    margin-top: 6px;
+                    color: #64748b;
+                    font-size: 14px;
+                "
+            >
+
+                Your overall performance in this topic:
+                <strong>
+                    {{ recommendation.percentage }}%
+                </strong>
+
+            </div>
+
+
+            {% if recommendation.has_lesson %}
+
+                <div
+                    style="
+                        margin-top: 14px;
+                        padding: 12px;
+                        background: #f8fafc;
+                        border-radius: 10px;
+                    "
+                >
+
+                    <div
+                        style="
+                            font-size: 13px;
+                            color: #64748b;
+                        "
+                    >
+                        Recommended Review
+                    </div>
+
+                    <strong>
+                        {{ recommendation.lesson.title }}
+                    </strong>
+
+                    <div
+                        style="
+                            font-size: 13px;
+                            color: #64748b;
+                            margin-top: 3px;
+                        "
+                    >
+                        {{ recommendation.lesson.module.title }}
+                    </div>
+
+                </div>
+
+
+                <div class="course-actions">
+
+                    <a
+                        href="{% url 'lesson_detail' recommendation.lesson.id %}"
+                        class="course-btn course-btn-primary"
+                    >
+
+                        📖 Review Topic
+
+                    </a>
+
+                </div>
+
+            {% else %}
+
+                <div
+                    style="
+                        margin-top: 14px;
+                        padding: 12px;
+                        background: #fff7ed;
+                        border-radius: 10px;
+                        color: #9a3412;
+                    "
+                >
+
+                    We recommend revising this topic.
+
+                    Your teacher has not yet added a
+                    matching lesson for it.
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
 
     {% endif %}
 
+
+    <!-- =====================================================
+         NEXT CLASS + ASSIGNMENTS
+         ===================================================== -->
+
+    <div class="dashboard-two-column">
+
+
+        <!-- NEXT CLASS -->
+
+        <div class="info-card">
+
+            <h3>
+                🔴 Next Live Class
+            </h3>
+
+
+            {% if next_class %}
+
+                <strong>
+                    {{ next_class.title }}
+                </strong>
+
+                <p>
+                    📅 {{ next_class.date|date:"d M Y" }}
+                </p>
+
+                <p>
+                    ⏰ {{ next_class.date|date:"h:i A" }}
+                </p>
+
+
+                {% if next_class.is_live %}
+
+                    <a
+                        href="{% url 'join_live_class' next_class.id %}"
+                        class="course-btn course-btn-primary">
+
+                        🎥 Join Class
+
+                    </a>
+
+                {% else %}
+
+                    <span class="section-subtitle">
+                        Class will be available shortly.
+                    </span>
+
+                {% endif %}
+
+            {% else %}
+
+                <div class="empty-state">
+
+                    No upcoming live classes.
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+        <!-- ASSIGNMENTS -->
+
+                <div class="info-card" id="assignments">
+
+            <h3>
+                📝 Assignments
+            </h3>
+
+            {% if assignments %}
+
+                <p
+                    style="
+                        margin-bottom: 16px;
+                        color: #64748b;
+                        font-size: 13px;
+                    "
+                >
+                    You have
+                    <strong>{{ assignments|length }}</strong>
+                    assignment{{ assignments|length|pluralize }}.
+                </p>
+
+
+                <div class="assignment-list">
+
+                    {% for item in assignments %}
+
+                        <div class="assignment-item">
+
+                            <div class="assignment-info">
+
+                                <div class="assignment-title">
+                                    {{ item.assignment.title }}
+                                </div>
+
+                                <div class="assignment-meta">
+
+                                    Due:
+                                    {{ item.assignment.due_date|date:"d M Y" }}
+
+                                </div>
+
+                                {% if item.submitted %}
+
+                                    {% if item.submission.status == "checked" %}
+
+                                        <span class="assignment-status checked">
+                                            ✓ Checked
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="assignment-status submitted">
+                                            ✓ Submitted
+                                        </span>
+
+                                    {% endif %}
+
+                                {% else %}
+
+                                    <span class="assignment-status pending">
+                                        ● Pending
+                                    </span>
+
+                                {% endif %}
+
+                            </div>
+
+
+                            <div class="assignment-action">
+
+                                <a
+                                    href="{% url 'view_assignment' item.assignment.id %}"
+                                    class="course-btn course-btn-primary"
+                                >
+
+                                    {% if item.submitted %}
+                                        View
+                                    {% else %}
+                                        Open
+                                    {% endif %}
+
+                                </a>
+
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% else %}
+
+                <div class="empty-state">
+
+                    <div style="font-size: 28px;">
+                        📝
+                    </div>
+
+                    <strong>
+                        No assignments available.
+                    </strong>
+
+                    <p>
+                        New assignments will appear here.
+                    </p>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
 </div>
-
-{% empty %}
-
-<div class="alert alert-info">
-
-No assignments available.
-
-</div>
-
-{% endfor %}
-
-<h4 class="mt-4">🧠 Quiz Results</h4>
-
-{% for result in quiz_results %}
-<div class="card p-2 mb-2">
-    {{ result.quiz.title }}
-
-    <span class="badge bg-success">
-        {{ result.score }}/{{ result.total }}
-    </span>
-</div>
-{% empty %}
-<p>No quiz attempts yet</p>
-{% endfor %}
-
-{% if item.assignment.submission.grade %}
-    <span class="badge bg-info">
-        Grade: {{ item.assignment.submission.grade }}
-    </span>
-{% endif %}
-
-
-
-
-
-<!-- JS FIX FOR PROGRESS -->
-<script>
-document.querySelectorAll('.progress-fill').forEach(function(el) {
-    let width = el.getAttribute('data-width');
-    el.style.width = width + '%';
-});
-</script>
 
 {% endblock %}

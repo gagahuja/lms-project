@@ -500,6 +500,18 @@
 
             </a>
 
+            {% if quiz_result %}
+
+            <a
+                href="{% url 'quiz_attempt_review' quiz_result.id %}"
+                class="result-btn quiz-btn">
+
+                📋 Review This Attempt
+
+            </a>
+
+            {% endif %}
+
             <a
                 href="{% url 'ai_insights' %}"
                 class="result-btn quiz-btn">

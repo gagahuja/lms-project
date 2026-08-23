@@ -4,7 +4,7 @@ from .models import User
 from .models import Course
 from .models import Enrollment
 from .models import LiveClass
-from .models import Module, Lesson, Assignment, Submission, StudentProfile
+from .models import (Module,Lesson,Assignment,Submission,StudentProfile,Achievement,)
 from .models import Quiz, Question, StudentAnswer
 from .models import QuizResult
 from .models import Handout
@@ -64,6 +64,22 @@ class StudentProfileAdmin(admin.ModelAdmin):
         return obj.achievements.count()
 
     achievement_count.short_description = "Achievements"
+
+
+@admin.register(Achievement)
+class AchievementAdmin(admin.ModelAdmin):
+
+    list_display = (
+        "title",
+        "description",
+        "icon",
+        "xp_reward",
+    )
+
+    search_fields = (
+        "title",
+        "description",
+    )
 
     
 admin.site.register(Subscription, SubscriptionAdmin)

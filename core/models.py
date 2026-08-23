@@ -182,9 +182,27 @@ class Question(models.Model):
 
 
 class StudentAnswer(models.Model):
-    student = models.ForeignKey(User, on_delete=models.CASCADE)
-    question = models.ForeignKey(Question, on_delete=models.CASCADE)
-    selected_answer = models.CharField(max_length=200)
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
+
+    question = models.ForeignKey(
+        Question,
+        on_delete=models.CASCADE
+    )
+
+    quiz_result = models.ForeignKey(
+        "QuizResult",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="answers"
+    )
+
+    selected_answer = models.CharField(
+        max_length=200
+    )
 
 
 class QuizResult(models.Model):

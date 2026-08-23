@@ -47,6 +47,98 @@ body{
 
 <h3>{{ assignment.title }}</h3>
 
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} mt-3">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+
+{% if submission %}
+
+    <div class="card mt-3 mb-3">
+
+        <div class="card-body">
+
+            <h5>📤 Your Submission</h5>
+
+            <p class="mb-2">
+                <strong>Status:</strong>
+
+                {% if submission.status == "checked" %}
+
+                    <span class="badge bg-success">
+                        Checked
+                    </span>
+
+                {% else %}
+
+                    <span class="badge bg-primary">
+                        Submitted
+                    </span>
+
+                {% endif %}
+            </p>
+
+            <p class="mb-2">
+                <strong>Submitted on:</strong>
+                {{ submission.submitted_at|date:"d M Y, h:i A" }}
+            </p>
+
+            <p class="mb-0">
+
+                <strong>Your submitted file:</strong>
+
+                <a
+                    href="{{ submission.file.url }}"
+                    target="_blank"
+                >
+                    View Submitted File
+                </a>
+
+            </p>
+
+            {% if submission.status == "checked" %}
+
+                <hr>
+
+                <h5>📋 Teacher Feedback</h5>
+
+                <p class="mb-2">
+                    <strong>Marks:</strong>
+                    {{ submission.marks }} / {{ assignment.max_marks }}
+                </p>
+
+                {% if submission.remarks %}
+                    <p class="mb-2">
+                        <strong>Remarks:</strong>
+                        {{ submission.remarks }}
+                    </p>
+                {% endif %}
+
+                {% if submission.checked_file %}
+                    <p class="mb-0">
+                        <strong>Checked Copy:</strong>
+
+                        <a
+                            href="{{ submission.checked_file.url }}"
+                            target="_blank"
+                            class="btn btn-success btn-sm ms-2"
+                        >
+                            📥 View Checked Copy
+                        </a>
+                    </p>
+                {% endif %}
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+{% endif %}
+
 <!-- 🔒 SECURE VIEW -->
 <div id="pdf-container">
 

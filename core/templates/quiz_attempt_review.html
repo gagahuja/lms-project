@@ -1,0 +1,518 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+
+.attempt-review-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 25px 20px 50px;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.attempt-header {
+    background: linear-gradient(
+        135deg,
+        #4f46e5,
+        #7c3aed
+    );
+
+    color: white;
+    border-radius: 14px;
+    padding: 28px;
+    margin-bottom: 22px;
+
+    box-shadow:
+        0 6px 18px rgba(79, 70, 229, 0.20);
+}
+
+.attempt-header h1 {
+    margin: 0 0 8px;
+    font-size: 30px;
+}
+
+.attempt-header p {
+    margin: 0;
+    opacity: 0.9;
+}
+
+
+/* =========================================================
+   SCORE
+   ========================================================= */
+
+.attempt-summary {
+    display: grid;
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 15px;
+    margin-bottom: 22px;
+}
+
+.summary-box {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+
+    box-shadow:
+        0 3px 10px rgba(15, 23, 42, 0.05);
+}
+
+.summary-number {
+    font-size: 28px;
+    font-weight: 800;
+    color: #4f46e5;
+}
+
+.summary-label {
+    color: #64748b;
+    font-size: 13px;
+    margin-top: 5px;
+}
+
+
+/* =========================================================
+   ATTEMPT INFO
+   ========================================================= */
+
+.attempt-info {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 22px;
+}
+
+.attempt-info strong {
+    color: #172033;
+}
+
+
+/* =========================================================
+   ANSWER REVIEW
+   ========================================================= */
+
+.review-section {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 24px;
+
+    box-shadow:
+        0 4px 14px rgba(15, 23, 42, 0.06);
+}
+
+.review-title {
+    font-size: 21px;
+    font-weight: 700;
+    margin-bottom: 18px;
+    color: #172033;
+}
+
+
+.answer-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 11px;
+    padding: 18px;
+    margin-bottom: 14px;
+}
+
+
+.answer-card.correct {
+    border-left: 5px solid #16a34a;
+    background: #f0fdf4;
+}
+
+
+.answer-card.incorrect {
+    border-left: 5px solid #dc2626;
+    background: #fef2f2;
+}
+
+
+.status {
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+
+.correct-status {
+    color: #15803d;
+}
+
+
+.incorrect-status {
+    color: #b91c1c;
+}
+
+
+.question {
+    font-weight: 600;
+    line-height: 1.6;
+    margin-bottom: 12px;
+    color: #172033;
+}
+
+
+.answer-line {
+    margin-top: 7px;
+    line-height: 1.6;
+    color: #475569;
+}
+
+
+.correct-answer {
+    color: #15803d;
+    font-weight: 700;
+}
+
+
+.wrong-answer {
+    color: #b91c1c;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+.actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 25px;
+    flex-wrap: wrap;
+}
+
+
+.action-btn {
+    display: inline-block;
+    text-decoration: none;
+    padding: 11px 20px;
+    border-radius: 9px;
+    font-weight: 600;
+}
+
+
+.primary-btn {
+    background: #4f46e5;
+    color: white;
+}
+
+
+.secondary-btn {
+    background: #eef2ff;
+    color: #4338ca;
+    border: 1px solid #c7d2fe;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+    .attempt-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .attempt-header h1 {
+        font-size: 24px;
+    }
+
+}
+
+</style>
+
+
+<div class="attempt-review-page">
+
+
+    <!-- =====================================================
+         BACK
+         ===================================================== -->
+
+    <div style="margin-bottom: 18px;">
+
+        <a
+            href="{% url 'ai_insights' %}"
+            class="action-btn secondary-btn">
+
+            ← Back to AI Insights
+
+        </a>
+
+    </div>
+
+
+    <!-- =====================================================
+         HEADER
+         ===================================================== -->
+
+    <div class="attempt-header">
+
+        <h1>
+            📋 Quiz Attempt Review
+        </h1>
+
+        <p>
+            {{ quiz.title }}
+        </p>
+
+    </div>
+
+
+    <!-- =====================================================
+         ATTEMPT INFORMATION
+         ===================================================== -->
+
+    <div class="attempt-info">
+
+        <strong>
+            Attempt:
+        </strong>
+
+        #{{ attempt_number }}
+
+        <br>
+
+        <strong>
+            Attempted:
+        </strong>
+
+        {{ quiz_result.created_at|date:"d M Y, h:i A" }}
+
+        <br>
+
+        <strong>
+            Performance:
+        </strong>
+
+        {{ level }}
+
+    </div>
+
+
+    <!-- =====================================================
+         SUMMARY
+         ===================================================== -->
+
+    <div class="attempt-summary">
+
+
+        <div class="summary-box">
+
+            <div class="summary-number">
+                {{ score }} / {{ total }}
+            </div>
+
+            <div class="summary-label">
+                Score
+            </div>
+
+        </div>
+
+
+        <div class="summary-box">
+
+            <div class="summary-number">
+                {{ percentage }}%
+            </div>
+
+            <div class="summary-label">
+                Percentage
+            </div>
+
+        </div>
+
+
+        <div class="summary-box">
+
+            <div class="summary-number">
+                {{ level }}
+            </div>
+
+            <div class="summary-label">
+                Performance Level
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- =====================================================
+         ANSWER REVIEW
+         ===================================================== -->
+
+    <div class="review-section">
+
+        <div class="review-title">
+            📝 Answer Review
+        </div>
+
+
+        {% for item in answers %}
+
+            <div
+                class="answer-card
+                {% if item.is_correct %}
+                    correct
+                {% else %}
+                    incorrect
+                {% endif %}"
+            >
+
+
+                {% if item.is_correct %}
+
+                    <div class="status correct-status">
+                        ✅ Correct
+                    </div>
+
+                {% else %}
+
+                    <div class="status incorrect-status">
+                        ❌ Incorrect
+                    </div>
+
+                {% endif %}
+
+
+                <div class="question">
+
+                    Question {{ forloop.counter }}:
+
+                    {{ item.question.question }}
+
+                </div>
+
+
+                <div class="answer-line">
+
+                    Your answer:
+
+                    {% if item.is_correct %}
+
+                        <span class="correct-answer">
+                            {{ item.selected_answer }}
+                        </span>
+
+                    {% else %}
+
+                        <span class="wrong-answer">
+                            {{ item.selected_answer }}
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+
+                {% if not item.is_correct %}
+
+                    <div class="answer-line">
+
+                        Correct answer:
+
+                        <span class="correct-answer">
+                            {{ item.correct_answer }}
+                        </span>
+
+                    </div>
+
+                {% endif %}
+
+
+            </div>
+
+        {% empty %}
+
+            <p class="text-muted">
+                No answer records were found for this quiz attempt.
+            </p>
+
+        {% endfor %}
+
+
+    </div>
+
+
+    <!-- =====================================================
+         ACTIONS
+         ===================================================== -->
+
+    <div class="actions">
+
+        <a
+            href="{% url 'ai_insights' %}"
+            class="action-btn primary-btn">
+
+            🧠 View AI Insights
+
+        </a>
+
+
+        <a
+            href="{% url 'attempt_quiz' quiz.id %}"
+            class="action-btn secondary-btn">
+
+            🔄 Attempt Quiz Again
+
+        </a>
+
+    </div>
+
+
+</div>
+
+
+<!-- =========================================================
+     MATHJAX
+     ========================================================= -->
+
+<script>
+
+window.MathJax = {
+
+    tex: {
+
+        inlineMath: [
+            ['\\(', '\\)'],
+            ['$', '$']
+        ],
+
+        displayMath: [
+            ['\\[', '\\]'],
+            ['$$', '$$']
+        ]
+
+    },
+
+    svg: {
+        fontCache: 'global'
+    }
+
+};
+
+</script>
+
+
+<script
+    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"
+    async>
+</script>
+
+
+{% endblock %}

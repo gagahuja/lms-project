@@ -4,6 +4,7 @@ from django.contrib.auth import authenticate, login, logout
 from .models import User
 from .models import Course
 from .models import Enrollment
+from .models import StudentProfile
 from .models import LiveClass
 from .models import Attendance
 from .models import Recording
@@ -16,7 +17,7 @@ import json
 from django.views.decorators.csrf import csrf_exempt
 from .models import Quiz, Question, StudentAnswer
 from .models import Lesson
-from .models import QuizResult
+from .models import QuizResult, StudentAnswer
 from .models import Progress
 from .models import Points
 from .models import Handout
@@ -54,6 +55,12 @@ from .services.ai_feedback_service import (
     generate_recommendations,
     generate_ai_feedback,
 )
+from .services.course_learning_service import (
+    build_course_learning_context,
+    get_lesson_learning_context,
+)
+
+
 
 
 def is_enrolled(user):
@@ -62,28 +69,91 @@ def is_enrolled(user):
 
 
 def login_view(request):
+
     error = None
 
     if request.method == 'POST':
+
         username = request.POST['username']
         password = request.POST['password']
 
-        user = authenticate(request, username=username, password=password)
-
+        user = authenticate(
+            request,
+            username=username,
+            password=password
+        )
 
         if user is not None:
+
             login(request, user)
 
+            # ==========================================
+            # UPDATE LAST SEEN
+            # ==========================================
+
             from django.utils.timezone import now
+            from datetime import timedelta
 
             request.user.last_seen = now()
             request.user.save()
 
+            # ==========================================
+            # UPDATE STUDENT STREAK
+            # ==========================================
+
+            if user.user_type == "student":
+
+                profile, created = StudentProfile.objects.get_or_create(
+                    student=user
+                )
+
+                today = now().date()
+
+                # First login ever
+                if profile.last_login_date is None:
+
+                    profile.streak = 1
+
+                # Already logged in today
+                elif profile.last_login_date == today:
+
+                    pass
+
+                # Logged in yesterday
+                elif profile.last_login_date == (
+                    today - timedelta(days=1)
+                ):
+
+                    profile.streak += 1
+
+                # Missed one or more days
+                else:
+
+                    profile.streak = 1
+
+                # Update longest streak
+                if profile.streak > profile.longest_streak:
+
+                    profile.longest_streak = profile.streak
+
+                # Save today's login date
+                profile.last_login_date = today
+
+                profile.save()
+
             return redirect('dashboard')
+
         else:
+
             error = "Invalid username or password"
 
-    return render(request, 'login.html', {'error': error})
+    return render(
+        request,
+        'login.html',
+        {
+            'error': error
+        }
+    )
 
     
 
@@ -268,19 +338,6 @@ def live_class(request, pk):
         "user_name": request.user.username
     })
 
-def join_class(request, class_id):
-    if not request.user.is_authenticated:
-        return redirect('login')
-
-    live_class = LiveClass.objects.get(id=class_id)
-
-    Attendance.objects.get_or_create(
-        student=request.user,
-        live_class=live_class
-    )
-
-    return render(request, 'join_class.html', {'class': live_class})
-
 
 
 #def create_admin(request):
@@ -444,25 +501,51 @@ def payment_success(request, course_id):
 
 from django.shortcuts import get_object_or_404
 
+@login_required
 def course_detail(request, course_id):
-    course = get_object_or_404(Course, id=course_id)
 
-    # 🔒 CHECK ENROLLMENT
-    is_enrolled = Enrollment.objects.filter(
-        student=request.user,
-        course=course
-    ).exists()
+    course = get_object_or_404(
+        Course,
+        id=course_id
+    )
 
-    if not is_enrolled:
-        return HttpResponse("❌ You must enroll to access this course")
+    context = build_course_learning_context(
+        request.user,
+        course
+    )
 
-    modules = Module.objects.filter(course=course)
+    return render(
+        request,
+        "course_detail.html",
+        context
+    )
 
-    return render(request, 'course_detail.html', {
-        'course': course,
-        'modules': modules
-    })
 
+@login_required
+def lesson_detail(request, lesson_id):
+
+    context = get_lesson_learning_context(
+        request.user,
+        lesson_id
+    )
+
+    if context is None:
+        return HttpResponse(
+            "Lesson not found.",
+            status=404
+        )
+
+    if not context["is_enrolled"]:
+        return HttpResponse(
+            "You are not enrolled in this course.",
+            status=403
+        )
+
+    return render(
+        request,
+        "lesson_detail.html",
+        context
+    )
 
 from django.shortcuts import get_object_or_404
 
@@ -613,30 +696,33 @@ def create_admin(request):
 def attempt_quiz(request, quiz_id):
 
     quiz = Quiz.objects.get(id=quiz_id)
-    questions = Question.objects.filter(quiz=quiz)
+
+    questions = Question.objects.filter(
+        quiz=quiz
+    )
 
     if request.method == 'POST':
 
         score = 0
         answer_details = []
 
+        # =====================================================
+        # CALCULATE ANSWERS
+        # =====================================================
+
         for q in questions:
 
-            selected = request.POST.get(str(q.id))
+            selected = request.POST.get(
+                str(q.id)
+            )
 
-            is_correct = selected == q.correct_answer
+            is_correct = (
+                selected == q.correct_answer
+            )
 
             if is_correct:
                 score += 1
 
-            # Save student's answer
-            StudentAnswer.objects.create(
-                student=request.user,
-                question=q,
-                selected_answer=selected
-            )
-
-            # Prepare information for result page
             answer_details.append({
                 'question': q,
                 'selected_answer': selected,
@@ -644,54 +730,119 @@ def attempt_quiz(request, quiz_id):
                 'is_correct': is_correct,
             })
 
+        # =====================================================
+        # TOTAL + PERCENTAGE
+        # =====================================================
+
         total = questions.count()
 
-        # Calculate percentage
-        percentage = round((score / total) * 100) if total > 0 else 0
+        percentage = (
+            round((score / total) * 100)
+            if total > 0
+            else 0
+        )
 
-        # Save quiz result
-        QuizResult.objects.create(
+        # =====================================================
+        # CREATE QUIZ RESULT FIRST
+        # =====================================================
+
+        quiz_result = QuizResult.objects.create(
             student=request.user,
             quiz=quiz,
             score=score,
             total=total
         )
 
-        # Notification
+        # =====================================================
+        # SAVE STUDENT ANSWERS
+        # LINK THEM TO THIS ATTEMPT
+        # =====================================================
+
+        for q in questions:
+
+            selected = request.POST.get(
+                str(q.id)
+            )
+
+            StudentAnswer.objects.create(
+                student=request.user,
+                question=q,
+                quiz_result=quiz_result,
+                selected_answer=selected
+            )
+
+        # =====================================================
+        # NOTIFICATION
+        # =====================================================
+
         Notification.objects.create(
             user=request.user,
             message=f"✅ Quiz submitted. Score: {score}/{total}"
         )
 
-        # Performance message
+        # =====================================================
+        # PERFORMANCE MESSAGE
+        # =====================================================
+
         if percentage == 100:
-            performance_message = "Excellent! Perfect score! 🎉"
+
+            performance_message = (
+                "Excellent! Perfect score! 🎉"
+            )
 
         elif percentage >= 80:
-            performance_message = "Great work! You have done very well. 👏"
+
+            performance_message = (
+                "Great work! You have done very well. 👍"
+            )
 
         elif percentage >= 60:
-            performance_message = "Good effort! Keep practising to improve further. 👍"
+
+            performance_message = (
+                "Good effort! Keep practising to improve further. 👍"
+            )
 
         elif percentage >= 40:
-            performance_message = "You are making progress. A little more practice will help. 📚"
+
+            performance_message = (
+                "You are making progress. "
+                "A little more practice will help. 📚"
+            )
 
         else:
-            performance_message = "Keep practising. You can improve with more practice! 💪"
 
-        # Show result page
+            performance_message = (
+                "Keep practising. "
+                "You can improve with more practice! 💪"
+            )
+
+        # =====================================================
+        # RESULT PAGE
+        # =====================================================
+
         return render(
             request,
             'quiz_result.html',
             {
                 'quiz': quiz,
+
+                'quiz_result': quiz_result,
+
                 'score': score,
                 'total': total,
                 'percentage': percentage,
-                'performance_message': performance_message,
-                'answer_details': answer_details,
+
+                'performance_message':
+                    performance_message,
+
+                'answer_details':
+                    answer_details,
             }
         )
+
+    # =========================================================
+    # QUIZ PAGE
+    # =========================================================
 
     return render(
         request,
@@ -699,6 +850,112 @@ def attempt_quiz(request, quiz_id):
         {
             'quiz': quiz,
             'questions': questions
+        }
+    )
+
+
+
+@login_required
+def quiz_attempt_review(request, result_id):
+
+    # =========================================================
+    # GET THIS STUDENT'S QUIZ ATTEMPT
+    # =========================================================
+
+    quiz_result = get_object_or_404(
+        QuizResult.objects.select_related("quiz"),
+        id=result_id,
+        student=request.user
+    )
+
+
+    # =========================================================
+    # ATTEMPT NUMBER FOR THIS QUIZ
+    # =========================================================
+
+    attempt_number = QuizResult.objects.filter(
+        student=request.user,
+        quiz=quiz_result.quiz,
+        created_at__lte=quiz_result.created_at
+    ).count()
+
+    # =========================================================
+    # GET ONLY ANSWERS FROM THIS ATTEMPT
+    # =========================================================
+
+    answers = (
+        StudentAnswer.objects
+        .filter(
+            student=request.user,
+            quiz_result=quiz_result
+        )
+        .select_related("question")
+        .order_by("question__id")
+    )
+
+    # =========================================================
+    # PREPARE REVIEW DATA
+    # =========================================================
+
+    answer_details = []
+
+    for answer in answers:
+
+        question = answer.question
+
+        is_correct = (
+            answer.selected_answer
+            == question.correct_answer
+        )
+
+        answer_details.append({
+            "question": question,
+            "selected_answer": answer.selected_answer,
+            "correct_answer": question.correct_answer,
+            "is_correct": is_correct,
+        })
+
+    # =========================================================
+    # PERCENTAGE
+    # =========================================================
+
+    percentage = 0
+
+    if quiz_result.total > 0:
+
+        percentage = round(
+            (quiz_result.score / quiz_result.total) * 100
+        )
+
+    # =========================================================
+    # PERFORMANCE LEVEL
+    # =========================================================
+
+    if percentage >= 75:
+        level = "Strong"
+
+    elif percentage >= 50:
+        level = "Average"
+
+    else:
+        level = "Needs Improvement"
+
+    # =========================================================
+    # RENDER
+    # =========================================================
+
+    return render(
+        request,
+        "quiz_attempt_review.html",
+        {
+            "quiz_result": quiz_result,
+            "quiz": quiz_result.quiz,
+            "answers": answer_details,
+            "score": quiz_result.score,
+            "total": quiz_result.total,
+            "percentage": percentage,
+            "level": level,
+            "attempt_number": attempt_number,
         }
     )
 
@@ -1166,18 +1423,109 @@ GENERAL RULES:
 
 from django.shortcuts import redirect
 
+@login_required
 def mark_complete(request, lesson_id):
-    from .models import Lesson, Progress
 
-    lesson = Lesson.objects.get(id=lesson_id)
+    from .models import Lesson, Progress, Enrollment
+    from core.services.achievement_service import award
+
+    lesson = get_object_or_404(
+        Lesson,
+        id=lesson_id
+    )
+
+    course = lesson.module.course
+
+    # ---------------------------------------------------------
+    # Make sure the student is enrolled in this course
+    # ---------------------------------------------------------
+
+    is_enrolled = Enrollment.objects.filter(
+        student=request.user,
+        course=course
+    ).exists()
+
+    if not is_enrolled:
+        return HttpResponse(
+            "You are not enrolled in this course.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # Check whether lesson was already completed
+    # ---------------------------------------------------------
+
+    progress = Progress.objects.filter(
+        student=request.user,
+        lesson=lesson
+    ).first()
+
+    already_completed = (
+        progress is not None
+        and progress.completed
+    )
+
+    # ---------------------------------------------------------
+    # Mark lesson completed
+    # ---------------------------------------------------------
 
     Progress.objects.update_or_create(
         student=request.user,
         lesson=lesson,
-        defaults={'completed': True}
+        defaults={
+            "completed": True
+        }
     )
 
-    return redirect('dashboard')
+    # ---------------------------------------------------------
+    # FIRST LESSON COMPLETED ACHIEVEMENT
+    # ---------------------------------------------------------
+
+    if not already_completed:
+
+        award(
+            request.user,
+            "First Lesson Completed"
+        )
+
+    # ---------------------------------------------------------
+    # CHECK COURSE COMPLETION
+    # ---------------------------------------------------------
+
+    total_lessons = Lesson.objects.filter(
+        module__course=course
+    ).count()
+
+    completed_lessons = Progress.objects.filter(
+        student=request.user,
+        lesson__module__course=course,
+        completed=True
+    ).count()
+
+    course_completed = (
+        total_lessons > 0
+        and completed_lessons == total_lessons
+    )
+
+    # ---------------------------------------------------------
+    # COURSE COMPLETED ACHIEVEMENT
+    # ---------------------------------------------------------
+
+    if course_completed:
+
+        award(
+            request.user,
+            "Course Completed"
+        )
+
+    # ---------------------------------------------------------
+    # Return to the same lesson
+    # ---------------------------------------------------------
+
+    return redirect(
+        "lesson_detail",
+        lesson_id=lesson.id
+    )
 
 
 def ai_insights(request):
@@ -1329,44 +1677,184 @@ def ai_insights(request):
 
 from django.shortcuts import get_object_or_404
 
+@login_required
 def view_assignment(request, assignment_id):
-    assignment = get_object_or_404(Assignment, id=assignment_id)
+
+    assignment = get_object_or_404(
+        Assignment,
+        id=assignment_id
+    )
 
     from django.utils import timezone
+    import os
 
     now = timezone.localtime()
 
     watermark_text = (
         f"This PDF belongs to:\n"
         f"{request.user.get_full_name() or request.user.username}\n"
-        f"Downloaded on:\n"
+        f"Viewed on:\n"
         f"{now.strftime('%d-%b-%Y %I:%M %p')}"
     )
 
+    # -----------------------------------------------------
+    # SUBMIT ASSIGNMENT
+    # -----------------------------------------------------
+
     if request.method == "POST":
+
         file = request.FILES.get("file")
 
-        if file:
-            submission, created = Submission.objects.update_or_create(
-            assignment=assignment,
-            student=request.user,
-            defaults={
-                "file": file
-            }
+        if not file:
+
+            messages.error(
+                request,
+                "Please select a file before submitting."
+            )
+
+            return redirect(
+                "view_assignment",
+                assignment_id=assignment.id
+            )
+
+        # -------------------------------------------------
+        # FILE TYPE VALIDATION
+        # -------------------------------------------------
+
+        allowed_extensions = {
+            ".pdf",
+            ".doc",
+            ".docx",
+            ".ppt",
+            ".pptx",
+            ".zip",
+        }
+
+        extension = os.path.splitext(
+            file.name
+        )[1].lower()
+
+        if extension not in allowed_extensions:
+
+            messages.error(
+                request,
+                "Only PDF, DOC, DOCX, PPT, PPTX and ZIP files are allowed."
+            )
+
+            return redirect(
+                "view_assignment",
+                assignment_id=assignment.id
+            )
+
+        # -------------------------------------------------
+        # FILE SIZE VALIDATION
+        # -------------------------------------------------
+
+        MAX_FILE_SIZE = 20 * 1024 * 1024
+
+        if file.size > MAX_FILE_SIZE:
+
+            messages.error(
+                request,
+                "Maximum allowed file size is 20 MB."
+            )
+
+            return redirect(
+                "view_assignment",
+                assignment_id=assignment.id
+            )
+
+        # -------------------------------------------------
+        # DEADLINE CHECK
+        # -------------------------------------------------
+
+        if timezone.now().date() > assignment.due_date:
+
+            messages.error(
+                request,
+                "Assignment submission deadline has passed."
+            )
+
+            return redirect(
+                "view_assignment",
+                assignment_id=assignment.id
+            )
+
+        # -------------------------------------------------
+        # SAVE OR UPDATE SUBMISSION
+        # -------------------------------------------------
+
+        submission, created = (
+            Submission.objects.update_or_create(
+                assignment=assignment,
+                student=request.user,
+                defaults={
+                    "file": file,
+                    "status": "submitted",
+                    "marks": None,
+                    "remarks": "",
+                }
+            )
         )
 
-        # 🔔 NOTIFY STUDENT
+        # -------------------------------------------------
+        # STUDENT NOTIFICATION
+        # -------------------------------------------------
+
         Notification.objects.create(
             user=request.user,
-            message=f"📄 You submitted assignment: {assignment.title}"
+            message=(
+                f"📄 You submitted assignment: "
+                f"{assignment.title}"
+            )
         )
 
-        return redirect('dashboard')
+        # -------------------------------------------------
+        # POINTS FOR FIRST SUBMISSION
+        # -------------------------------------------------
 
-    return render(request, "view_assignment.html", {
-        "assignment": assignment,
-        "watermark_text": watermark_text,
-    })
+        if created:
+
+            points, _ = Points.objects.get_or_create(
+                student=request.user
+            )
+
+            points.points += 10
+
+            points.save()
+
+        messages.success(
+            request,
+            "Assignment submitted successfully."
+        )
+
+        return redirect(
+            "view_assignment",
+            assignment_id=assignment.id
+        )
+
+    # -----------------------------------------------------
+    # CHECK EXISTING SUBMISSION
+    # -----------------------------------------------------
+
+    submission = (
+        Submission.objects
+        .filter(
+            assignment=assignment,
+            student=request.user
+        )
+        .first()
+    )
+
+    return render(
+        request,
+        "view_assignment.html",
+        {
+            "assignment": assignment,
+            "watermark_text": watermark_text,
+            "submission": submission,
+        }
+    )
 
 
 from django.contrib.auth.decorators import login_required
@@ -1411,6 +1899,16 @@ def check_submissions(request, assignment_id):
         submission.status = "checked"
 
         submission.save()
+
+        Notification.objects.create(
+            user=submission.student,
+            message=(
+                f"✅ Your assignment '{assignment.title}' "
+                f"has been reviewed. "
+                f"Marks: {submission.marks}. "
+                f"Check your feedback and remarks."
+            )
+        )
 
         completed = Submission.objects.filter(
             student=submission.student,
@@ -1523,67 +2021,510 @@ def view_attendance(request, class_id):
     })
 
 
+@login_required
 def generate_certificate(request, course_id):
-    from reportlab.pdfgen import canvas
+
     from django.http import HttpResponse
     from .models import Course
-    import os
     from django.conf import settings
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib import colors
+    from reportlab.lib.utils import ImageReader
+    import os
     import datetime
+
+    # =========================================================
+    # GET COURSE + STUDENT
+    # =========================================================
 
     course = Course.objects.get(id=course_id)
     user = request.user
 
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="certificate.pdf"'
+    # =========================================================
+    # PDF RESPONSE
+    # =========================================================
 
-    p = canvas.Canvas(response)
+    response = HttpResponse(
+        content_type="application/pdf"
+    )
 
-    width, height = 600, 800
+    response[
+        "Content-Disposition"
+    ] = (
+        'attachment; filename="ScoreSkill_Certificate.pdf"'
+    )
 
-    # 📁 IMAGE PATHS
-    logo_path = os.path.join(settings.BASE_DIR, 'static/scoreskill_logo.png')
-    bg_path = os.path.join(settings.BASE_DIR, 'static/certificate_bg.png')
+    # =========================================================
+    # PAGE
+    # =========================================================
 
-    # 🖼️ BACKGROUND IMAGE (FIRST)
-    if os.path.exists(bg_path):
-        p.drawImage(bg_path, 0, 0, width=width, height=height)
+    width, height = landscape(A4)
 
-    # 🟡 BORDER (optional if no bg)
-    p.setLineWidth(4)
-    p.rect(30, 30, width-60, height-60)
+    p = canvas.Canvas(
+        response,
+        pagesize=(width, height)
+    )
 
-    # 🏷️ LOGO (TOP CENTER)
+    # =========================================================
+    # COLOURS
+    # =========================================================
+
+    dark = colors.HexColor("#172033")
+    purple = colors.HexColor("#5B4BDB")
+    purple_dark = colors.HexColor("#4338CA")
+    gold = colors.HexColor("#C9A227")
+    gold_light = colors.HexColor("#E8D28A")
+    light_bg = colors.HexColor("#FAFAF7")
+    grey = colors.HexColor("#64748B")
+    white = colors.white
+
+    # =========================================================
+    # BACKGROUND
+    # =========================================================
+
+    p.setFillColor(light_bg)
+    p.rect(
+        0,
+        0,
+        width,
+        height,
+        fill=1,
+        stroke=0
+    )
+
+    # =========================================================
+    # OUTER GOLD BORDER
+    # =========================================================
+
+    p.setStrokeColor(gold)
+    p.setLineWidth(3)
+
+    p.rect(
+        24,
+        24,
+        width - 48,
+        height - 48,
+        fill=0,
+        stroke=1
+    )
+
+    # =========================================================
+    # INNER BORDER
+    # =========================================================
+
+    p.setStrokeColor(purple)
+    p.setLineWidth(1.2)
+
+    p.rect(
+        36,
+        36,
+        width - 72,
+        height - 72,
+        fill=0,
+        stroke=1
+    )
+
+    # =========================================================
+    # DECORATIVE TOP LINE
+    # =========================================================
+
+    center_x = width / 2
+
+    p.setStrokeColor(gold)
+    p.setLineWidth(2)
+
+    p.line(
+        center_x - 170,
+        height - 80,
+        center_x + 170,
+        height - 80
+    )
+
+    # =========================================================
+    # LOGO
+    # =========================================================
+
+    logo_path = os.path.join(
+        settings.BASE_DIR,
+        "static",
+        "scoreskill_logo.png"
+    )
+
     if os.path.exists(logo_path):
-        p.drawImage(logo_path, width/2 - 40, 720, width=80, height=80)
 
-    # 🎓 TITLE
-    p.setFont("Helvetica-Bold", 24)
-    p.drawCentredString(width/2, 680, "Certificate of Completion")
+        logo = ImageReader(logo_path)
 
-    # 🧾 TEXT
-    p.setFont("Helvetica", 14)
-    p.drawCentredString(width/2, 640, "This is to certify that")
+        logo_width = 72
+        logo_height = 72
 
-    # 👤 NAME
-    p.setFont("Helvetica-Bold", 18)
-    p.drawCentredString(width/2, 600, user.username)
+        p.drawImage(
+            logo,
+            center_x - (logo_width / 2),
+            height - 155,
+            width=logo_width,
+            height=logo_height,
+            preserveAspectRatio=True,
+            mask="auto"
+        )
 
-    # 📘 TEXT
-    p.setFont("Helvetica", 14)
-    p.drawCentredString(width/2, 560, "has successfully completed")
+    # =========================================================
+    # BRAND NAME
+    # =========================================================
 
-    # 📚 COURSE
-    p.setFont("Helvetica-Bold", 18)
-    p.drawCentredString(width/2, 520, course.title)
+    p.setFillColor(purple_dark)
 
-    # 📅 DATE
-    p.setFont("Helvetica", 12)
-    p.drawCentredString(width/2, 480, f"Date: {datetime.date.today()}")
+    p.setFont(
+        "Helvetica-Bold",
+        12
+    )
 
-    # ✍️ SIGN
-    p.drawString(80, 100, "Instructor Signature")
+    p.drawCentredString(
+        center_x,
+        height - 175,
+        "SCORESKILL"
+    )
 
+    p.setFillColor(grey)
+
+    p.setFont(
+        "Helvetica",
+        8
+    )
+
+    p.drawCentredString(
+        center_x,
+        height - 188,
+        "AI Powered Learning"
+    )
+
+    # =========================================================
+    # MAIN TITLE
+    # =========================================================
+
+    p.setFillColor(dark)
+
+    p.setFont(
+        "Helvetica-Bold",
+        28
+    )
+
+    p.drawCentredString(
+        center_x,
+        height - 235,
+        "CERTIFICATE OF COMPLETION"
+    )
+
+    # =========================================================
+    # SUBTITLE
+    # =========================================================
+
+    p.setFillColor(gold)
+
+    p.setFont(
+        "Helvetica-Bold",
+        11
+    )
+
+    p.drawCentredString(
+        center_x,
+        height - 260,
+        "This certificate is proudly presented to"
+    )
+
+    # =========================================================
+    # STUDENT NAME
+    # =========================================================
+
+    student_name = (
+        user.get_full_name().strip()
+        if user.get_full_name()
+        else user.username
+    )
+
+    p.setFillColor(dark)
+
+    p.setFont(
+        "Helvetica-Bold",
+        25
+    )
+
+    p.drawCentredString(
+        center_x,
+        height - 305,
+        student_name
+    )
+
+    # =========================================================
+    # NAME UNDERLINE
+    # =========================================================
+
+    p.setStrokeColor(gold)
+    p.setLineWidth(2)
+
+    p.line(
+        center_x - 150,
+        height - 318,
+        center_x + 150,
+        height - 318
+    )
+
+    # =========================================================
+    # COMPLETION TEXT
+    # =========================================================
+
+    p.setFillColor(grey)
+
+    p.setFont(
+        "Helvetica",
+        12
+    )
+
+    p.drawCentredString(
+        center_x,
+        height - 355,
+        "for successfully completing the course"
+    )
+
+    # =========================================================
+    # COURSE NAME
+    # =========================================================
+
+    p.setFillColor(purple_dark)
+
+    p.setFont(
+        "Helvetica-Bold",
+        21
+    )
+
+    p.drawCentredString(
+        center_x,
+        height - 392,
+        course.title
+    )
+
+    # =========================================================
+    # COURSE COMPLETION STATEMENT
+    # =========================================================
+
+    p.setFillColor(grey)
+
+    p.setFont(
+        "Helvetica",
+        10
+    )
+
+    p.drawCentredString(
+        center_x,
+        height - 420,
+        "This certificate recognizes the successful completion of the"
+    )
+
+    p.drawCentredString(
+        center_x,
+        height - 436,
+        "learning requirements of the course on ScoreSkill."
+    )
+
+    # =========================================================
+    # DATE + CERTIFICATE ID
+    # =========================================================
+
+    completion_date = datetime.date.today()
+
+    certificate_id = (
+        f"SS-{course.id:03d}-"
+        f"{user.id:04d}-"
+        f"{completion_date.strftime('%Y%m%d')}"
+    )
+
+    # LEFT INFORMATION
+
+    left_x = 150
+
+    p.setFillColor(grey)
+
+    p.setFont(
+        "Helvetica",
+        8
+    )
+
+    p.drawString(
+        left_x,
+        108,
+        "DATE OF COMPLETION"
+    )
+
+    p.setFillColor(dark)
+
+    p.setFont(
+        "Helvetica-Bold",
+        10
+    )
+
+    p.drawString(
+        left_x,
+        91,
+        completion_date.strftime("%d %B %Y")
+    )
+
+    # RIGHT INFORMATION
+
+    right_x = width - 250
+
+    p.setFillColor(grey)
+
+    p.setFont(
+        "Helvetica",
+        8
+    )
+
+    p.drawString(
+        right_x,
+        108,
+        "CERTIFICATE ID"
+    )
+
+    p.setFillColor(dark)
+
+    p.setFont(
+        "Helvetica-Bold",
+        10
+    )
+
+    p.drawString(
+        right_x,
+        91,
+        certificate_id
+    )
+
+    # =========================================================
+    # INSTRUCTOR NAME
+    # =========================================================
+
+    instructor_name = (
+        course.teacher.get_full_name().strip()
+        if course.teacher.get_full_name()
+        else course.teacher.username
+    )
+
+    # =========================================================
+    # SIGNATURE SECTION
+    # =========================================================
+
+    signature_x = center_x
+
+    p.setStrokeColor(dark)
+    p.setLineWidth(1)
+
+    p.line(
+        signature_x - 85,
+        110,
+        signature_x + 85,
+        110
+    )
+
+    p.setFillColor(dark)
+
+    p.setFont(
+        "Helvetica-Bold",
+        9
+    )
+
+    p.drawCentredString(
+        signature_x,
+        94,
+        instructor_name
+    )
+
+    p.setFillColor(grey)
+
+    p.setFont(
+        "Helvetica",
+        8
+    )
+
+    p.drawCentredString(
+        signature_x,
+        80,
+        "Instructor / Course Director"
+    )
+
+    # =========================================================
+    # CERTIFICATION SEAL
+    # =========================================================
+
+    seal_x = width - 115
+    seal_y = height - 125
+
+    p.setStrokeColor(gold)
+    p.setLineWidth(2)
+
+    p.circle(
+        seal_x,
+        seal_y,
+        32,
+        fill=0,
+        stroke=1
+    )
+
+    p.setStrokeColor(purple)
+    p.setLineWidth(1)
+
+    p.circle(
+        seal_x,
+        seal_y,
+        25,
+        fill=0,
+        stroke=1
+    )
+
+    p.setFillColor(purple_dark)
+
+    p.setFont(
+        "Helvetica-Bold",
+        8
+    )
+
+    p.drawCentredString(
+        seal_x,
+        seal_y + 5,
+        "SCORESKILL"
+    )
+
+    p.setFont(
+        "Helvetica-Bold",
+        7
+    )
+
+    p.drawCentredString(
+        seal_x,
+        seal_y - 6,
+        "CERTIFIED"
+    )
+
+    # =========================================================
+    # FOOTER
+    # =========================================================
+
+    p.setFillColor(purple_dark)
+
+    p.setFont(
+        "Helvetica-Bold",
+        8
+    )
+
+    p.drawCentredString(
+        center_x,
+        55,
+        "ScoreSkill - Smart Learning Platform"
+    )
+
+    # =========================================================
+    # SAVE
+    # =========================================================
+
+    p.showPage()
     p.save()
 
     return response
@@ -1789,60 +2730,6 @@ def typing(request):
     return JsonResponse({"status": "typing"})
 
 
-
-import json
-from django.http import JsonResponse
-
-def save_offer(request):
-    data = json.loads(request.body)
-
-    CallOffer.objects.create(
-        offer=data['offer']
-    )
-
-    return JsonResponse({"status": "saved"})
-
-
-def get_offer(request):
-    offer = CallOffer.objects.last()
-    return JsonResponse({"offer": offer.offer})
-
-
-def video_room(request):
-    return render(request, "video_room.html")
-
-
-def save_answer(request):
-    import json
-    data = json.loads(request.body)
-
-    CallAnswer.objects.create(
-        answer=data['answer']
-    )
-
-    return JsonResponse({"status": "saved"})
-
-
-from .models import IceCandidate
-def save_candidate(request):
-    import json
-    data = json.loads(request.body)
-
-    IceCandidate.objects.create(
-        candidate=data['candidate']
-    )
-
-    return JsonResponse({"status": "saved"})
-
-
-def get_candidates(request):
-    candidates = IceCandidate.objects.all().order_by('created_at')
-
-    data = [c.candidate for c in candidates]
-
-    return JsonResponse({"candidates": data})
-
-
 def agora_video(request, class_id):
     from .models import LiveClass, Attendance
 
@@ -1967,12 +2854,6 @@ def upload_file(request):
 
     return JsonResponse({"error": "Upload failed"})
 
-def live_class_v2(request):
-
-    return render(
-        request,
-        "agora_video_v2.html"
-    )
 
 
 from django.contrib.auth.decorators import login_required

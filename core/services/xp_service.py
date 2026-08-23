@@ -29,7 +29,9 @@ def update_level(profile):
 
 def add_xp(student, points):
 
-    profile = student.profile
+    profile, created = StudentProfile.objects.get_or_create(
+        student=student
+    )
 
     profile.xp += points
     profile.save(update_fields=["xp"])
