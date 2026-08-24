@@ -559,13 +559,70 @@ def lesson_detail(request, lesson_id):
 
 from django.shortcuts import get_object_or_404
 
+@login_required
 def submit_assignment(request, assignment_id):
-    assignment = get_object_or_404(Assignment, id=assignment_id)
 
-    if request.method == 'POST':
-        file = request.FILES.get('file')
+    assignment = get_object_or_404(
+        Assignment,
+        id=assignment_id
+    )
+
+    # ---------------------------------------------------------
+    # Only students may submit assignments
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "student":
+        return HttpResponse(
+            "Only students can submit assignments.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # Check enrollment in the assignment's course
+    # ---------------------------------------------------------
+
+    course = assignment.lesson.module.course
+
+    is_enrolled = Enrollment.objects.filter(
+        student=request.user,
+        course=course
+    ).exists()
+
+    if not is_enrolled:
+        return HttpResponse(
+            "You are not enrolled in this course.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # SUBMISSION
+    # ---------------------------------------------------------
+
+    if request.method == "POST":
+
+        file = request.FILES.get("file")
+
+        # -----------------------------------------------------
+        # FILE REQUIRED
+        # -----------------------------------------------------
+
+        if not file:
+
+            messages.error(
+                request,
+                "Please select a file before submitting."
+            )
+
+            return redirect(
+                "submit_assignment",
+                assignment_id=assignment.id
+            )
 
         import os
+
+        # -----------------------------------------------------
+        # FILE TYPE VALIDATION
+        # -----------------------------------------------------
 
         allowed_extensions = {
             ".pdf",
@@ -576,61 +633,146 @@ def submit_assignment(request, assignment_id):
             ".zip",
         }
 
-        extension = os.path.splitext(file.name)[1].lower()
+        extension = os.path.splitext(
+            file.name
+        )[1].lower()
 
         if extension not in allowed_extensions:
+
             messages.error(
                 request,
                 "Only PDF, DOC, DOCX, PPT, PPTX and ZIP files are allowed."
             )
-            return redirect("submit_assignment", assignment_id=assignment.id)
 
-        MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB
+            return redirect(
+                "submit_assignment",
+                assignment_id=assignment.id
+            )
+
+        # -----------------------------------------------------
+        # FILE SIZE VALIDATION
+        # -----------------------------------------------------
+
+        MAX_FILE_SIZE = 20 * 1024 * 1024
 
         if file.size > MAX_FILE_SIZE:
+
             messages.error(
                 request,
                 "Maximum allowed file size is 20 MB."
             )
-            return redirect("submit_assignment", assignment_id=assignment.id)
 
-        if not file:
-            return redirect('dashboard')
+            return redirect(
+                "submit_assignment",
+                assignment_id=assignment.id
+            )
+
+        # -----------------------------------------------------
+        # DEADLINE CHECK
+        # -----------------------------------------------------
 
         if timezone.now().date() > assignment.due_date:
+
             messages.error(
                 request,
                 "Assignment submission deadline has passed."
             )
-            return redirect("dashboard")
-        
-        submission, created = Submission.objects.update_or_create(
-            assignment=assignment,
-            student=request.user,
-            defaults={
-                "file": file
-            }
+
+            return redirect(
+                "dashboard"
+            )
+
+        # -----------------------------------------------------
+        # SAVE / UPDATE SUBMISSION
+        # -----------------------------------------------------
+
+        submission, created = (
+            Submission.objects.update_or_create(
+                assignment=assignment,
+                student=request.user,
+                defaults={
+                    "file": file
+                }
+            )
         )
-        # ADD POINTS
+
+        # -----------------------------------------------------
+        # POINTS FOR FIRST SUBMISSION
+        # -----------------------------------------------------
+
         if created:
+
             points, _ = Points.objects.get_or_create(
                 student=request.user
             )
 
             points.points += 10
+
             points.save()
 
-        return redirect('dashboard')
+        return redirect("dashboard")
 
-    return render(request, 'submit_assignment.html', {'assignment': assignment})
+    # ---------------------------------------------------------
+    # GET REQUEST
+    # ---------------------------------------------------------
+
+    return render(
+        request,
+        "submit_assignment.html",
+        {
+            "assignment": assignment
+        }
+    )
 
 
+@login_required
 def view_submissions(request, assignment_id):
-    submissions = Submission.objects.filter(assignment_id=assignment_id)
 
-    return render(request, 'view_submissions.html', {
-        'submissions': submissions
-    })
+    assignment = get_object_or_404(
+        Assignment.objects.select_related(
+            "lesson__module__course"
+        ),
+        id=assignment_id
+    )
+
+    course = assignment.lesson.module.course
+
+    # ---------------------------------------------------------
+    # ONLY THE COURSE TEACHER CAN VIEW SUBMISSIONS
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only the course teacher can view submissions.",
+            status=403
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to view these submissions.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # GET SUBMISSIONS
+    # ---------------------------------------------------------
+
+    submissions = (
+        Submission.objects
+        .filter(assignment=assignment)
+        .select_related("student")
+        .order_by("-submitted_at")
+    )
+
+    return render(
+        request,
+        "view_submissions.html",
+        {
+            "submissions": submissions
+        }
+    )
 
 
 @csrf_exempt
@@ -703,15 +845,56 @@ def create_admin(request):
         return HttpResponse(f"Error: {str(e)}")
     
 
+@login_required
 def attempt_quiz(request, quiz_id):
 
-    quiz = Quiz.objects.get(id=quiz_id)
+    quiz = get_object_or_404(
+        Quiz.objects.select_related("course"),
+        id=quiz_id
+    )
+
+    course = quiz.course
+
+    # ---------------------------------------------------------
+    # ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    # STUDENT
+    if request.user.user_type == "student":
+
+        is_enrolled = Enrollment.objects.filter(
+            student=request.user,
+            course=course
+        ).exists()
+
+        if not is_enrolled:
+            return HttpResponse(
+                "You are not enrolled in this course.",
+                status=403
+            )
+
+    # TEACHER
+    elif request.user.user_type == "teacher":
+
+        if course.teacher_id != request.user.id:
+            return HttpResponse(
+                "You are not authorized to access this quiz.",
+                status=403
+            )
+
+    # INVALID USER TYPE
+    else:
+
+        return HttpResponse(
+            "You are not authorized to access this quiz.",
+            status=403
+        )
 
     questions = Question.objects.filter(
         quiz=quiz
     )
 
-    if request.method == 'POST':
+    if request.method == "POST":
 
         score = 0
         answer_details = []
@@ -734,10 +917,10 @@ def attempt_quiz(request, quiz_id):
                 score += 1
 
             answer_details.append({
-                'question': q,
-                'selected_answer': selected,
-                'correct_answer': q.correct_answer,
-                'is_correct': is_correct,
+                "question": q,
+                "selected_answer": selected,
+                "correct_answer": q.correct_answer,
+                "is_correct": is_correct,
             })
 
         # =====================================================
@@ -753,7 +936,7 @@ def attempt_quiz(request, quiz_id):
         )
 
         # =====================================================
-        # CREATE QUIZ RESULT FIRST
+        # CREATE QUIZ RESULT
         # =====================================================
 
         quiz_result = QuizResult.objects.create(
@@ -765,7 +948,6 @@ def attempt_quiz(request, quiz_id):
 
         # =====================================================
         # SAVE STUDENT ANSWERS
-        # LINK THEM TO THIS ATTEMPT
         # =====================================================
 
         for q in questions:
@@ -832,21 +1014,15 @@ def attempt_quiz(request, quiz_id):
 
         return render(
             request,
-            'quiz_result.html',
+            "quiz_result.html",
             {
-                'quiz': quiz,
-
-                'quiz_result': quiz_result,
-
-                'score': score,
-                'total': total,
-                'percentage': percentage,
-
-                'performance_message':
-                    performance_message,
-
-                'answer_details':
-                    answer_details,
+                "quiz": quiz,
+                "quiz_result": quiz_result,
+                "score": score,
+                "total": total,
+                "percentage": percentage,
+                "performance_message": performance_message,
+                "answer_details": answer_details,
             }
         )
 
@@ -856,10 +1032,10 @@ def attempt_quiz(request, quiz_id):
 
     return render(
         request,
-        'attempt_quiz.html',
+        "attempt_quiz.html",
         {
-            'quiz': quiz,
-            'questions': questions
+            "quiz": quiz,
+            "questions": questions
         }
     )
 
@@ -1695,6 +1871,57 @@ def view_assignment(request, assignment_id):
         id=assignment_id
     )
 
+    # ---------------------------------------------------------
+    # GET THE COURSE THAT OWNS THIS ASSIGNMENT
+    # ---------------------------------------------------------
+
+    course = assignment.lesson.module.course
+
+    # ---------------------------------------------------------
+    # ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    # Students must be enrolled in the course.
+    if request.user.user_type == "student":
+
+        is_enrolled = Enrollment.objects.filter(
+            student=request.user,
+            course=course
+        ).exists()
+
+        if not is_enrolled:
+
+            return HttpResponse(
+                "You are not enrolled in this course.",
+                status=403
+            )
+
+    # ---------------------------------------------------------
+    # TEACHERS
+    # ---------------------------------------------------------
+
+    elif request.user.user_type == "teacher":
+
+        # Only the teacher who owns the course can view
+        # the assignment through this page.
+        if course.teacher_id != request.user.id:
+
+            return HttpResponse(
+                "You are not authorized to view this assignment.",
+                status=403
+            )
+
+    # ---------------------------------------------------------
+    # INVALID USER TYPE
+    # ---------------------------------------------------------
+
+    else:
+
+        return HttpResponse(
+            "You are not authorized to view this assignment.",
+            status=403
+        )
+
     from django.utils import timezone
     import os
 
@@ -1712,6 +1939,14 @@ def view_assignment(request, assignment_id):
     # -----------------------------------------------------
 
     if request.method == "POST":
+
+        # Only students can submit
+        if request.user.user_type != "student":
+
+            return HttpResponse(
+                "Only students can submit assignments.",
+                status=403
+            )
 
         file = request.FILES.get("file")
 
@@ -1791,7 +2026,7 @@ def view_assignment(request, assignment_id):
             )
 
         # -------------------------------------------------
-        # SAVE OR UPDATE SUBMISSION
+        # SAVE / UPDATE SUBMISSION
         # -------------------------------------------------
 
         submission, created = (
@@ -1974,32 +2209,153 @@ def view_handout(request, handout_id):
     })
 
 
+@login_required
 def start_class(request, class_id):
-    cls = LiveClass.objects.get(id=class_id)
+
+    cls = get_object_or_404(
+        LiveClass.objects.select_related("course"),
+        id=class_id
+    )
+
+    # ---------------------------------------------------------
+    # ONLY THE COURSE TEACHER CAN START THE CLASS
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+        return HttpResponse(
+            "Only the course teacher can start this class.",
+            status=403
+        )
+
+    if cls.course.teacher_id != request.user.id:
+        return HttpResponse(
+            "You are not authorized to start this class.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # START CLASS
+    # ---------------------------------------------------------
 
     cls.is_live = True
     cls.teacher_started = True
 
-    cls.save()
+    cls.save(
+        update_fields=[
+            "is_live",
+            "teacher_started"
+        ]
+    )
 
-    return redirect('dashboard')
+    logger.info(
+        "Live class started: teacher=%s class_id=%s",
+        request.user.username,
+        cls.id,
+    )
+
+    return redirect("dashboard")
 
 
 @login_required
 def stop_class(request, class_id):
-    cls = LiveClass.objects.get(id=class_id)
+
+    cls = get_object_or_404(
+        LiveClass.objects.select_related("course"),
+        id=class_id
+    )
+
+    # ---------------------------------------------------------
+    # ONLY THE COURSE TEACHER CAN STOP THE CLASS
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+        return HttpResponse(
+            "Only the course teacher can stop this class.",
+            status=403
+        )
+
+    if cls.course.teacher_id != request.user.id:
+        return HttpResponse(
+            "You are not authorized to stop this class.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # STOP CLASS
+    # ---------------------------------------------------------
+
     cls.is_live = False
     cls.is_completed = True
     cls.completed_at = timezone.now()
-    cls.save()
-    return redirect('dashboard')
+
+    cls.save(
+        update_fields=[
+            "is_live",
+            "is_completed",
+            "completed_at"
+        ]
+    )
+
+    logger.info(
+        "Live class stopped: teacher=%s class_id=%s",
+        request.user.username,
+        cls.id,
+    )
+
+    return redirect("dashboard")
 
 
+@login_required
 def join_live_class(request, class_id):
-    if not request.user.is_authenticated:
-        return redirect('login')
 
-    cls = LiveClass.objects.get(id=class_id)
+    cls = get_object_or_404(
+        LiveClass.objects.select_related("course"),
+        id=class_id
+    )
+
+    # ---------------------------------------------------------
+    # STUDENT ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type == "student":
+
+        is_enrolled = Enrollment.objects.filter(
+            student=request.user,
+            course=cls.course
+        ).exists()
+
+        if not is_enrolled:
+            return HttpResponse(
+                "You are not enrolled in this course.",
+                status=403
+            )
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    elif request.user.user_type == "teacher":
+
+        if cls.course.teacher_id != request.user.id:
+            return HttpResponse(
+                "You are not authorized to join this class.",
+                status=403
+            )
+
+    # ---------------------------------------------------------
+    # INVALID USER TYPE
+    # ---------------------------------------------------------
+
+    else:
+
+        return HttpResponse(
+            "You are not authorized to join this class.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # CHECK WHETHER CLASS IS UNLOCKED
+    # ---------------------------------------------------------
 
     now = timezone.now()
 
@@ -2015,20 +2371,75 @@ def join_live_class(request, class_id):
             "Class will unlock 10 minutes before start time."
         )
 
-    Attendance.objects.get_or_create(
-        student=request.user,
-        live_class=cls
-    )
+    # ---------------------------------------------------------
+    # ATTENDANCE
+    # ---------------------------------------------------------
+
+    if request.user.user_type == "student":
+
+        Attendance.objects.get_or_create(
+            student=request.user,
+            live_class=cls
+        )
+
+    # ---------------------------------------------------------
+    # JOIN MEETING
+    # ---------------------------------------------------------
+
+    if not cls.meeting_link:
+        return HttpResponse(
+            "Meeting link is not available.",
+            status=404
+        )
 
     return redirect(cls.meeting_link)
 
 
+@login_required
 def view_attendance(request, class_id):
-    records = Attendance.objects.filter(live_class_id=class_id)
 
-    return render(request, 'attendance.html', {
-        'records': records
-    })
+    live_class = get_object_or_404(
+        LiveClass.objects.select_related("course"),
+        id=class_id
+    )
+
+    # ---------------------------------------------------------
+    # ONLY THE COURSE TEACHER CAN VIEW ATTENDANCE
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only the course teacher can view attendance.",
+            status=403
+        )
+
+    if live_class.course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to view this attendance.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # GET ATTENDANCE RECORDS
+    # ---------------------------------------------------------
+
+    records = (
+        Attendance.objects
+        .filter(live_class=live_class)
+        .select_related("student")
+        .order_by("-join_time")
+    )
+
+    return render(
+        request,
+        "attendance.html",
+        {
+            "records": records,
+            "live_class": live_class,
+        }
+    )
 
 
 @login_required
@@ -2637,31 +3048,43 @@ def give_pro(request, user_id):
     return HttpResponse(f"✅ Pro activated for {user.username}")
 
 
+@login_required
 def notifications(request):
-    notes = Notification.objects.filter(user=request.user).order_by('-created_at')
 
-    # MARK ALL AS READ WHEN PAGE OPENED
+    notes = (
+        Notification.objects
+        .filter(user=request.user)
+        .order_by("-created_at")
+    )
+
+    # Mark only this user's notifications as read
     notes.update(is_read=True)
 
-    return render(request, 'notifications.html', {
-        'notifications': notes
-    })
+    return render(
+        request,
+        "notifications.html",
+        {
+            "notifications": notes
+        }
+    )
 
 
-
-from django.http import JsonResponse
-
+@login_required
 def get_notifications(request):
-    notes = Notification.objects.filter(
-        user=request.user
-    ).order_by('-created_at')[:5]
+
+    notes = (
+        Notification.objects
+        .filter(user=request.user)
+        .order_by("-created_at")[:5]
+    )
 
     data = []
 
     for n in notes:
+
         data.append({
             "message": n.message,
-            "time": str(n.created_at.strftime("%H:%M"))
+            "time": n.created_at.strftime("%H:%M"),
         })
 
     count = Notification.objects.filter(
@@ -2675,11 +3098,22 @@ def get_notifications(request):
     })
 
 
+@login_required
 def mark_notification_read(request, id):
-    n = Notification.objects.get(id=id)
-    n.is_read = True
-    n.save()
-    return redirect('/notifications/')
+
+    notification = get_object_or_404(
+        Notification,
+        id=id,
+        user=request.user
+    )
+
+    notification.is_read = True
+
+    notification.save(
+        update_fields=["is_read"]
+    )
+
+    return redirect("notifications")
 
 
 def doubts(request):
