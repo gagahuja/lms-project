@@ -178,6 +178,10 @@ import os
 RAZORPAY_KEY = os.environ.get("RAZORPAY_KEY")
 RAZORPAY_SECRET = os.environ.get("RAZORPAY_SECRET")
 
+RAZORPAY_WEBHOOK_SECRET = os.environ.get(
+    "RAZORPAY_WEBHOOK_SECRET"
+)
+
 
 import cloudinary
 

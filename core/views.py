@@ -498,15 +498,169 @@ def buy_course(request, course_id):
 
     
 
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+
+
+@require_POST
+@login_required
 def payment_success(request, course_id):
-    course = Course.objects.get(id=course_id)
+
+    course = get_object_or_404(
+        Course,
+        id=course_id
+    )
+
+    razorpay_payment_id = request.POST.get(
+        "razorpay_payment_id"
+    )
+
+    razorpay_order_id = request.POST.get(
+        "razorpay_order_id"
+    )
+
+    razorpay_signature = request.POST.get(
+        "razorpay_signature"
+    )
+
+    # ---------------------------------------------------------
+    # MAKE SURE RAZORPAY RETURNED ALL REQUIRED VALUES
+    # ---------------------------------------------------------
+
+    if not all([
+        razorpay_payment_id,
+        razorpay_order_id,
+        razorpay_signature,
+    ]):
+
+        messages.error(
+            request,
+            "Payment verification information is incomplete."
+        )
+
+        return redirect("dashboard")
+
+    # ---------------------------------------------------------
+    # CREATE RAZORPAY CLIENT
+    # ---------------------------------------------------------
+
+    client = razorpay.Client(
+        auth=(
+            settings.RAZORPAY_KEY,
+            settings.RAZORPAY_SECRET
+        )
+    )
+
+    # ---------------------------------------------------------
+    # VERIFY RAZORPAY SIGNATURE
+    # ---------------------------------------------------------
+
+    try:
+
+        client.utility.verify_payment_signature({
+            "razorpay_order_id":
+                razorpay_order_id,
+
+            "razorpay_payment_id":
+                razorpay_payment_id,
+
+            "razorpay_signature":
+                razorpay_signature,
+        })
+
+    except razorpay.errors.SignatureVerificationError:
+
+        messages.error(
+            request,
+            "Payment verification failed."
+        )
+
+        return redirect("dashboard")
+
+    # ---------------------------------------------------------
+    # VERIFY THE PAYMENT BELONGS TO THIS COURSE ORDER
+    # ---------------------------------------------------------
+
+    try:
+
+        order = client.order.fetch(
+            razorpay_order_id
+        )
+
+    except Exception:
+
+        messages.error(
+            request,
+            "Unable to verify the payment order."
+        )
+
+        return redirect("dashboard")
+
+    expected_amount = (
+        course.price * 100
+    )
+
+    if order.get("amount") != expected_amount:
+
+        messages.error(
+            request,
+            "Payment amount does not match the course price."
+        )
+
+        return redirect("dashboard")
+
+    # ---------------------------------------------------------
+    # VERIFY ORDER NOTES
+    # ---------------------------------------------------------
+
+    notes = order.get(
+        "notes",
+        {}
+    )
+
+    if notes.get("course_id") != str(course.id):
+
+        messages.error(
+            request,
+            "Payment course verification failed."
+        )
+
+        return redirect("dashboard")
+
+    if notes.get("user_id") != str(request.user.id):
+
+        messages.error(
+            request,
+            "Payment user verification failed."
+        )
+
+        return redirect("dashboard")
+
+    # ---------------------------------------------------------
+    # PAYMENT VERIFIED
+    # ---------------------------------------------------------
 
     Enrollment.objects.get_or_create(
         student=request.user,
         course=course
     )
 
-    return redirect('dashboard')
+    messages.success(
+        request,
+        "Payment verified successfully. "
+        "You are now enrolled in the course."
+    )
+
+    logger.info(
+        "Payment verified successfully: "
+        "user=%s course_id=%s order_id=%s payment_id=%s",
+        request.user.username,
+        course.id,
+        razorpay_order_id,
+        razorpay_payment_id,
+    )
+
+    return redirect("dashboard")
 
 
 from django.shortcuts import get_object_or_404
@@ -777,22 +931,202 @@ def view_submissions(request, assignment_id):
 
 @csrf_exempt
 def razorpay_webhook(request):
-    data = json.loads(request.body)
 
-    if data['event'] == 'payment.captured':
-        payment = data['payload']['payment']['entity']
-        course_id = payment['notes']['course_id']
-        user_id = payment['notes']['user_id']
+    # ---------------------------------------------------------
+    # ONLY RAZORPAY WEBHOOK POST REQUESTS ARE ACCEPTED
+    # ---------------------------------------------------------
 
-        user = User.objects.get(id=user_id)
-        course = Course.objects.get(id=course_id)
-
-        Enrollment.objects.get_or_create(
-            student=user,
-            course=course
+    if request.method != "POST":
+        return HttpResponse(
+            "Method not allowed.",
+            status=405
         )
 
-    return HttpResponse("OK")
+    # ---------------------------------------------------------
+    # GET RAZORPAY WEBHOOK SIGNATURE
+    # ---------------------------------------------------------
+
+    webhook_signature = request.headers.get(
+        "X-Razorpay-Signature"
+    )
+
+    if not webhook_signature:
+
+        logger.warning(
+            "Razorpay webhook rejected: missing signature."
+        )
+
+        return HttpResponse(
+            "Missing webhook signature.",
+            status=400
+        )
+
+    # ---------------------------------------------------------
+    # VERIFY WEBHOOK SIGNATURE
+    # IMPORTANT: USE RAW REQUEST BODY
+    # ---------------------------------------------------------
+
+    try:
+
+        client = razorpay.Client(
+            auth=(
+                settings.RAZORPAY_KEY,
+                settings.RAZORPAY_SECRET
+            )
+        )
+
+        client.utility.verify_webhook_signature(
+            request.body,
+            webhook_signature,
+            settings.RAZORPAY_WEBHOOK_SECRET
+        )
+
+    except razorpay.errors.SignatureVerificationError:
+
+        logger.warning(
+            "Razorpay webhook rejected: invalid signature."
+        )
+
+        return HttpResponse(
+            "Invalid webhook signature.",
+            status=400
+        )
+
+    except Exception as e:
+
+        logger.exception(
+            "Razorpay webhook signature verification error: %s",
+            str(e)
+        )
+
+        return HttpResponse(
+            "Webhook verification failed.",
+            status=400
+        )
+
+    # ---------------------------------------------------------
+    # PARSE JSON AFTER SIGNATURE VERIFICATION
+    # ---------------------------------------------------------
+
+    try:
+
+        data = json.loads(
+            request.body.decode("utf-8")
+        )
+
+    except (json.JSONDecodeError, UnicodeDecodeError):
+
+        logger.warning(
+            "Razorpay webhook rejected: invalid JSON."
+        )
+
+        return HttpResponse(
+            "Invalid webhook payload.",
+            status=400
+        )
+
+    # ---------------------------------------------------------
+    # HANDLE PAYMENT CAPTURE
+    # ---------------------------------------------------------
+
+    if data.get("event") == "payment.captured":
+
+        try:
+
+            payment = (
+                data["payload"]
+                ["payment"]
+                ["entity"]
+            )
+
+            notes = payment.get(
+                "notes",
+                {}
+            )
+
+            course_id = notes.get(
+                "course_id"
+            )
+
+            user_id = notes.get(
+                "user_id"
+            )
+
+            if not course_id or not user_id:
+
+                logger.warning(
+                    "Razorpay webhook missing course_id/user_id."
+                )
+
+                return HttpResponse(
+                    "Missing payment metadata.",
+                    status=400
+                )
+
+            user = get_object_or_404(
+                User,
+                id=int(user_id)
+            )
+
+            course = get_object_or_404(
+                Course,
+                id=int(course_id)
+            )
+
+            Enrollment.objects.get_or_create(
+                student=user,
+                course=course
+            )
+
+            logger.info(
+                "Razorpay payment captured: "
+                "user=%s course_id=%s payment_id=%s",
+                user.username,
+                course.id,
+                payment.get("id"),
+            )
+
+        except (KeyError, TypeError, ValueError):
+
+            logger.exception(
+                "Razorpay webhook contained invalid payment data."
+            )
+
+            return HttpResponse(
+                "Invalid payment payload.",
+                status=400
+            )
+
+        except Exception:
+
+            logger.exception(
+                "Unexpected error processing Razorpay webhook."
+            )
+
+            return HttpResponse(
+                "Webhook processing failed.",
+                status=500
+            )
+
+    # ---------------------------------------------------------
+    # OTHER VALID RAZORPAY EVENTS
+    # ---------------------------------------------------------
+
+    else:
+
+        logger.info(
+            "Razorpay webhook received: event=%s",
+            data.get("event")
+        )
+
+    # ---------------------------------------------------------
+    # ACKNOWLEDGE WEBHOOK
+    # ---------------------------------------------------------
+
+    return HttpResponse(
+        "OK",
+        status=200
+    )
 
 
 
