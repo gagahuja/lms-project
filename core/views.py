@@ -3835,28 +3835,128 @@ def doubts(request):
     })
 
 
+from django.db.models import Q
 
+@login_required
 def chat(request, user_id, course_id):
-    from .models import Message
 
-    other_user = User.objects.get(id=user_id)
-    course = Course.objects.get(id=course_id)
-
-    messages = Message.objects.filter(
-        course=course
-    ).filter(
-        sender=request.user, receiver=other_user
-    ) | Message.objects.filter(
-        sender=other_user, receiver=request.user
+    other_user = get_object_or_404(
+        User,
+        id=user_id
     )
 
-    messages = messages.order_by('created_at')
-    
+    course = get_object_or_404(
+        Course,
+        id=course_id
+    )
+
+    # ---------------------------------------------------------
+    # PREVENT CHATTING WITH YOURSELF
+    # ---------------------------------------------------------
+
+    if other_user.id == request.user.id:
+
+        return HttpResponse(
+            "You cannot chat with yourself.",
+            status=400
+        )
+
+    # ---------------------------------------------------------
+    # ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type == "student":
+
+        # Student must be enrolled in this course
+        student_enrolled = Enrollment.objects.filter(
+            student=request.user,
+            course=course
+        ).exists()
+
+        if not student_enrolled:
+
+            return HttpResponse(
+                "You are not enrolled in this course.",
+                status=403
+            )
+
+        # The other participant must be the teacher of this course
+        if other_user.id != course.teacher_id:
+
+            return HttpResponse(
+                "You are not authorized to chat with this user.",
+                status=403
+            )
+
+    elif request.user.user_type == "teacher":
+
+        # Teacher must own this course
+        if course.teacher_id != request.user.id:
+
+            return HttpResponse(
+                "You are not authorized to access this course chat.",
+                status=403
+            )
+
+        # Teacher can only chat with a student enrolled in this course
+        student_enrolled = Enrollment.objects.filter(
+            student=other_user,
+            course=course
+        ).exists()
+
+        if not student_enrolled:
+
+            return HttpResponse(
+                "This student is not enrolled in this course.",
+                status=403
+            )
+
+    else:
+
+        return HttpResponse(
+            "You are not authorized to use chat.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # GET MESSAGES
+    # IMPORTANT: BOTH SIDES ARE FILTERED BY THE SAME COURSE
+    # ---------------------------------------------------------
+
+    messages = (
+        Message.objects
+        .filter(course=course)
+        .filter(
+            Q(
+                sender=request.user,
+                receiver=other_user
+            )
+            |
+            Q(
+                sender=other_user,
+                receiver=request.user
+            )
+        )
+        .order_by("created_at")
+    )
+
+    # ---------------------------------------------------------
+    # SEND MESSAGE
+    # ---------------------------------------------------------
+
     if request.method == "POST":
-        text = request.POST.get("text")
-        file = request.FILES.get("file")
+
+        text = request.POST.get(
+            "text",
+            ""
+        ).strip()
+
+        file = request.FILES.get(
+            "file"
+        )
 
         if text or file:
+
             Message.objects.create(
                 sender=request.user,
                 receiver=other_user,
@@ -3865,28 +3965,51 @@ def chat(request, user_id, course_id):
                 file=file
             )
 
-            # Notification
-            from .models import Notification
             Notification.objects.create(
                 user=other_user,
-                message=f"💬 New message from {request.user.username}"
+                message=(
+                    f"💬 New message from "
+                    f"{request.user.username}"
+                )
             )
 
-        return redirect(request.path)
-    
-    messages.filter(receiver=request.user).update(is_seen=True)
+        return redirect(
+            request.path
+        )
 
-    return render(request, "chat.html", {
-        "messages": messages,
-        "other_user": other_user,
-        "course": course
-    })
+    # ---------------------------------------------------------
+    # MARK RECEIVED MESSAGES AS SEEN
+    # ---------------------------------------------------------
+
+    messages.filter(
+        receiver=request.user
+    ).update(
+        is_seen=True
+    )
+
+    # ---------------------------------------------------------
+    # RENDER
+    # ---------------------------------------------------------
+
+    return render(
+        request,
+        "chat.html",
+        {
+            "messages": messages,
+            "other_user": other_user,
+            "course": course
+        }
+    )
 
 
 from django.http import JsonResponse
 
+@login_required
 def typing(request):
-    return JsonResponse({"status": "typing"})
+
+    return JsonResponse({
+        "status": "typing"
+    })
 
 
 def agora_video(request, class_id):

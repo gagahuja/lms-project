@@ -56,8 +56,6 @@ urlpatterns = [
     path('typing/', views.typing),
     path("live-class/<int:pk>/", views.live_class, name="live_class"),
     path('upload-recording/<int:class_id>/', views.upload_recording, name='upload_recording'),
-    path('send-message/<int:class_id>/', views.send_message),
-    path('get-messages/<int:class_id>/', views.get_messages),
     path('ai-help/', views.ai_help),
     path("upload/", views.upload_file),
     path('delete-recording/<int:recording_id>/',views.delete_recording,name='delete_recording'),
