@@ -36,4 +36,77 @@
 
 </div>
 
+<!-- =====================================================
+     PENDING COURSE REQUESTS
+     ===================================================== -->
+
+<div class="info-card">
+
+    <h3>
+        🔐 Pending Course Requests
+    </h3>
+
+    {% if pending_course_requests %}
+
+        {% for request in pending_course_requests %}
+
+            <div
+                style="
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                    gap:15px;
+                    padding:12px 0;
+                    border-bottom:1px solid #e2e8f0;
+                "
+            >
+
+                <div>
+
+                    <strong>
+                        {{ request.student.username }}
+                    </strong>
+
+                    <div
+                        style="
+                            font-size:13px;
+                            color:#64748b;
+                            margin-top:4px;
+                        "
+                    >
+                        {{ request.course.title }}
+                    </div>
+
+                </div>
+
+                <form
+                    method="POST"
+                    action="{% url 'approve_course_request' request.id %}"
+                >
+
+                    {% csrf_token %}
+
+                    <button
+                        type="submit"
+                        class="course-btn course-btn-success"
+                    >
+                        ✅ Approve
+                    </button>
+
+                </form>
+
+            </div>
+
+        {% endfor %}
+
+    {% else %}
+
+        <div class="empty-state">
+            No pending course requests.
+        </div>
+
+    {% endif %}
+
+</div>
+
 {% endblock %}

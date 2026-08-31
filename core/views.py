@@ -318,18 +318,63 @@ def teacher_analytics(request):
     
 
 
+@login_required
 def enroll(request, course_id):
-    if not request.user.is_authenticated:
-        return redirect('login')
 
-    course = Course.objects.get(id=course_id)
+    course = get_object_or_404(
+        Course,
+        id=course_id
+    )
 
-    Enrollment.objects.get_or_create(
+    # ---------------------------------------------------------
+    # ALREADY ENROLLED
+    # ---------------------------------------------------------
+
+    if Enrollment.objects.filter(
+        student=request.user,
+        course=course
+    ).exists():
+
+        return redirect("dashboard")
+
+    # ---------------------------------------------------------
+    # PRIVATE COURSE
+    # ---------------------------------------------------------
+
+    if course.is_private:
+
+        return redirect(
+            "request_course",
+            course_id=course.id
+        )
+
+    # ---------------------------------------------------------
+    # PAID COURSE
+    # ---------------------------------------------------------
+
+    if course.price > 0:
+
+        return redirect(
+            "buy_course",
+            course_id=course.id
+        )
+
+    # ---------------------------------------------------------
+    # FREE PUBLIC COURSE
+    # ---------------------------------------------------------
+
+    Enrollment.objects.create(
         student=request.user,
         course=course
     )
 
-    return redirect('dashboard')
+    logger.info(
+        "Free course enrollment created: user=%s course_id=%s",
+        request.user.username,
+        course.id,
+    )
+
+    return redirect("dashboard")
 
 
 from django.shortcuts import render
@@ -473,8 +518,12 @@ def create_live_class(request):
 import razorpay
 from django.conf import settings
 
+@login_required
 def buy_course(request, course_id):
-    course = Course.objects.get(id=course_id)
+    course = get_object_or_404(
+        Course,
+        id=course_id
+    )
 
     client = razorpay.Client(
         auth=(settings.RAZORPAY_KEY, settings.RAZORPAY_SECRET)
@@ -672,6 +721,52 @@ def course_detail(request, course_id):
         Course,
         id=course_id
     )
+
+    # ---------------------------------------------------------
+    # STUDENT ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type == "student":
+
+        is_enrolled = Enrollment.objects.filter(
+            student=request.user,
+            course=course
+        ).exists()
+
+        if not is_enrolled:
+
+            return HttpResponse(
+                "You are not enrolled in this course.",
+                status=403
+            )
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    elif request.user.user_type == "teacher":
+
+        if course.teacher_id != request.user.id:
+
+            return HttpResponse(
+                "You are not authorized to view this course.",
+                status=403
+            )
+
+    # ---------------------------------------------------------
+    # INVALID USER TYPE
+    # ---------------------------------------------------------
+
+    else:
+
+        return HttpResponse(
+            "You are not authorized to view this course.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # BUILD LEARNING CONTEXT
+    # ---------------------------------------------------------
 
     context = build_course_learning_context(
         request.user,
@@ -3317,38 +3412,181 @@ def all_courses(request):
     })
 
 
+@login_required
 def request_course(request, course_id):
-    course = Course.objects.get(id=course_id)
+
+    course = get_object_or_404(
+        Course,
+        id=course_id
+    )
+
+    # ---------------------------------------------------------
+    # ONLY STUDENTS CAN REQUEST A PRIVATE COURSE
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "student":
+
+        return HttpResponse(
+            "Only students can request course access.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # COURSE MUST ACTUALLY BE PRIVATE
+    # ---------------------------------------------------------
+
+    if not course.is_private:
+
+        return HttpResponse(
+            "This course does not require an access request.",
+            status=400
+        )
+
+    # ---------------------------------------------------------
+    # ALREADY ENROLLED
+    # ---------------------------------------------------------
+
+    if Enrollment.objects.filter(
+        student=request.user,
+        course=course
+    ).exists():
+
+        return redirect("dashboard")
+
+    # ---------------------------------------------------------
+    # CREATE REQUEST
+    # ---------------------------------------------------------
 
     CourseRequest.objects.get_or_create(
         student=request.user,
         course=course
     )
 
-    return HttpResponse("✅ Request sent to admin")
+    logger.info(
+        "Private course access requested: "
+        "user=%s course_id=%s",
+        request.user.username,
+        course.id,
+    )
+
+    return HttpResponse(
+        "✅ Request sent to admin"
+    )
 
 
 from django.contrib.admin.views.decorators import staff_member_required
 
 @staff_member_required
 def admin_dashboard(request):
-    from .models import User, Course, Enrollment
+
+    from .models import (
+        User,
+        Course,
+        Enrollment,
+        CourseRequest,
+    )
 
     total_users = User.objects.count()
+
     total_courses = Course.objects.count()
+
     total_enrollments = Enrollment.objects.count()
 
     # 💰 SIMPLE REVENUE CALCULATION
+
     total_revenue = sum([
-        e.course.price for e in Enrollment.objects.select_related('course')
+        e.course.price
+        for e in Enrollment.objects.select_related("course")
     ])
 
-    return render(request, 'admin_dashboard.html', {
-        'total_users': total_users,
-        'total_courses': total_courses,
-        'total_enrollments': total_enrollments,
-        'total_revenue': total_revenue
-    })
+    # ---------------------------------------------------------
+    # PENDING PRIVATE COURSE REQUESTS
+    # ---------------------------------------------------------
+
+    pending_course_requests = (
+        CourseRequest.objects
+        .filter(approved=False)
+        .select_related(
+            "student",
+            "course"
+        )
+        .order_by("-id")
+    )
+
+    return render(
+        request,
+        "admin_dashboard.html",
+        {
+            "total_users": total_users,
+            "total_courses": total_courses,
+            "total_enrollments": total_enrollments,
+            "total_revenue": total_revenue,
+            "pending_course_requests":
+                pending_course_requests,
+        }
+    )
+
+
+from django.views.decorators.http import require_POST
+
+
+@staff_member_required
+@require_POST
+def approve_course_request(request, request_id):
+
+    course_request = get_object_or_404(
+        CourseRequest,
+        id=request_id
+    )
+
+    # ---------------------------------------------------------
+    # ALREADY APPROVED
+    # ---------------------------------------------------------
+
+    if course_request.approved:
+
+        return redirect("admin_dashboard")
+
+    # ---------------------------------------------------------
+    # CREATE ENROLLMENT
+    # ---------------------------------------------------------
+
+    Enrollment.objects.get_or_create(
+        student=course_request.student,
+        course=course_request.course
+    )
+
+    # ---------------------------------------------------------
+    # MARK REQUEST APPROVED
+    # ---------------------------------------------------------
+
+    course_request.approved = True
+    course_request.save(
+        update_fields=["approved"]
+    )
+
+    # ---------------------------------------------------------
+    # NOTIFY STUDENT
+    # ---------------------------------------------------------
+
+    Notification.objects.create(
+        user=course_request.student,
+        message=(
+            f"✅ Your request for "
+            f"{course_request.course.title} "
+            f"has been approved."
+        )
+    )
+
+    logger.info(
+        "Private course request approved: "
+        "admin=%s student=%s course_id=%s",
+        request.user.username,
+        course_request.student.username,
+        course_request.course.id,
+    )
+
+    return redirect("admin_dashboard")
 
 
 def buy_subscription(request):
