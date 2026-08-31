@@ -216,6 +216,34 @@
         </div>
 
 
+                <!-- =================================================
+                    CHAT WITH TEACHER
+                    ================================================= -->
+
+                {% if request.user.user_type == "student" %}
+
+                <div style="margin-top: 15px; margin-bottom: 18px;">
+
+                    <a
+                        href="{% url 'chat' course.teacher.id course.id %}"
+                        class="btn"
+                        style="
+                            background: #ffffff;
+                            color: #4f46e5;
+                            border: 2px solid #ffffff;
+                            font-weight: 600;
+                            margin-top: 4px;
+                        ">
+
+                        💬 Chat with Teacher
+
+                    </a>
+
+                </div>
+
+                {% endif %}
+
+
         <!-- PROGRESS -->
 
         <div class="progress-container">
@@ -434,6 +462,20 @@
                     </a>
 
                 {% endif %}
+
+                <a
+                    href="{% url 'generate_ai_notes' lesson.id %}"
+                    class="btn btn-sm"
+                    style="
+                        background: #f3e8ff;
+                        color: #6b21a8;
+                        border: 1px solid #d8b4fe;
+                        margin-left: 6px;
+                    ">
+
+                    🤖 AI Notes
+
+                </a>
 
             </div>
 
