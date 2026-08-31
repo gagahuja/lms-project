@@ -1575,46 +1575,148 @@ def quiz_attempt_review(request, result_id):
     )
 
 
+@login_required
 def generate_ai_notes(request, lesson_id):
+
     from django.http import HttpResponse
     from django.conf import settings
     from openai import OpenAI
 
-    if not has_subscription(request.user):
-        return HttpResponse("🔒 Upgrade to access AI Notes")
+    # ---------------------------------------------------------
+    # GET LESSON + COURSE
+    # ---------------------------------------------------------
 
-    lesson = Lesson.objects.get(id=lesson_id)
+    lesson = get_object_or_404(
+        Lesson.objects.select_related(
+            "module__course"
+        ),
+        id=lesson_id
+    )
+
+    course = lesson.module.course
+
+    # ---------------------------------------------------------
+    # ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    # STUDENT
+    if request.user.user_type == "student":
+
+        is_enrolled = Enrollment.objects.filter(
+            student=request.user,
+            course=course
+        ).exists()
+
+        if not is_enrolled:
+
+            return HttpResponse(
+                "🔒 You are not enrolled in this course.",
+                status=403
+            )
+
+        if not has_subscription(request.user):
+
+            return HttpResponse(
+                "🔒 Upgrade to access AI Notes",
+                status=403
+            )
+
+    # TEACHER
+    elif request.user.user_type == "teacher":
+
+        if course.teacher_id != request.user.id:
+
+            return HttpResponse(
+                "❌ You are not authorized to generate AI Notes for this course.",
+                status=403
+            )
+
+    # OTHER USER TYPES
+    else:
+
+        return HttpResponse(
+            "❌ You are not authorized to access AI Notes.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # GENERATE NOTES
+    # ---------------------------------------------------------
+
     notes = ""
 
     if request.method == "POST":
-        topic = request.POST.get("topic")
+
+        topic = request.POST.get(
+            "topic",
+            ""
+        ).strip()
+
+        if not topic:
+
+            return HttpResponse(
+                "❌ Please enter a topic."
+            )
 
         try:
-            client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+            client = OpenAI(
+                api_key=settings.OPENAI_API_KEY
+            )
 
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=[{
-                    "role": "user",
-                    "content": f"Explain {topic} simply"
-                }]
+                messages=[
+                    {
+                        "role": "user",
+                        "content": f"Explain {topic} simply"
+                    }
+                ]
             )
 
-            notes = response.choices[0].message.content
+            notes = (
+                response
+                .choices[0]
+                .message
+                .content
+            )
 
-            # SAVE
+            # SAVE NOTES
             lesson.ai_notes = notes
-            lesson.save()
+
+            lesson.save(
+                update_fields=["ai_notes"]
+            )
 
         except Exception as e:
-            return HttpResponse(f"ERROR: {str(e)}")
 
-    return render(request, "ai_notes.html", {
-        "lesson": lesson,
-        "notes": notes
-    })
+            logger.exception(
+                "AI Notes generation failed: "
+                "user=%s lesson_id=%s",
+                request.user.username,
+                lesson.id,
+            )
+
+            return HttpResponse(
+                "❌ Unable to generate AI Notes right now.",
+                status=500
+            )
+
+    # ---------------------------------------------------------
+    # RENDER
+    # ---------------------------------------------------------
+
+    return render(
+        request,
+        "ai_notes.html",
+        {
+            "lesson": lesson,
+            "notes": notes
+        }
+    )
 
 
+@login_required
 def generate_ai_quiz(request, course_id):
 
     from django.http import HttpResponse
@@ -1628,28 +1730,54 @@ def generate_ai_quiz(request, course_id):
     # ACCESS CONTROL
     # =========================================================
 
-    # TEACHER:
-    # A teacher can generate AI quizzes for their own course.
+    # ---------------------------------------------------------
+    # TEACHER
+    # ---------------------------------------------------------
+
     if request.user.user_type == "teacher":
 
         if course.teacher_id != request.user.id:
+
             return HttpResponse(
-                "❌ You do not have permission to generate an AI Quiz for this course."
+                "❌ You do not have permission to generate an AI Quiz for this course.",
+                status=403
             )
 
-    # STUDENT:
-    # Student must be enrolled and subscribed.
-    else:
+    # ---------------------------------------------------------
+    # STUDENT
+    # ---------------------------------------------------------
 
-        if not is_enrolled(request.user):
+    elif request.user.user_type == "student":
+
+        is_enrolled = Enrollment.objects.filter(
+            student=request.user,
+            course=course
+        ).exists()
+
+        if not is_enrolled:
+
             return HttpResponse(
-                "🔒 Buy a course to access AI Quiz"
+                "🔒 You are not enrolled in this course.",
+                status=403
             )
 
         if not has_subscription(request.user):
+
             return HttpResponse(
-                "🔒 Subscription required for AI Quiz"
+                "🔒 Subscription required for AI Quiz.",
+                status=403
             )
+
+    # ---------------------------------------------------------
+    # OTHER USER TYPES
+    # ---------------------------------------------------------
+
+    else:
+
+        return HttpResponse(
+            "❌ You are not authorized to generate an AI Quiz.",
+            status=403
+        )
 
     # =========================================================
     # MATHEMATICAL SYMBOL NORMALIZATION
