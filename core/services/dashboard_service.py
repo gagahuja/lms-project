@@ -17,6 +17,7 @@ from core.models import (
     QuizResult,
     StudentProfile,
     User,
+    Doubt,
 )
 
 from core.services.streak_service import update_streak
@@ -35,6 +36,28 @@ def build_teacher_dashboard(user):
             "modules__lessons__assignments",
         )
     )
+
+    # =========================================================
+    # STUDENT DOUBTS
+    # =========================================================
+
+    teacher_doubts = (
+        Doubt.objects
+        .filter(course__teacher=user)
+        .select_related(
+            "student",
+            "course"
+        )
+        .order_by("-created_at")
+    )
+
+    pending_doubts = teacher_doubts.filter(
+        answered_at__isnull=True
+    ).count()
+
+    answered_doubts = teacher_doubts.filter(
+        answered_at__isnull=False
+    ).count()
 
     students = (
         User.objects.filter(
@@ -165,6 +188,10 @@ def build_teacher_dashboard(user):
         "attendance_percentage": attendance_percentage,
 
         "total_revenue": total_revenue,
+
+        "pending_doubts": pending_doubts,
+
+        "answered_doubts": answered_doubts,
 
     }
 

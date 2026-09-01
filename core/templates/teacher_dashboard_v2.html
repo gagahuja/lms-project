@@ -61,6 +61,79 @@
 
     </div>
 
+    <!-- =====================================================
+         STUDENT DOUBTS
+         ===================================================== -->
+
+    <div class="row mt-4">
+
+        <div class="col-12">
+
+            <div class="card shadow-sm border-0">
+
+                <div class="card-body">
+
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+                        <div>
+
+                            <h5 class="mb-1">
+                                ❓ Student Doubts
+                            </h5>
+
+                            {% if pending_doubts > 0 %}
+
+                                <p class="text-muted mb-0">
+                                    {{ pending_doubts }}
+                                    question{{ pending_doubts|pluralize }}
+                                    waiting for your response.
+                                </p>
+
+                            {% else %}
+
+                                <p class="text-success mb-0">
+                                    ✅ No pending student doubts.
+                                </p>
+
+                            {% endif %}
+
+                        </div>
+
+
+                        <div class="text-end">
+
+                            <div class="mb-2">
+
+                                <span class="badge bg-warning text-dark me-1">
+                                    ⏳ Pending: {{ pending_doubts }}
+                                </span>
+
+                                <span class="badge bg-success">
+                                    ✅ Answered: {{ answered_doubts }}
+                                </span>
+
+                            </div>
+
+
+                            <a
+                                href="{% url 'teacher_doubts' %}"
+                                class="btn btn-primary btn-sm"
+                            >
+                                ❓ View Student Doubts
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
     <div class="row mt-4">
 
         <div class="col-lg-8">

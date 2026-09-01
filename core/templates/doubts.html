@@ -1,20 +1,92 @@
 {% extends 'base.html' %}
 {% block content %}
 
+{% if messages %}
+
+    {% for message in messages %}
+
+        <div
+            class="alert alert-{{ message.tags }}"
+            role="alert"
+        >
+            {{ message }}
+        </div>
+
+    {% endfor %}
+
+{% endif %}
+
 <h3>❓ Ask Doubt</h3>
 
-<form method="POST">
+<form
+    method="POST"
+    enctype="multipart/form-data"
+>
     {% csrf_token %}
 
-    <select name="course" class="form-control mb-2">
+    <select
+        name="course"
+        class="form-control mb-2"
+        required
+    >
+
+        <option value="">
+            Select course
+        </option>
+
         {% for c in courses %}
-        <option value="{{ c.id }}">{{ c.title }}</option>
+
+        <option value="{{ c.id }}">
+            {{ c.title }}
+        </option>
+
         {% endfor %}
+
     </select>
 
-    <textarea name="question" class="form-control mb-2" placeholder="Ask your doubt..."></textarea>
 
-    <button class="btn btn-primary">Submit</button>
+    <textarea
+        name="question"
+        class="form-control mb-2"
+        rows="4"
+        placeholder="Type your doubt here..."
+    ></textarea>
+
+
+    <div class="mb-3">
+
+        <label
+            for="doubt-image"
+            class="form-label"
+        >
+            🖼️ Or upload an image of your question
+        </label>
+
+        <input
+            type="file"
+            id="doubt-image"
+            name="image"
+            class="form-control"
+            accept="image/*"
+        >
+
+        <div
+            class="form-text"
+        >
+            You can upload a photo, screenshot,
+            handwritten question, diagram, or equation.
+        </div>
+
+    </div>
+
+
+    <button
+        type="submit"
+        class="btn btn-primary"
+    >
+        Submit Doubt
+    </button>
+
 </form>
 
 <hr>
@@ -23,12 +95,81 @@
 
 {% for d in doubts %}
 <div class="card p-2 mb-2">
-    <strong>Q:</strong> {{ d.question }}<br>
+    <strong>Q:</strong>
 
-    {% if d.answer %}
-        <strong>A:</strong> {{ d.answer }}
+    {% if d.question %}
+        <div class="mt-1">
+            {{ d.question }}
+        </div>
+    {% endif %}
+
+
+    {% if d.image %}
+
+        <div class="mt-2">
+
+            <img
+                src="{{ d.image.url }}"
+                alt="Student question"
+                style="
+                    max-width: 100%;
+                    max-height: 420px;
+                    border-radius: 10px;
+                    border: 1px solid #e2e8f0;
+                    display: block;
+                "
+            >
+
+        </div>
+
+    {% endif %}
+
+
+    {% if d.answer or d.answer_image %}
+
+        <div class="mt-3">
+
+            <strong class="text-success">
+                ✅ Teacher Solution
+            </strong>
+
+            {% if d.answer %}
+
+                <div class="mt-2">
+                    {{ d.answer }}
+                </div>
+
+            {% endif %}
+
+
+            {% if d.answer_image %}
+
+                <div class="mt-3">
+
+                    <img
+                        src="{{ d.answer_image.url }}"
+                        alt="Teacher solution"
+                        style="
+                            max-width: 100%;
+                            max-height: 500px;
+                            border-radius: 10px;
+                            border: 1px solid #e2e8f0;
+                            display: block;
+                        "
+                    >
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
     {% else %}
-        <span class="text-warning">Waiting for teacher reply</span>
+
+        <span class="text-warning">
+            ⏳ Waiting for teacher reply
+        </span>
+
     {% endif %}
 </div>
 {% endfor %}

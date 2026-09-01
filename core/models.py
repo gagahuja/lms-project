@@ -283,11 +283,47 @@ class Notification(models.Model):
     
 
 class Doubt(models.Model):
-    student = models.ForeignKey(User, on_delete=models.CASCADE)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    question = models.TextField()
-    answer = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
+
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE
+    )
+
+    question = models.TextField(
+        blank=True
+    )
+
+    image = models.ImageField(
+        upload_to="doubts/",
+        blank=True,
+        null=True
+    )
+
+    answer = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    answer_image = models.ImageField(
+        upload_to="doubt_answers/",
+        blank=True,
+        null=True
+    )
+
+    answered_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+    
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
 
 
 class Message(models.Model):

@@ -3816,23 +3816,432 @@ def mark_notification_read(request, id):
     return redirect("notifications")
 
 
+@login_required
 def doubts(request):
-    doubts = Doubt.objects.filter(student=request.user)
+
+    # ---------------------------------------------------------
+    # STUDENT DOUBTS
+    # ---------------------------------------------------------
+
+    doubts = (
+        Doubt.objects
+        .filter(student=request.user)
+        .select_related("course")
+        .order_by("-created_at")
+    )
+
+    # ---------------------------------------------------------
+    # ACCESSIBLE COURSES
+    # ---------------------------------------------------------
+
+    if request.user.user_type == "student":
+
+        enrolled_courses = (
+            Course.objects
+            .filter(
+                enrollment__student=request.user
+            )
+            .distinct()
+        )
+
+    elif request.user.user_type == "teacher":
+
+        enrolled_courses = Course.objects.filter(
+            teacher=request.user
+        )
+
+    else:
+
+        return HttpResponse(
+            "You are not authorized to use Doubts.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # CREATE DOUBT
+    # ---------------------------------------------------------
 
     if request.method == "POST":
-        question = request.POST.get("question")
-        course_id = request.POST.get("course")
+
+        question = request.POST.get(
+            "question",
+            ""
+        ).strip()
+
+        course_id = request.POST.get(
+            "course"
+        )
+
+        image = request.FILES.get(
+            "image"
+        )
+
+        # -----------------------------------------------------
+        # IMAGE VALIDATION
+        # -----------------------------------------------------
+
+        if image:
+
+            allowed_image_types = {
+                "image/jpeg",
+                "image/png",
+                "image/webp",
+                "image/gif",
+            }
+
+            if image.content_type not in allowed_image_types:
+
+                messages.error(
+                    request,
+                    "Please upload a JPG, PNG, WEBP or GIF image."
+                )
+
+                return redirect("doubts")
+
+            MAX_IMAGE_SIZE = 10 * 1024 * 1024
+
+            if image.size > MAX_IMAGE_SIZE:
+
+                messages.error(
+                    request,
+                    "Maximum image size is 10 MB."
+                )
+
+                return redirect("doubts")
+
+        # -----------------------------------------------------
+        # COURSE REQUIRED
+        # -----------------------------------------------------
+
+        if not course_id:
+
+            messages.error(
+                request,
+                "Please select a course."
+            )
+
+            return redirect("doubts")
+
+        # -----------------------------------------------------
+        # VERIFY COURSE ACCESS
+        # -----------------------------------------------------
+
+        course = enrolled_courses.filter(
+            id=course_id
+        ).first()
+
+        if not course:
+
+            return HttpResponse(
+                "You are not authorized to post a doubt for this course.",
+                status=403
+            )
+
+        # -----------------------------------------------------
+        # QUESTION OR IMAGE REQUIRED
+        # -----------------------------------------------------
+
+        if not question and not image:
+
+            messages.error(
+                request,
+                "Please enter a question or upload an image."
+            )
+
+            return redirect("doubts")
+
+        # -----------------------------------------------------
+        # CREATE DOUBT
+        # -----------------------------------------------------
 
         Doubt.objects.create(
             student=request.user,
-            course_id=course_id,
-            question=question
+            course=course,
+            question=question,
+            image=image
         )
 
-    return render(request, "doubts.html", {
-        "doubts": doubts,
-        "courses": Course.objects.all()
-    })
+        logger.info(
+            "Doubt created: user=%s course_id=%s image=%s",
+            request.user.username,
+            course.id,
+            bool(image),
+        )
+
+        return redirect("doubts")
+
+    # ---------------------------------------------------------
+    # RENDER
+    # ---------------------------------------------------------
+
+    return render(
+        request,
+        "doubts.html",
+        {
+            "doubts": doubts,
+            "courses": enrolled_courses,
+        }
+    )
+
+
+@login_required
+def teacher_doubts(request):
+
+    # ---------------------------------------------------------
+    # ONLY TEACHERS CAN ACCESS THIS PAGE
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can view student doubts.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # GET TEACHER'S COURSES
+    # ---------------------------------------------------------
+
+    teacher_courses = Course.objects.filter(
+        teacher=request.user
+    )
+
+    # ---------------------------------------------------------
+    # GET DOUBTS FROM THOSE COURSES
+    # ---------------------------------------------------------
+
+    doubts = (
+        Doubt.objects
+        .filter(
+            course__in=teacher_courses
+        )
+        .select_related(
+            "student",
+            "course"
+        )
+        .order_by("-created_at")
+    )
+
+    # ---------------------------------------------------------
+    # COUNTS
+    # ---------------------------------------------------------
+
+    pending_count = doubts.filter(
+        answered_at__isnull=True
+    ).count()
+
+    answered_count = doubts.filter(
+        answered_at__isnull=False
+    ).count()
+
+    # ---------------------------------------------------------
+    # RENDER
+    # ---------------------------------------------------------
+
+    return render(
+        request,
+        "teacher_doubts.html",
+        {
+            "doubts": doubts,
+            "pending_count": pending_count,
+            "answered_count": answered_count,
+        }
+    )
+
+
+
+@login_required
+@require_POST
+def answer_doubt(request, doubt_id):
+
+    # ---------------------------------------------------------
+    # ONLY TEACHERS CAN ANSWER DOUBTS
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can answer student doubts.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # GET DOUBT
+    # ---------------------------------------------------------
+
+    doubt = get_object_or_404(
+        Doubt.objects.select_related(
+            "student",
+            "course"
+        ),
+        id=doubt_id
+    )
+
+    # ---------------------------------------------------------
+    # TEACHER MUST OWN THE COURSE
+    # ---------------------------------------------------------
+
+    if doubt.course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to answer this doubt.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # GET ANSWER
+    # ---------------------------------------------------------
+
+    answer = request.POST.get(
+        "answer",
+        ""
+    ).strip()
+
+    answer_image = request.FILES.get(
+        "answer_image"
+    )
+
+    # ---------------------------------------------------------
+    # SOLUTION REQUIRED
+    # ---------------------------------------------------------
+
+    if not answer and not answer_image:
+
+        messages.error(
+            request,
+            "Please write a solution or upload a solution image."
+        )
+
+        return redirect(
+            "answer_doubt_page",
+            doubt_id=doubt.id
+        )
+
+    # ---------------------------------------------------------
+    # SOLUTION IMAGE VALIDATION
+    # ---------------------------------------------------------
+
+    if answer_image:
+
+        allowed_image_types = {
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "image/gif",
+        }
+
+        if answer_image.content_type not in allowed_image_types:
+
+            messages.error(
+                request,
+                "Please upload a JPG, PNG, WEBP or GIF image."
+            )
+
+            return redirect(
+                "answer_doubt_page",
+                doubt_id=doubt.id
+            )
+
+        MAX_IMAGE_SIZE = 10 * 1024 * 1024
+
+        if answer_image.size > MAX_IMAGE_SIZE:
+
+            messages.error(
+                request,
+                "Maximum solution image size is 10 MB."
+            )
+
+            return redirect(
+                "answer_doubt_page",
+                doubt_id=doubt.id
+            )
+
+    # ---------------------------------------------------------
+    # SAVE SOLUTION
+    # ---------------------------------------------------------
+
+    doubt.answer = answer
+    doubt.answer_image = answer_image
+    doubt.answered_at = timezone.now()
+
+    doubt.save(
+        update_fields=[
+            "answer",
+            "answer_image",
+            "answered_at"
+        ]
+    )
+
+    # ---------------------------------------------------------
+    # NOTIFY STUDENT
+    # ---------------------------------------------------------
+
+    Notification.objects.create(
+        user=doubt.student,
+        message=(
+            f"✅ Your doubt in "
+            f"{doubt.course.title} has been answered."
+        )
+    )
+
+    logger.info(
+        "Doubt answered: teacher=%s doubt_id=%s student=%s course_id=%s",
+        request.user.username,
+        doubt.id,
+        doubt.student.username,
+        doubt.course.id,
+    )
+
+    return redirect(
+        "teacher_doubts"
+    )
+
+
+@login_required
+def answer_doubt_page(request, doubt_id):
+
+    # ---------------------------------------------------------
+    # ONLY TEACHERS
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can answer student doubts.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # GET DOUBT
+    # ---------------------------------------------------------
+
+    doubt = get_object_or_404(
+        Doubt.objects.select_related(
+            "student",
+            "course"
+        ),
+        id=doubt_id
+    )
+
+    # ---------------------------------------------------------
+    # TEACHER OWNERSHIP
+    # ---------------------------------------------------------
+
+    if doubt.course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to answer this doubt.",
+            status=403
+        )
+
+    return render(
+        request,
+        "answer_doubt.html",
+        {
+            "doubt": doubt
+        }
+    )
+
 
 
 from django.db.models import Q
@@ -4077,33 +4486,9 @@ def upload_recording(request, class_id):
     )
 
 
-from django.http import JsonResponse
+
 from .models import Message
 
-def send_message(request, class_id):
-    if request.method == "POST":
-        text = request.POST.get("text")
-
-        Message.objects.create(
-            sender=request.user,
-            live_class_id=class_id,
-            text=text
-        )
-
-        return JsonResponse({"status": "sent"})
-    
-
-def get_messages(request, class_id):
-    messages = Message.objects.filter(
-        live_class_id=class_id
-    ).order_by("timestamp")
-
-    data = [
-        {"user": m.sender.username, "text": m.text}
-        for m in messages
-    ]
-
-    return JsonResponse({"messages": data})
 
 
 import json

@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container py-4">
+
+    <!-- =====================================================
+         PAGE HEADER
+         ===================================================== -->
+
+    <div class="mb-4">
+
+        <h2 class="mb-1">
+            ✍️ Answer Student Doubt
+        </h2>
+
+        <p class="text-muted mb-0">
+            Provide a clear solution for the student's question.
+        </p>
+
+    </div>
+
+
+    <!-- =====================================================
+         STUDENT / COURSE INFORMATION
+         ===================================================== -->
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-body">
+
+            <div class="row g-3">
+
+                <div class="col-md-6">
+
+                    <div class="text-muted small">
+                        Student
+                    </div>
+
+                    <strong>
+                        {{ doubt.student.username }}
+                    </strong>
+
+                </div>
+
+
+                <div class="col-md-6">
+
+                    <div class="text-muted small">
+                        Course
+                    </div>
+
+                    <strong>
+                        📚 {{ doubt.course.title }}
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         STUDENT QUESTION
+         ===================================================== -->
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-body">
+
+            <h5 class="mb-3">
+                ❓ Student Question
+            </h5>
+
+            {% if doubt.question %}
+
+                <div class="mb-3">
+                    {{ doubt.question }}
+                </div>
+
+            {% endif %}
+
+
+            {% if doubt.image %}
+
+                <div class="mt-3">
+
+                    <img
+                        src="{{ doubt.image.url }}"
+                        alt="Student question"
+                        style="
+                            max-width: 100%;
+                            max-height: 550px;
+                            border-radius: 12px;
+                            border: 1px solid #e2e8f0;
+                            display: block;
+                        "
+                    >
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         SOLUTION FORM
+         ===================================================== -->
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-body">
+
+            <h5 class="mb-3">
+                ✅ Your Solution
+            </h5>
+
+            {% if messages %}
+
+                {% for message in messages %}
+
+                    <div
+                        class="alert alert-{{ message.tags }}"
+                        role="alert"
+                    >
+                        {{ message }}
+                    </div>
+
+                {% endfor %}
+
+            {% endif %}
+
+            <form
+                method="POST"
+                action="{% url 'answer_doubt' doubt.id %}"
+                enctype="multipart/form-data"
+            >
+
+                {% csrf_token %}
+
+                <textarea
+                    name="answer"
+                    class="form-control"
+                    rows="8"
+                    placeholder="Write the solution here..."
+                >{% if doubt.answer %}{{ doubt.answer }}{% endif %}</textarea>
+
+                <div class="mt-3">
+
+                    <label
+                        for="answer-image"
+                        class="form-label"
+                    >
+                        🖼️ Upload Solution Image
+                    </label>
+
+                    <input
+                        type="file"
+                        id="answer-image"
+                        name="answer_image"
+                        class="form-control"
+                        accept="image/*"
+                    >
+
+                    <div class="form-text">
+                        Upload a handwritten solution, diagram,
+                        worked steps, or solved equation.
+                    </div>
+
+                </div>
+
+                <div class="mt-3">
+
+                    <button
+                        type="submit"
+                        class="btn btn-success"
+                    >
+                        ✅ Submit Solution
+                    </button>
+
+                    <a
+                        href="{% url 'teacher_doubts' %}"
+                        class="btn btn-outline-secondary ms-2"
+                    >
+                        ← Back to Doubts
+                    </a>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

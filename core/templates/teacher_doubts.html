@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container py-4">
+
+    <!-- =====================================================
+         PAGE HEADER
+         ===================================================== -->
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <div>
+
+            <h2 class="mb-1">
+                ❓ Student Doubts
+            </h2>
+
+            <p class="text-muted mb-0">
+                Review questions from students in your courses.
+            </p>
+
+        </div>
+
+        <a
+            href="{% url 'dashboard' %}"
+            class="btn btn-outline-secondary"
+        >
+            ← Teacher Dashboard
+        </a>
+
+    </div>
+
+
+    <!-- =====================================================
+         SUMMARY
+         ===================================================== -->
+
+    <div class="row g-3 mb-4">
+
+        <div class="col-md-6">
+
+            <div class="card shadow-sm p-3 text-center">
+
+                <h3 class="mb-1 text-warning">
+                    {{ pending_count }}
+                </h3>
+
+                <p class="mb-0">
+                    Pending Doubts
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-6">
+
+            <div class="card shadow-sm p-3 text-center">
+
+                <h3 class="mb-1 text-success">
+                    {{ answered_count }}
+                </h3>
+
+                <p class="mb-0">
+                    Answered Doubts
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         DOUBT LIST
+         ===================================================== -->
+
+    {% for doubt in doubts %}
+
+    <div class="card shadow-sm mb-3">
+
+        <div class="card-body">
+
+            <!-- STUDENT + COURSE -->
+
+            <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+
+                <div>
+
+                    <h5 class="mb-1">
+                        {{ doubt.student.username }}
+                    </h5>
+
+                    <div class="text-muted small">
+                        📚 {{ doubt.course.title }}
+                    </div>
+
+                </div>
+
+
+                {% if doubt.answered_at %}
+
+                    <span class="badge bg-success">
+                        ✅ Answered
+                    </span>
+
+                {% else %}
+
+                    <span class="badge bg-warning text-dark">
+                        ⏳ Pending
+                    </span>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- QUESTION -->
+
+            <div class="mb-3">
+
+                <strong>
+                    ❓ Question
+                </strong>
+
+                {% if doubt.question %}
+
+                    <p class="mt-2 mb-2">
+                        {{ doubt.question }}
+                    </p>
+
+                {% endif %}
+
+
+                {% if doubt.image %}
+
+                    <div class="mt-2">
+
+                        <img
+                            src="{{ doubt.image.url }}"
+                            alt="Student doubt"
+                            style="
+                                max-width: 100%;
+                                max-height: 400px;
+                                border-radius: 10px;
+                                border: 1px solid #e2e8f0;
+                                display: block;
+                            "
+                        >
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- EXISTING ANSWER -->
+
+            {% if doubt.answer %}
+
+                <div class="alert alert-success">
+
+                    <strong>
+                        ✅ Your Solution
+                    </strong>
+
+                    <div class="mt-2">
+                        {{ doubt.answer }}
+                    </div>
+
+                </div>
+
+                {% if doubt.answered_at %}
+
+                    <div class="text-muted small mb-3">
+
+                        Answered:
+                        {{ doubt.answered_at|date:"d M Y, h:i A" }}
+
+                    </div>
+
+                {% endif %}
+
+            {% endif %}
+
+
+            <!-- ACTION -->
+
+            <a
+                href="{% url 'answer_doubt_page' doubt.id %}"
+                class="btn btn-primary btn-sm"
+            >
+
+                {% if doubt.answer %}
+                    ✏️ Edit Solution
+                {% else %}
+                    ✍️ Answer Doubt
+                {% endif %}
+
+            </a>
+
+        </div>
+
+    </div>
+
+    {% empty %}
+
+    <div class="card shadow-sm">
+
+        <div class="card-body text-center py-5">
+
+            <div style="font-size: 40px;">
+                ✅
+            </div>
+
+            <h4 class="mt-3">
+                No Student Doubts
+            </h4>
+
+            <p class="text-muted mb-0">
+                There are currently no doubts from students
+                in your courses.
+            </p>
+
+        </div>
+
+    </div>
+
+    {% endfor %}
+
+</div>
+
+{% endblock %}
