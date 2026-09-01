@@ -67,6 +67,31 @@ def build_teacher_dashboard(user):
         .distinct()
     )
 
+    # =========================================================
+    # CHAT STUDENTS
+    # =========================================================
+
+    chat_students = []
+
+    for course in courses:
+
+        course_students = (
+            User.objects
+            .filter(
+                enrollment__course=course,
+                user_type="student",
+            )
+            .distinct()
+            .order_by("username")
+        )
+
+        for student in course_students:
+
+            chat_students.append({
+                "course": course,
+                "student": student,
+            })
+
     assignments = Assignment.objects.filter(
         lesson__module__course__in=courses
     )
@@ -158,6 +183,8 @@ def build_teacher_dashboard(user):
         "courses": courses,
 
         "students": students,
+
+        "chat_students": chat_students,
 
         "assignments": assignments,
 
