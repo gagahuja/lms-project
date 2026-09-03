@@ -6,9 +6,11 @@
 
 <!-- 🔒 SECURE VIEW -->
 <div style="user-select: none;">
-    <iframe src="{{ handout.file.url }}"
-            width="100%" height="500px"
-            style="border-radius:10px;">
+    <iframe
+        src="{% url 'serve_handout' handout.id %}"
+        width="100%"
+        height="500px"
+        style="border-radius:10px;">
     </iframe>
 </div>
 

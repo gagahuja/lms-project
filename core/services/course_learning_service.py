@@ -285,6 +285,14 @@ def get_lesson_learning_context(user, lesson_id):
         course=course
     ).exists()
 
+    if not is_enrolled:
+        return {
+            "lesson": lesson,
+            "course": course,
+            "module": lesson.module,
+            "is_enrolled": False,
+        }
+
     # =========================================================
     # COMPLETION STATUS
     # =========================================================

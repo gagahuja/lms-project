@@ -14,17 +14,51 @@
             <p>₹ {{ course.price }}</p>
 
             {% if course in enrolled_courses %}
-                <button class="btn btn-success">Enrolled ✅</button>
+
+                <button class="btn btn-success">
+                    Enrolled ✅
+                </button>
+
 
             {% elif course.is_private %}
-                <a href="/request-course/{{ course.id }}/" class="btn btn-warning">
+
+                <a
+                    href="{% url 'request_course' course.id %}"
+                    class="btn btn-warning"
+                >
                     Request Access 🔒
                 </a>
 
-            {% else %}
-                <a href="/buy-course/{{ course.id }}/" class="btn btn-primary">
+
+            {% elif course.price > 0 %}
+
+                <a
+                    href="{% url 'buy_course' course.id %}"
+                    class="btn btn-primary"
+                >
                     Buy Now 💰
                 </a>
+
+
+            {% else %}
+
+                <form
+                    method="POST"
+                    action="{% url 'enroll' course.id %}"
+                    style="display: inline;"
+                >
+
+                    {% csrf_token %}
+
+                    <button
+                        type="submit"
+                        class="btn btn-success"
+                    >
+                        Enroll Free ✅
+                    </button>
+
+                </form>
+
             {% endif %}
 
         </div>

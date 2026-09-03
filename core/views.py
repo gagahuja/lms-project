@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
-from django.http import HttpResponse
+from django.http import (HttpResponse, FileResponse,)
 from django.contrib.auth import authenticate, login, logout
+from django.views.decorators.http import require_POST
 from .models import User
 from .models import Course
 from .models import Enrollment
@@ -319,23 +320,13 @@ def teacher_analytics(request):
 
 
 @login_required
+@require_POST
 def enroll(request, course_id):
 
     course = get_object_or_404(
         Course,
         id=course_id
     )
-
-    # ---------------------------------------------------------
-    # ALREADY ENROLLED
-    # ---------------------------------------------------------
-
-    if Enrollment.objects.filter(
-        student=request.user,
-        course=course
-    ).exists():
-
-        return redirect("dashboard")
 
     # ---------------------------------------------------------
     # PRIVATE COURSE
@@ -363,15 +354,9 @@ def enroll(request, course_id):
     # FREE PUBLIC COURSE
     # ---------------------------------------------------------
 
-    Enrollment.objects.create(
+    Enrollment.objects.get_or_create(
         student=request.user,
         course=course
-    )
-
-    logger.info(
-        "Free course enrollment created: user=%s course_id=%s",
-        request.user.username,
-        course.id,
     )
 
     return redirect("dashboard")
@@ -681,6 +666,29 @@ def payment_success(request, course_id):
         messages.error(
             request,
             "Payment user verification failed."
+        )
+
+        return redirect("dashboard")
+
+
+    payment = client.payment.fetch(
+        razorpay_payment_id
+    )
+
+    if payment.get("order_id") != razorpay_order_id:
+
+        messages.error(
+            request,
+            "Payment order verification failed."
+        )
+
+        return redirect("dashboard")
+
+    if payment.get("status") != "captured":
+
+        messages.error(
+            request,
+            "Payment has not been captured."
         )
 
         return redirect("dashboard")
@@ -2167,6 +2175,7 @@ GENERAL RULES:
 from django.shortcuts import redirect
 
 @login_required
+@require_POST
 def mark_complete(request, lesson_id):
 
     from .models import Lesson, Progress, Enrollment
@@ -2758,12 +2767,158 @@ def check_submissions(request, assignment_id):
     )
 
 
+@login_required
 def view_handout(request, handout_id):
-    handout = Handout.objects.get(id=handout_id)
 
-    return render(request, 'view_handout.html', {
-        'handout': handout
-    })
+    handout = get_object_or_404(
+        Handout.objects.select_related(
+            "lesson__module__course"
+        ),
+        id=handout_id
+    )
+
+    course = handout.lesson.module.course
+
+    # ---------------------------------------------------------
+    # STUDENT ACCESS
+    # ---------------------------------------------------------
+
+    if request.user.user_type == "student":
+
+        is_enrolled = Enrollment.objects.filter(
+            student=request.user,
+            course=course
+        ).exists()
+
+        if not is_enrolled:
+
+            return HttpResponse(
+                "You are not enrolled in this course.",
+                status=403
+            )
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS
+    # ---------------------------------------------------------
+
+    elif request.user.user_type == "teacher":
+
+        if course.teacher_id != request.user.id:
+
+            return HttpResponse(
+                "You are not authorized to view this handout.",
+                status=403
+            )
+
+    # ---------------------------------------------------------
+    # OTHER USER TYPES
+    # ---------------------------------------------------------
+
+    else:
+
+        return HttpResponse(
+            "You are not authorized to view this handout.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # DISPLAY HANDOUT
+    # ---------------------------------------------------------
+
+    return render(
+        request,
+        "view_handout.html",
+        {
+            "handout": handout,
+        }
+    )
+
+
+@login_required
+def serve_handout(request, handout_id):
+
+    handout = get_object_or_404(
+        Handout.objects.select_related(
+            "lesson__module__course"
+        ),
+        id=handout_id
+    )
+
+    course = handout.lesson.module.course
+
+    # ---------------------------------------------------------
+    # STUDENT ACCESS
+    # ---------------------------------------------------------
+
+    if request.user.user_type == "student":
+
+        is_enrolled = Enrollment.objects.filter(
+            student=request.user,
+            course=course
+        ).exists()
+
+        if not is_enrolled:
+
+            return HttpResponse(
+                "You are not enrolled in this course.",
+                status=403
+            )
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS
+    # ---------------------------------------------------------
+
+    elif request.user.user_type == "teacher":
+
+        if course.teacher_id != request.user.id:
+
+            return HttpResponse(
+                "You are not authorized to view this handout.",
+                status=403
+            )
+
+    # ---------------------------------------------------------
+    # OTHER USERS
+    # ---------------------------------------------------------
+
+    else:
+
+        return HttpResponse(
+            "You are not authorized to view this handout.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # SERVE FILE
+    # ---------------------------------------------------------
+
+    if not handout.file:
+
+        return HttpResponse(
+            "Handout file not found.",
+            status=404
+        )
+
+    import mimetypes
+
+    content_type, _ = mimetypes.guess_type(
+        handout.file.name
+    )
+
+    if not content_type:
+
+        content_type = "application/octet-stream"
+
+    response = FileResponse(
+        handout.file.open("rb"),
+        content_type=content_type
+    )
+
+    response["Content-Disposition"] = (
+        f'inline; filename="{handout.file.name.split("/")[-1]}"'
+    )
+
+    return response
 
 
 @login_required

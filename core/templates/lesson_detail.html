@@ -419,13 +419,22 @@
 
                 </div>
 
-                <a
-                    href="{% url 'complete_lesson' lesson.id %}"
-                    class="btn btn-success btn-lg">
+                <form
+                    method="POST"
+                    action="{% url 'complete_lesson' lesson.id %}"
+                    style="display: inline;"
+                >
 
-                    ✅ Mark Lesson Complete
+                    {% csrf_token %}
 
-                </a>
+                    <button
+                        type="submit"
+                        class="btn btn-success btn-lg"
+                    >
+                        ✅ Mark Lesson Complete
+                    </button>
+
+                </form>
 
             {% endif %}
 
