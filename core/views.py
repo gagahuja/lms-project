@@ -2668,6 +2668,263 @@ def view_assignment(request, assignment_id):
     )
 
 
+@login_required
+def serve_assignment_file(request, assignment_id):
+
+    assignment = get_object_or_404(
+        Assignment.objects.select_related(
+            "lesson__module__course"
+        ),
+        id=assignment_id
+    )
+
+    course = assignment.lesson.module.course
+
+    # ---------------------------------------------------------
+    # STUDENT ACCESS
+    # ---------------------------------------------------------
+
+    if request.user.user_type == "student":
+
+        is_enrolled = Enrollment.objects.filter(
+            student=request.user,
+            course=course
+        ).exists()
+
+        if not is_enrolled:
+
+            return HttpResponse(
+                "You are not enrolled in this course.",
+                status=403
+            )
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS
+    # ---------------------------------------------------------
+
+    elif request.user.user_type == "teacher":
+
+        if course.teacher_id != request.user.id:
+
+            return HttpResponse(
+                "You are not authorized to view this assignment.",
+                status=403
+            )
+
+    else:
+
+        return HttpResponse(
+            "You are not authorized to view this assignment.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # FILE CHECK
+    # ---------------------------------------------------------
+
+    if not assignment.file:
+
+        return HttpResponse(
+            "Assignment file not found.",
+            status=404
+        )
+
+    import mimetypes
+
+    content_type, _ = mimetypes.guess_type(
+        assignment.file.name
+    )
+
+    if not content_type:
+
+        content_type = "application/octet-stream"
+
+    response = FileResponse(
+        assignment.file.open("rb"),
+        content_type=content_type
+    )
+
+    response["Content-Disposition"] = (
+        f'inline; filename="'
+        f'{assignment.file.name.split("/")[-1]}"'
+    )
+
+    return response
+
+
+@login_required
+def serve_submission_file(request, submission_id):
+
+    submission = get_object_or_404(
+        Submission.objects.select_related(
+            "student",
+            "assignment__lesson__module__course"
+        ),
+        id=submission_id
+    )
+
+    course = submission.assignment.lesson.module.course
+
+    # ---------------------------------------------------------
+    # STUDENT ACCESS
+    # ---------------------------------------------------------
+
+    if request.user.user_type == "student":
+
+        # A student may only view their own submission.
+        if submission.student_id != request.user.id:
+
+            return HttpResponse(
+                "You are not authorized to view this submission.",
+                status=403
+            )
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS
+    # ---------------------------------------------------------
+
+    elif request.user.user_type == "teacher":
+
+        # Teacher must own the course.
+        if course.teacher_id != request.user.id:
+
+            return HttpResponse(
+                "You are not authorized to view this submission.",
+                status=403
+            )
+
+    # ---------------------------------------------------------
+    # OTHER USERS
+    # ---------------------------------------------------------
+
+    else:
+
+        return HttpResponse(
+            "You are not authorized to view this submission.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # FILE CHECK
+    # ---------------------------------------------------------
+
+    if not submission.file:
+
+        return HttpResponse(
+            "Submission file not found.",
+            status=404
+        )
+
+    import mimetypes
+
+    content_type, _ = mimetypes.guess_type(
+        submission.file.name
+    )
+
+    if not content_type:
+
+        content_type = "application/octet-stream"
+
+    response = FileResponse(
+        submission.file.open("rb"),
+        content_type=content_type
+    )
+
+    response["Content-Disposition"] = (
+        f'inline; filename="'
+        f'{submission.file.name.split("/")[-1]}"'
+    )
+
+    return response
+
+
+@login_required
+def serve_checked_submission_file(request, submission_id):
+
+    submission = get_object_or_404(
+        Submission.objects.select_related(
+            "student",
+            "assignment__lesson__module__course"
+        ),
+        id=submission_id
+    )
+
+    course = submission.assignment.lesson.module.course
+
+    # ---------------------------------------------------------
+    # STUDENT ACCESS
+    # ---------------------------------------------------------
+
+    if request.user.user_type == "student":
+
+        # Student may only view their own checked copy.
+        if submission.student_id != request.user.id:
+
+            return HttpResponse(
+                "You are not authorized to view this checked copy.",
+                status=403
+            )
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS
+    # ---------------------------------------------------------
+
+    elif request.user.user_type == "teacher":
+
+        # Teacher must own the assignment's course.
+        if course.teacher_id != request.user.id:
+
+            return HttpResponse(
+                "You are not authorized to view this checked copy.",
+                status=403
+            )
+
+    # ---------------------------------------------------------
+    # OTHER USERS
+    # ---------------------------------------------------------
+
+    else:
+
+        return HttpResponse(
+            "You are not authorized to view this checked copy.",
+            status=403
+        )
+
+    # ---------------------------------------------------------
+    # FILE CHECK
+    # ---------------------------------------------------------
+
+    if not submission.checked_file:
+
+        return HttpResponse(
+            "Checked copy not found.",
+            status=404
+        )
+
+    import mimetypes
+
+    content_type, _ = mimetypes.guess_type(
+        submission.checked_file.name
+    )
+
+    if not content_type:
+
+        content_type = "application/octet-stream"
+
+    response = FileResponse(
+        submission.checked_file.open("rb"),
+        content_type=content_type
+    )
+
+    response["Content-Disposition"] = (
+        f'inline; filename="'
+        f'{submission.checked_file.name.split("/")[-1]}"'
+    )
+
+    return response
+
+
+
 from django.contrib.auth.decorators import login_required
 
 @login_required
