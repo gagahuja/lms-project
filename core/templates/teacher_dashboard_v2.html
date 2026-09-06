@@ -708,12 +708,22 @@
                     <!-- UPCOMING CLASS -->
                     {% elif not cls.is_completed %}
 
-                        <a href="{% url 'start_class' cls.id %}"
-                           class="btn btn-primary btn-sm me-1">
+                        <form
+                            method="POST"
+                            action="{% url 'start_class' cls.id %}"
+                            style="display: inline;"
+                        >
 
-                            ▶ Start
+                            {% csrf_token %}
 
-                        </a>
+                            <button
+                                type="submit"
+                                class="btn btn-primary btn-sm me-1"
+                            >
+                                ▶ Start
+                            </button>
+
+                        </form>
 
                     {% endif %}
 

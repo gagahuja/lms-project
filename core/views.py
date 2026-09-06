@@ -3179,6 +3179,7 @@ def serve_handout(request, handout_id):
 
 
 @login_required
+@require_POST
 def start_class(request, class_id):
 
     cls = get_object_or_404(
@@ -3226,6 +3227,7 @@ def start_class(request, class_id):
 
 
 @login_required
+@require_POST
 def stop_class(request, class_id):
 
     cls = get_object_or_404(
