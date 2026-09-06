@@ -327,6 +327,39 @@
             margin: 0;
             width: 100%;
         }
+
+
+        /* =========================================================
+        SIDEBAR — SINGLE SCROLLBAR
+        ========================================================= */
+
+        .sidebar {
+            height: 100vh;
+            max-height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        /* Prevent individual sidebar links from becoming scroll items */
+        .sidebar > a {
+            flex: 0 0 auto !important;
+            height: auto !important;
+            min-height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+        .sidebar > a,
+        .sidebar > button {
+            flex-shrink: 0;
+        }
+
+        /* Keep notification dropdown independently scrollable */
+        #notificationBox {
+            max-height: 400px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
         
     </style>
 </head>
@@ -570,13 +603,99 @@ setInterval(function(){
 
 <script>
 function toggleNotifications() {
+
     const box = document.getElementById("notificationBox");
 
-    if (box.style.display === "block") {
-        box.style.display = "none";
-    } else {
-        box.style.display = "block";
+    const button = document.querySelector(
+        '[onclick="toggleNotifications()"]'
+    );
+
+    if (!box || !button) {
+        return;
     }
+
+
+    /* ---------------------------------------------------------
+       CLOSE
+       --------------------------------------------------------- */
+
+    if (box.style.display === "block") {
+
+        box.style.display = "none";
+
+        return;
+    }
+
+
+    /* ---------------------------------------------------------
+       MOVE DROPDOWN OUTSIDE SIDEBAR
+       --------------------------------------------------------- */
+
+    if (box.parentElement !== document.body) {
+
+        document.body.appendChild(box);
+
+    }
+
+
+    /* ---------------------------------------------------------
+       SHOW FIRST
+       --------------------------------------------------------- */
+
+    box.style.display = "block";
+    box.style.position = "fixed";
+    box.style.zIndex = "99999";
+
+
+    /* ---------------------------------------------------------
+       POSITION NEXT TO NOTIFICATION BUTTON
+       --------------------------------------------------------- */
+
+    const rect = button.getBoundingClientRect();
+
+    const gap = 10;
+
+    let left = rect.right + gap;
+    let top = rect.top;
+
+
+    /* ---------------------------------------------------------
+       KEEP DROPDOWN INSIDE SCREEN
+       --------------------------------------------------------- */
+
+    const boxWidth = box.offsetWidth || 280;
+    const boxHeight = box.offsetHeight || 400;
+
+    const maxLeft =
+        window.innerWidth - boxWidth - 10;
+
+    const maxTop =
+        window.innerHeight - boxHeight - 10;
+
+
+    if (left > maxLeft) {
+
+        left = Math.max(
+            10,
+            maxLeft
+        );
+
+    }
+
+
+    if (top > maxTop) {
+
+        top = Math.max(
+            10,
+            maxTop
+        );
+
+    }
+
+
+    box.style.left = left + "px";
+    box.style.top = top + "px";
+
 }
 </script>
 
