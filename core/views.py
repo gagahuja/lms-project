@@ -380,11 +380,6 @@ def live_class(request, pk):
 
 
 
-#def create_admin(request):
-#    User = get_user_model()
-#    if not User.objects.filter(username='admin').exists():
-#        User.objects.create_superuser('admin', 'admin@gmail.com', 'Admin@123')
-#   return HttpResponse("Admin created")
 
 
 
@@ -1258,28 +1253,7 @@ def ai_notes(request):
     return render(request, 'ai_notes.html', {'notes': notes})
 
 
-from django.contrib.auth import get_user_model
-from django.http import HttpResponse
 
-def create_admin(request):
-    from django.contrib.auth import get_user_model
-    from django.http import HttpResponse
-
-    User = get_user_model()
-
-    try:
-        user, created = User.objects.get_or_create(username="admin1")
-
-        user.set_password("Admin@123")
-        user.user_type = "teacher"
-        user.is_staff = True
-        user.is_superuser = True
-        user.save()
-
-        return HttpResponse("Admin created")
-
-    except Exception as e:
-        return HttpResponse(f"Error: {str(e)}")
     
 
 @login_required
