@@ -164,21 +164,24 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 
 # =========================================================
-# EMAIL - GMAIL SMTP
+# EMAIL - BREVO HTTPS API
 # =========================================================
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_BACKEND = "core.email_backend.BrevoEmailBackend"
 
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
+BREVO_API_KEY = os.environ.get("BREVO_API_KEY")
 
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
+BREVO_SENDER_EMAIL = os.environ.get(
+    "BREVO_SENDER_EMAIL"
+)
 
-DEFAULT_FROM_EMAIL = os.environ.get(
-    "DEFAULT_FROM_EMAIL",
-    EMAIL_HOST_USER
+BREVO_SENDER_NAME = os.environ.get(
+    "BREVO_SENDER_NAME",
+    "ScoreSkill"
+)
+
+DEFAULT_FROM_EMAIL = (
+    BREVO_SENDER_EMAIL
 )
 
 EMAIL_TIMEOUT = 30
