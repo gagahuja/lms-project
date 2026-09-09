@@ -22,6 +22,7 @@ from .models import QuizResult, StudentAnswer
 from .models import Progress
 from .models import Points
 from .models import Handout
+from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
 from reportlab.pdfgen import canvas
@@ -497,6 +498,7 @@ def create_live_class(request):
 
 import razorpay
 from django.conf import settings
+from .models import (Course,Enrollment,PaymentTransaction,)
 
 @login_required
 def buy_course(request, course_id):
@@ -504,6 +506,18 @@ def buy_course(request, course_id):
         Course,
         id=course_id
     )
+
+    if Enrollment.objects.filter(
+        student=request.user,
+        course=course
+    ).exists():
+
+        messages.info(
+            request,
+            "You are already enrolled in this course."
+        )
+
+        return redirect("dashboard")
 
     client = razorpay.Client(
         auth=(settings.RAZORPAY_KEY, settings.RAZORPAY_SECRET)
@@ -519,12 +533,20 @@ def buy_course(request, course_id):
         }
     })
 
+    PaymentTransaction.objects.create(
+        student=request.user,
+        course=course,
+        razorpay_order_id=payment["id"],
+        amount=payment["amount"],
+        currency=payment["currency"],
+        status="created",
+    )
+
     return render(request, "payment.html", {
         "course": course,
         "payment": payment,
-        "key": "rzp_test_SVTMhk0hvNVHGy"
+        "key": settings.RAZORPAY_KEY
     })
-
     
 
 from django.views.decorators.http import require_POST

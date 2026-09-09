@@ -29,12 +29,100 @@ class Course(models.Model):
     
 
 class Enrollment(models.Model):
-    student = models.ForeignKey(User, on_delete=models.CASCADE)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True)
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
+
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["student", "course"],
+                name="unique_student_course_enrollment",
+            )
+        ]
 
     def __str__(self):
         return f"{self.student.username} - {self.course.title}"
+
+
+class PaymentTransaction(models.Model):
+    STATUS_CHOICES = (
+        ("created", "Created"),
+        ("captured", "Captured"),
+        ("failed", "Failed"),
+        ("refunded", "Refunded"),
+    )
+
+    student = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        related_name="payment_transactions"
+    )
+
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.PROTECT,
+        related_name="payment_transactions"
+    )
+
+    razorpay_order_id = models.CharField(
+        max_length=100,
+        unique=True
+    )
+
+    razorpay_payment_id = models.CharField(
+        max_length=100,
+        unique=True,
+        null=True,
+        blank=True
+    )
+
+    razorpay_event_id = models.CharField(
+        max_length=100,
+        unique=True,
+        null=True,
+        blank=True
+    )
+
+    amount = models.PositiveIntegerField()
+
+    currency = models.CharField(
+        max_length=10,
+        default="INR"
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="created"
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    captured_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+
+    def __str__(self):
+        return (
+            f"{self.student.username} - "
+            f"{self.course.title} - "
+            f"{self.status}"
+        )
+    
     
 #Live Class Model
 class LiveClass(models.Model):
