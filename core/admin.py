@@ -12,6 +12,7 @@ from .models import Recording
 from .models import CourseRequest
 from .models import Subscription
 from .models import Attendance
+from .models import (PaymentTransaction,)
 
 
 
@@ -79,6 +80,47 @@ class AchievementAdmin(admin.ModelAdmin):
     search_fields = (
         "title",
         "description",
+    )
+
+
+@admin.register(PaymentTransaction)
+class PaymentTransactionAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "student",
+        "course",
+        "razorpay_order_id",
+        "razorpay_payment_id",
+        "amount",
+        "currency",
+        "status",
+        "captured_at",
+    )
+
+    list_filter = (
+        "status",
+        "currency",
+        "captured_at",
+    )
+
+    search_fields = (
+        "razorpay_order_id",
+        "razorpay_payment_id",
+        "razorpay_event_id",
+        "student__username",
+        "student__email",
+        "course__title",
+    )
+
+    readonly_fields = (
+        "razorpay_order_id",
+        "razorpay_payment_id",
+        "razorpay_event_id",
+        "amount",
+        "currency",
+        "status",
+        "created_at",
+        "captured_at",
     )
 
     
