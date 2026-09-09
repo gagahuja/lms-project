@@ -5,6 +5,8 @@ from django.views.decorators.http import require_POST
 from .models import User
 from .models import Course
 from .models import Enrollment
+import hashlib
+import hmac
 from .models import StudentProfile
 from .models import LiveClass
 from .models import Attendance
@@ -1088,35 +1090,30 @@ def razorpay_webhook(request):
 
     try:
 
-        client = razorpay.Client(
-            auth=(
-                settings.RAZORPAY_KEY,
-                settings.RAZORPAY_SECRET
+        expected_signature = hmac.new(
+            key=settings.RAZORPAY_WEBHOOK_SECRET.encode("utf-8"),
+            msg=request.body,
+            digestmod=hashlib.sha256,
+        ).hexdigest()
+
+        if not hmac.compare_digest(
+            expected_signature,
+            webhook_signature
+        ):
+
+            logger.warning(
+                "Razorpay webhook rejected: invalid signature."
             )
-        )
 
-        client.utility.verify_webhook_signature(
-            request.body,
-            webhook_signature,
-            settings.RAZORPAY_WEBHOOK_SECRET
-        )
+            return HttpResponse(
+                "Invalid webhook signature.",
+                status=400
+            )
 
-    except razorpay.errors.SignatureVerificationError:
-
-        logger.warning(
-            "Razorpay webhook rejected: invalid signature."
-        )
-
-        return HttpResponse(
-            "Invalid webhook signature.",
-            status=400
-        )
-
-    except Exception as e:
+    except Exception:
 
         logger.exception(
-            "Razorpay webhook signature verification error: %s",
-            str(e)
+            "Razorpay webhook signature verification failed."
         )
 
         return HttpResponse(
