@@ -712,6 +712,45 @@ def payment_success(request, course_id):
 
         return redirect("dashboard")
 
+
+    # ---------------------------------------------------------
+    # UPDATE LOCAL PAYMENT TRANSACTION
+    # ---------------------------------------------------------
+
+    payment_transaction = get_object_or_404(
+        PaymentTransaction,
+        razorpay_order_id=razorpay_order_id,
+        student=request.user,
+        course=course,
+    )
+
+    if payment_transaction.amount != expected_amount:
+
+        messages.error(
+            request,
+            "Payment transaction verification failed."
+        )
+
+        return redirect("dashboard")
+
+
+    payment_transaction.razorpay_payment_id = (
+        razorpay_payment_id
+    )
+
+    payment_transaction.status = "captured"
+
+    payment_transaction.captured_at = timezone.now()
+
+    payment_transaction.save(
+        update_fields=[
+            "razorpay_payment_id",
+            "status",
+            "captured_at",
+        ]
+    )
+
+
     # ---------------------------------------------------------
     # PAYMENT VERIFIED
     # ---------------------------------------------------------
