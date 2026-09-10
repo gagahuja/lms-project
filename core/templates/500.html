@@ -4,7 +4,10 @@
 
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
 
     <title>ScoreSkill - Something Went Wrong</title>
 
@@ -47,11 +50,17 @@
                 rgba(15, 23, 42, 0.08);
         }
 
-        .logo {
+        .brand {
 
-            width: 72px;
+            margin-bottom: 18px;
 
-            margin-bottom: 15px;
+            font-size: 24px;
+
+            font-weight: 700;
+
+            letter-spacing: -0.3px;
+
+            color: #4f46e5;
         }
 
         .error-icon {
@@ -130,13 +139,9 @@
 
     <div class="error-card">
 
-        {% load static %}
-
-        <img
-            src="{% static 'scoreskill_logo.png' %}"
-            alt="ScoreSkill"
-            class="logo"
-        >
+        <div class="brand">
+            ScoreSkill
+        </div>
 
         <div class="error-icon">
             ⚠️
@@ -155,10 +160,10 @@
         </p>
 
         <a
-            href="{% url 'dashboard' %}"
+            href="/"
             class="home-button"
         >
-            ← Back to Dashboard
+            ← Back to ScoreSkill
         </a>
 
         <div class="footer">
