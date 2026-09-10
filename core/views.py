@@ -1217,14 +1217,507 @@ def razorpay_webhook(request):
     event_name = data.get("event")
 
     # ---------------------------------------------------------
-    # IGNORE VALID BUT UNHANDLED EVENTS
+    # HANDLE PAYMENT FAILED
     # ---------------------------------------------------------
 
-    if event_name != "payment.captured":
+    if event_name == "payment.failed":
+
+        try:
+
+            payment = (
+                data["payload"]
+                ["payment"]
+                ["entity"]
+            )
+
+            payment_id = payment.get("id")
+            order_id = payment.get("order_id")
+            payment_amount = payment.get("amount")
+            payment_currency = payment.get("currency")
+
+            if not payment_id:
+                raise ValueError(
+                    "Missing Razorpay payment ID."
+                )
+
+            if not order_id:
+                raise ValueError(
+                    "Missing Razorpay order ID."
+                )
+
+            if payment_amount is None:
+                raise ValueError(
+                    "Missing payment amount."
+                )
+
+            if not payment_currency:
+                raise ValueError(
+                    "Missing payment currency."
+                )
+
+        except (KeyError, TypeError, ValueError) as e:
+
+            logger.warning(
+                "Razorpay failed-payment webhook contained "
+                "invalid data: %s",
+                str(e)
+            )
+
+            return HttpResponse(
+                "Invalid failed-payment payload.",
+                status=400
+            )
+
+        # -----------------------------------------------------
+        # FIND LOCAL PAYMENT TRANSACTION
+        # -----------------------------------------------------
+
+        payment_transaction = (
+            PaymentTransaction.objects
+            .filter(
+                razorpay_order_id=order_id
+            )
+            .first()
+        )
+
+        if payment_transaction is None:
+
+            logger.warning(
+                "Razorpay failed payment rejected: "
+                "transaction not found for order_id=%s",
+                order_id,
+            )
+
+            return HttpResponse(
+                "Payment transaction not found.",
+                status=400
+            )
+
+        # -----------------------------------------------------
+        # VERIFY PAYMENT AMOUNT / CURRENCY
+        # -----------------------------------------------------
+
+        if int(payment_amount) != int(
+            payment_transaction.amount
+        ):
+
+            logger.warning(
+                "Razorpay failed payment rejected: "
+                "amount mismatch for order_id=%s",
+                order_id,
+            )
+
+            return HttpResponse(
+                "Payment amount verification failed.",
+                status=400
+            )
+
+        if payment_currency != (
+            payment_transaction.currency
+        ):
+
+            logger.warning(
+                "Razorpay failed payment rejected: "
+                "currency mismatch for order_id=%s",
+                order_id,
+            )
+
+            return HttpResponse(
+                "Payment currency verification failed.",
+                status=400
+            )
+
+        # -----------------------------------------------------
+        # RECORD FAILED PAYMENT
+        # -----------------------------------------------------
+
+        try:
+
+            with transaction.atomic():
+
+                payment_transaction.razorpay_payment_id = (
+                    payment_id
+                )
+
+                payment_transaction.razorpay_event_id = (
+                    webhook_event_id
+                )
+
+                payment_transaction.status = "failed"
+
+                payment_transaction.save(
+                    update_fields=[
+                        "razorpay_payment_id",
+                        "razorpay_event_id",
+                        "status",
+                    ]
+                )
+
+        except Exception:
+
+            logger.exception(
+                "Failed to record Razorpay failed payment: "
+                "order_id=%s payment_id=%s",
+                order_id,
+                payment_id,
+            )
+
+            return HttpResponse(
+                "Webhook processing failed.",
+                status=500
+            )
 
         logger.info(
-            "Razorpay webhook received: event=%s event_id=%s",
-            event_name,
+            "Razorpay payment failed recorded: "
+            "order_id=%s payment_id=%s event_id=%s",
+            order_id,
+            payment_id,
+            webhook_event_id,
+        )
+
+        return HttpResponse(
+            "OK",
+            status=200
+        )
+
+
+    # ---------------------------------------------------------
+    # HANDLE PAYMENT CAPTURED
+    # ---------------------------------------------------------
+
+    if event_name == "payment.captured":
+
+
+        # ---------------------------------------------------------
+        # EXTRACT PAYMENT DATA
+        # ---------------------------------------------------------
+
+        try:
+
+            payment = (
+                data["payload"]
+                ["payment"]
+                ["entity"]
+            )
+
+            payment_id = payment.get("id")
+            order_id = payment.get("order_id")
+            payment_amount = payment.get("amount")
+            payment_currency = payment.get("currency")
+
+            notes = payment.get(
+                "notes",
+                {}
+            )
+
+            course_id = notes.get("course_id")
+            user_id = notes.get("user_id")
+
+            if not payment_id:
+                raise ValueError(
+                    "Missing Razorpay payment ID."
+                )
+
+            if not order_id:
+                raise ValueError(
+                    "Missing Razorpay order ID."
+                )
+
+            if payment_amount is None:
+                raise ValueError(
+                    "Missing payment amount."
+                )
+
+            if not payment_currency:
+                raise ValueError(
+                    "Missing payment currency."
+                )
+
+            if not course_id:
+                raise ValueError(
+                    "Missing course ID."
+                )
+
+            if not user_id:
+                raise ValueError(
+                    "Missing user ID."
+                )
+
+        except (KeyError, TypeError, ValueError) as e:
+
+            logger.warning(
+                "Razorpay webhook contained invalid payment data: %s",
+                str(e)
+            )
+
+            return HttpResponse(
+                "Invalid payment payload.",
+                status=400
+            )
+
+        # ---------------------------------------------------------
+        # FIND LOCAL PAYMENT TRANSACTION
+        # ---------------------------------------------------------
+
+        payment_transaction = (
+            PaymentTransaction.objects
+            .select_related(
+                "student",
+                "course"
+            )
+            .filter(
+                razorpay_order_id=order_id
+            )
+            .first()
+        )
+
+        if payment_transaction is None:
+
+            logger.warning(
+                "Razorpay webhook rejected: "
+                "payment transaction not found for order_id=%s",
+                order_id,
+            )
+
+            return HttpResponse(
+                "Payment transaction not found.",
+                status=400
+            )
+
+        # ---------------------------------------------------------
+        # VERIFY USER AND COURSE
+        # ---------------------------------------------------------
+
+        if str(
+            payment_transaction.student_id
+        ) != str(user_id):
+
+            logger.warning(
+                "Razorpay webhook rejected: "
+                "user mismatch for order_id=%s",
+                order_id,
+            )
+
+            return HttpResponse(
+                "Payment user verification failed.",
+                status=400
+            )
+
+        if str(
+            payment_transaction.course_id
+        ) != str(course_id):
+
+            logger.warning(
+                "Razorpay webhook rejected: "
+                "course mismatch for order_id=%s",
+                order_id,
+            )
+
+            return HttpResponse(
+                "Payment course verification failed.",
+                status=400
+            )
+
+        # ---------------------------------------------------------
+        # VERIFY PAYMENT AMOUNT AND CURRENCY
+        # ---------------------------------------------------------
+
+        if int(payment_amount) != int(
+            payment_transaction.amount
+        ):
+
+            logger.warning(
+                "Razorpay webhook rejected: "
+                "amount mismatch for order_id=%s",
+                order_id,
+            )
+
+            return HttpResponse(
+                "Payment amount verification failed.",
+                status=400
+            )
+
+        if payment_currency != (
+            payment_transaction.currency
+        ):
+
+            logger.warning(
+                "Razorpay webhook rejected: "
+                "currency mismatch for order_id=%s",
+                order_id,
+            )
+
+            return HttpResponse(
+                "Payment currency verification failed.",
+                status=400
+            )
+
+        # ---------------------------------------------------------
+        # VERIFY THE RAZORPAY ORDER
+        # ---------------------------------------------------------
+
+        try:
+
+            client = razorpay.Client(
+                auth=(
+                    settings.RAZORPAY_KEY,
+                    settings.RAZORPAY_SECRET
+                )
+            )
+
+            order = client.order.fetch(
+                order_id
+            )
+
+        except Exception:
+
+            logger.exception(
+                "Unable to fetch Razorpay order: order_id=%s",
+                order_id,
+            )
+
+            return HttpResponse(
+                "Unable to verify payment order.",
+                status=400
+            )
+
+        # ---------------------------------------------------------
+        # VERIFY ORDER AMOUNT AND CURRENCY
+        # ---------------------------------------------------------
+
+        if int(
+            order.get("amount", 0)
+        ) != int(
+            payment_transaction.amount
+        ):
+
+            logger.warning(
+                "Razorpay webhook rejected: "
+                "order amount mismatch for order_id=%s",
+                order_id,
+            )
+
+            return HttpResponse(
+                "Payment order amount verification failed.",
+                status=400
+            )
+
+        if order.get("currency") != (
+            payment_transaction.currency
+        ):
+
+            logger.warning(
+                "Razorpay webhook rejected: "
+                "order currency mismatch for order_id=%s",
+                order_id,
+            )
+
+            return HttpResponse(
+                "Payment order currency verification failed.",
+                status=400
+            )
+
+        # ---------------------------------------------------------
+        # VERIFY ORDER METADATA
+        # ---------------------------------------------------------
+
+        order_notes = order.get(
+            "notes",
+            {}
+        )
+
+        if str(
+            order_notes.get("course_id", "")
+        ) != str(course_id):
+
+            logger.warning(
+                "Razorpay webhook rejected: "
+                "order course metadata mismatch for order_id=%s",
+                order_id,
+            )
+
+            return HttpResponse(
+                "Payment order course verification failed.",
+                status=400
+            )
+
+        if str(
+            order_notes.get("user_id", "")
+        ) != str(user_id):
+
+            logger.warning(
+                "Razorpay webhook rejected: "
+                "order user metadata mismatch for order_id=%s",
+                order_id,
+            )
+
+            return HttpResponse(
+                "Payment order user verification failed.",
+                status=400
+            )
+
+        # ---------------------------------------------------------
+        # UPDATE PAYMENT + ENROLLMENT ATOMICALLY
+        # ---------------------------------------------------------
+
+        try:
+
+            with transaction.atomic():
+
+                payment_transaction.razorpay_payment_id = (
+                    payment_id
+                )
+
+                payment_transaction.razorpay_event_id = (
+                    webhook_event_id
+                )
+
+                payment_transaction.status = "captured"
+
+                payment_transaction.captured_at = (
+                    timezone.now()
+                )
+
+                payment_transaction.save(
+                    update_fields=[
+                        "razorpay_payment_id",
+                        "razorpay_event_id",
+                        "status",
+                        "captured_at",
+                    ]
+                )
+
+                Enrollment.objects.get_or_create(
+                    student=payment_transaction.student,
+                    course=payment_transaction.course
+                )
+
+        except Exception:
+
+            logger.exception(
+                "Razorpay webhook processing failed: "
+                "order_id=%s payment_id=%s",
+                order_id,
+                payment_id,
+            )
+
+            return HttpResponse(
+                "Webhook processing failed.",
+                status=500
+            )
+
+        # ---------------------------------------------------------
+        # SUCCESS
+        # ---------------------------------------------------------
+
+        logger.info(
+            "Razorpay payment captured successfully: "
+            "user=%s course_id=%s order_id=%s "
+            "payment_id=%s event_id=%s",
+            payment_transaction.student.username,
+            payment_transaction.course.id,
+            order_id,
+            payment_id,
             webhook_event_id,
         )
 
@@ -1234,335 +1727,12 @@ def razorpay_webhook(request):
         )
 
     # ---------------------------------------------------------
-    # EXTRACT PAYMENT DATA
-    # ---------------------------------------------------------
-
-    try:
-
-        payment = (
-            data["payload"]
-            ["payment"]
-            ["entity"]
-        )
-
-        payment_id = payment.get("id")
-        order_id = payment.get("order_id")
-        payment_amount = payment.get("amount")
-        payment_currency = payment.get("currency")
-
-        notes = payment.get(
-            "notes",
-            {}
-        )
-
-        course_id = notes.get("course_id")
-        user_id = notes.get("user_id")
-
-        if not payment_id:
-            raise ValueError(
-                "Missing Razorpay payment ID."
-            )
-
-        if not order_id:
-            raise ValueError(
-                "Missing Razorpay order ID."
-            )
-
-        if payment_amount is None:
-            raise ValueError(
-                "Missing payment amount."
-            )
-
-        if not payment_currency:
-            raise ValueError(
-                "Missing payment currency."
-            )
-
-        if not course_id:
-            raise ValueError(
-                "Missing course ID."
-            )
-
-        if not user_id:
-            raise ValueError(
-                "Missing user ID."
-            )
-
-    except (KeyError, TypeError, ValueError) as e:
-
-        logger.warning(
-            "Razorpay webhook contained invalid payment data: %s",
-            str(e)
-        )
-
-        return HttpResponse(
-            "Invalid payment payload.",
-            status=400
-        )
-
-    # ---------------------------------------------------------
-    # FIND LOCAL PAYMENT TRANSACTION
-    # ---------------------------------------------------------
-
-    payment_transaction = (
-        PaymentTransaction.objects
-        .select_related(
-            "student",
-            "course"
-        )
-        .filter(
-            razorpay_order_id=order_id
-        )
-        .first()
-    )
-
-    if payment_transaction is None:
-
-        logger.warning(
-            "Razorpay webhook rejected: "
-            "payment transaction not found for order_id=%s",
-            order_id,
-        )
-
-        return HttpResponse(
-            "Payment transaction not found.",
-            status=400
-        )
-
-    # ---------------------------------------------------------
-    # VERIFY USER AND COURSE
-    # ---------------------------------------------------------
-
-    if str(
-        payment_transaction.student_id
-    ) != str(user_id):
-
-        logger.warning(
-            "Razorpay webhook rejected: "
-            "user mismatch for order_id=%s",
-            order_id,
-        )
-
-        return HttpResponse(
-            "Payment user verification failed.",
-            status=400
-        )
-
-    if str(
-        payment_transaction.course_id
-    ) != str(course_id):
-
-        logger.warning(
-            "Razorpay webhook rejected: "
-            "course mismatch for order_id=%s",
-            order_id,
-        )
-
-        return HttpResponse(
-            "Payment course verification failed.",
-            status=400
-        )
-
-    # ---------------------------------------------------------
-    # VERIFY PAYMENT AMOUNT AND CURRENCY
-    # ---------------------------------------------------------
-
-    if int(payment_amount) != int(
-        payment_transaction.amount
-    ):
-
-        logger.warning(
-            "Razorpay webhook rejected: "
-            "amount mismatch for order_id=%s",
-            order_id,
-        )
-
-        return HttpResponse(
-            "Payment amount verification failed.",
-            status=400
-        )
-
-    if payment_currency != (
-        payment_transaction.currency
-    ):
-
-        logger.warning(
-            "Razorpay webhook rejected: "
-            "currency mismatch for order_id=%s",
-            order_id,
-        )
-
-        return HttpResponse(
-            "Payment currency verification failed.",
-            status=400
-        )
-
-    # ---------------------------------------------------------
-    # VERIFY THE RAZORPAY ORDER
-    # ---------------------------------------------------------
-
-    try:
-
-        client = razorpay.Client(
-            auth=(
-                settings.RAZORPAY_KEY,
-                settings.RAZORPAY_SECRET
-            )
-        )
-
-        order = client.order.fetch(
-            order_id
-        )
-
-    except Exception:
-
-        logger.exception(
-            "Unable to fetch Razorpay order: order_id=%s",
-            order_id,
-        )
-
-        return HttpResponse(
-            "Unable to verify payment order.",
-            status=400
-        )
-
-    # ---------------------------------------------------------
-    # VERIFY ORDER AMOUNT AND CURRENCY
-    # ---------------------------------------------------------
-
-    if int(
-        order.get("amount", 0)
-    ) != int(
-        payment_transaction.amount
-    ):
-
-        logger.warning(
-            "Razorpay webhook rejected: "
-            "order amount mismatch for order_id=%s",
-            order_id,
-        )
-
-        return HttpResponse(
-            "Payment order amount verification failed.",
-            status=400
-        )
-
-    if order.get("currency") != (
-        payment_transaction.currency
-    ):
-
-        logger.warning(
-            "Razorpay webhook rejected: "
-            "order currency mismatch for order_id=%s",
-            order_id,
-        )
-
-        return HttpResponse(
-            "Payment order currency verification failed.",
-            status=400
-        )
-
-    # ---------------------------------------------------------
-    # VERIFY ORDER METADATA
-    # ---------------------------------------------------------
-
-    order_notes = order.get(
-        "notes",
-        {}
-    )
-
-    if str(
-        order_notes.get("course_id", "")
-    ) != str(course_id):
-
-        logger.warning(
-            "Razorpay webhook rejected: "
-            "order course metadata mismatch for order_id=%s",
-            order_id,
-        )
-
-        return HttpResponse(
-            "Payment order course verification failed.",
-            status=400
-        )
-
-    if str(
-        order_notes.get("user_id", "")
-    ) != str(user_id):
-
-        logger.warning(
-            "Razorpay webhook rejected: "
-            "order user metadata mismatch for order_id=%s",
-            order_id,
-        )
-
-        return HttpResponse(
-            "Payment order user verification failed.",
-            status=400
-        )
-
-    # ---------------------------------------------------------
-    # UPDATE PAYMENT + ENROLLMENT ATOMICALLY
-    # ---------------------------------------------------------
-
-    try:
-
-        with transaction.atomic():
-
-            payment_transaction.razorpay_payment_id = (
-                payment_id
-            )
-
-            payment_transaction.razorpay_event_id = (
-                webhook_event_id
-            )
-
-            payment_transaction.status = "captured"
-
-            payment_transaction.captured_at = (
-                timezone.now()
-            )
-
-            payment_transaction.save(
-                update_fields=[
-                    "razorpay_payment_id",
-                    "razorpay_event_id",
-                    "status",
-                    "captured_at",
-                ]
-            )
-
-            Enrollment.objects.get_or_create(
-                student=payment_transaction.student,
-                course=payment_transaction.course
-            )
-
-    except Exception:
-
-        logger.exception(
-            "Razorpay webhook processing failed: "
-            "order_id=%s payment_id=%s",
-            order_id,
-            payment_id,
-        )
-
-        return HttpResponse(
-            "Webhook processing failed.",
-            status=500
-        )
-
-    # ---------------------------------------------------------
-    # SUCCESS
+    # OTHER VALID RAZORPAY EVENTS
     # ---------------------------------------------------------
 
     logger.info(
-        "Razorpay payment captured successfully: "
-        "user=%s course_id=%s order_id=%s "
-        "payment_id=%s event_id=%s",
-        payment_transaction.student.username,
-        payment_transaction.course.id,
-        order_id,
-        payment_id,
+        "Razorpay webhook received: event=%s event_id=%s",
+        event_name,
         webhook_event_id,
     )
 
@@ -1570,7 +1740,6 @@ def razorpay_webhook(request):
         "OK",
         status=200
     )
-
 
 
 from django.conf import settings
