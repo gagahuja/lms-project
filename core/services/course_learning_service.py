@@ -9,6 +9,7 @@ from core.models import (
     Quiz,
     QuizResult,
 )
+from urllib.parse import parse_qs, urlparse
 
 
 def build_course_learning_context(user, course):
@@ -250,6 +251,134 @@ def build_course_learning_context(user, course):
 
 
 
+import re
+
+
+YOUTUBE_VIDEO_ID_PATTERN = re.compile(
+    r"^[A-Za-z0-9_-]{11}$"
+)
+
+
+def get_youtube_embed_url(video_url):
+    """
+    Convert supported YouTube URLs into a safe embed URL.
+
+    Supported:
+    - https://www.youtube.com/watch?v=VIDEO_ID
+    - https://youtu.be/VIDEO_ID
+    - https://www.youtube.com/embed/VIDEO_ID
+    - https://www.youtube.com/shorts/VIDEO_ID
+    - YouTube watch URLs containing a playlist
+    """
+
+    if not video_url:
+        return None
+
+    try:
+        parsed = urlparse(video_url.strip())
+    except ValueError:
+        return None
+
+    hostname = (
+        parsed.hostname or ""
+    ).lower()
+
+    def build_embed_url(video_id, playlist_id=None):
+        if not YOUTUBE_VIDEO_ID_PATTERN.fullmatch(
+            video_id or ""
+        ):
+            return None
+
+        embed_url = (
+            "https://www.youtube.com/embed/"
+            f"{video_id}"
+        )
+
+        if playlist_id:
+            embed_url += f"?list={playlist_id}"
+
+        return embed_url
+
+    # ---------------------------------------------------------
+    # youtu.be/VIDEO_ID
+    # ---------------------------------------------------------
+
+    if hostname == "youtu.be":
+
+        video_id = (
+            parsed.path
+            .strip("/")
+            .split("/")[0]
+        )
+
+        return build_embed_url(video_id)
+
+    # ---------------------------------------------------------
+    # youtube.com / www.youtube.com / m.youtube.com
+    # ---------------------------------------------------------
+
+    if hostname not in {
+        "www.youtube.com",
+        "youtube.com",
+        "m.youtube.com",
+    }:
+        return None
+
+    # ---------------------------------------------------------
+    # /watch?v=VIDEO_ID
+    # ---------------------------------------------------------
+
+    if parsed.path == "/watch":
+
+        query = parse_qs(parsed.query)
+
+        video_id = query.get(
+            "v",
+            [None]
+        )[0]
+
+        playlist_id = query.get(
+            "list",
+            [None]
+        )[0]
+
+        return build_embed_url(
+            video_id,
+            playlist_id
+        )
+
+    # ---------------------------------------------------------
+    # /embed/VIDEO_ID
+    # ---------------------------------------------------------
+
+    if parsed.path.startswith("/embed/"):
+
+        video_id = (
+            parsed.path
+            .split("/embed/", 1)[1]
+            .split("/", 1)[0]
+        )
+
+        return build_embed_url(video_id)
+
+    # ---------------------------------------------------------
+    # /shorts/VIDEO_ID
+    # ---------------------------------------------------------
+
+    if parsed.path.startswith("/shorts/"):
+
+        video_id = (
+            parsed.path
+            .split("/shorts/", 1)[1]
+            .split("/", 1)[0]
+        )
+
+        return build_embed_url(video_id)
+
+    return None
+
+
+
 def get_lesson_learning_context(user, lesson_id):
     """
     Build the learning context for an individual lesson.
@@ -275,6 +404,10 @@ def get_lesson_learning_context(user, lesson_id):
         return None
 
     course = lesson.module.course
+
+    youtube_embed_url = get_youtube_embed_url(
+        lesson.video_url
+    )
 
     # =========================================================
     # ACCESS CHECK
@@ -380,6 +513,7 @@ def get_lesson_learning_context(user, lesson_id):
         "next_lesson": next_lesson,
 
         "total_lessons": len(lessons),
+        "youtube_embed_url": youtube_embed_url,
 
         "current_position": (
             current_index + 1
