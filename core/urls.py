@@ -2,7 +2,6 @@ from django.urls import path
 from . import views
 from django.conf import settings
 from django.conf.urls.static import static
-from .views import upload_file
 from django.contrib import messages
 import os
 from django.contrib.auth import views as auth_views
@@ -65,7 +64,6 @@ urlpatterns = [
     path("live-class/<int:pk>/", views.live_class, name="live_class"),
     path('upload-recording/<int:class_id>/', views.upload_recording, name='upload_recording'),
     path('ai-help/', views.ai_help),
-    path("upload/", views.upload_file),
     path('delete-recording/<int:recording_id>/',views.delete_recording,name='delete_recording'),
     path("gradebook/",views.gradebook,name="gradebook"),
     path("update-grade/<int:submission_id>/",views.update_grade,name="update_grade",),

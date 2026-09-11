@@ -5434,20 +5434,8 @@ def ai_help(request):
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.core.files.storage import default_storage
 
-@csrf_exempt
-def upload_file(request):
-    if request.method == "POST" and request.FILES.get("file"):
-        file = request.FILES["file"]
-        path = default_storage.save(f"chat_files/{file.name}", file)
 
-        return JsonResponse({
-            "url": default_storage.url(path),
-            "name": file.name
-        })
-
-    return JsonResponse({"error": "Upload failed"})
 
 
 
