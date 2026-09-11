@@ -3447,7 +3447,33 @@ def check_submissions(request, assignment_id):
         submission.remarks = remarks
 
         if marks:
-            submission.marks = int(marks)
+            try:
+                marks_value = int(marks)
+            except (TypeError, ValueError):
+
+                messages.error(
+                    request,
+                    "Marks must be a valid whole number."
+                )
+
+                return redirect(
+                    "check_submissions",
+                    assignment_id=assignment.id
+                )
+
+            if marks_value < 0:
+
+                messages.error(
+                    request,
+                    "Marks cannot be negative."
+                )
+
+                return redirect(
+                    "check_submissions",
+                    assignment_id=assignment.id
+                )
+
+            submission.marks = marks_value
 
         if checked_file:
             submission.checked_file = checked_file
@@ -5575,7 +5601,27 @@ def update_grade(request, submission_id):
     remarks = request.POST.get("remarks")
 
     if marks:
-        submission.marks = int(marks)
+        try:
+            marks_value = int(marks)
+        except (TypeError, ValueError):
+
+            messages.error(
+                request,
+                "Marks must be a valid whole number."
+            )
+
+            return redirect("gradebook")
+
+        if marks_value < 0:
+
+            messages.error(
+                request,
+                "Marks cannot be negative."
+            )
+
+            return redirect("gradebook")
+
+        submission.marks = marks_value
 
     submission.remarks = remarks
     submission.status = "checked"
