@@ -3473,6 +3473,19 @@ def check_submissions(request, assignment_id):
                     assignment_id=assignment.id
                 )
 
+            if marks_value > assignment.max_marks:
+
+                messages.error(
+                    request,
+                    f"Marks cannot exceed the maximum "
+                    f"of {assignment.max_marks}."
+                )
+
+                return redirect(
+                    "check_submissions",
+                    assignment_id=assignment.id
+                )
+
             submission.marks = marks_value
 
         if checked_file:
@@ -5605,6 +5618,16 @@ def update_grade(request, submission_id):
             messages.error(
                 request,
                 "Marks cannot be negative."
+            )
+
+            return redirect("gradebook")
+
+        if marks_value > submission.assignment.max_marks:
+
+            messages.error(
+                request,
+                f"Marks cannot exceed the maximum "
+                f"of {submission.assignment.max_marks}."
             )
 
             return redirect("gradebook")
