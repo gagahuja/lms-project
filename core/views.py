@@ -5778,10 +5778,23 @@ from django.shortcuts import get_object_or_404
 
 @login_required
 def upload_recording(request, class_id):
-    live_class = get_object_or_404(LiveClass, id=class_id)
 
-    # Only the teacher who owns the course can upload
-    if live_class.course.teacher != request.user:
+    live_class = get_object_or_404(
+        LiveClass,
+        id=class_id
+    )
+
+    # ---------------------------------------------------------
+    # ONLY THE COURSE TEACHER MAY UPLOAD
+    # ---------------------------------------------------------
+
+    if live_class.course.teacher_id != request.user.id:
+
+        messages.error(
+            request,
+            "You are not authorized to upload this recording."
+        )
+
         return redirect("dashboard")
 
     recording = Recording.objects.filter(
@@ -5789,27 +5802,157 @@ def upload_recording(request, class_id):
     ).first()
 
     if request.method == "POST":
+
         video = request.FILES.get("video")
 
-        if video:
-            try:
-                recording, created = Recording.objects.update_or_create(
+        # -----------------------------------------------------
+        # FILE REQUIRED
+        # -----------------------------------------------------
+
+        if not video:
+
+            messages.error(
+                request,
+                "Please select a video before uploading."
+            )
+
+            return redirect(
+                "upload_recording",
+                class_id=live_class.id
+            )
+
+        # -----------------------------------------------------
+        # FILE SIZE VALIDATION
+        # -----------------------------------------------------
+
+        MAX_RECORDING_SIZE = 10 * 1024 * 1024
+
+        if video.size > MAX_RECORDING_SIZE:
+
+            messages.error(
+                request,
+                "Maximum recording size is 10 MB."
+            )
+
+            return redirect(
+                "upload_recording",
+                class_id=live_class.id
+            )
+
+        # -----------------------------------------------------
+        # FILE TYPE VALIDATION
+        # -----------------------------------------------------
+
+        import os
+
+        allowed_extensions = {
+            ".mp4": "video/mp4",
+            ".webm": "video/webm",
+        }
+
+        extension = os.path.splitext(
+            video.name
+        )[1].lower()
+
+        expected_content_type = (
+            allowed_extensions.get(extension)
+        )
+
+        if expected_content_type is None:
+
+            messages.error(
+                request,
+                "Only MP4 and WebM video files are allowed."
+            )
+
+            return redirect(
+                "upload_recording",
+                class_id=live_class.id
+            )
+
+        if video.content_type != expected_content_type:
+
+            messages.error(
+                request,
+                "The uploaded video type does not match "
+                "the selected file format."
+            )
+
+            return redirect(
+                "upload_recording",
+                class_id=live_class.id
+            )
+
+        # -----------------------------------------------------
+        # SAVE NEW RECORDING
+        # -----------------------------------------------------
+
+        try:
+
+            old_video = None
+
+            if recording and recording.video:
+
+                old_video = recording.video
+
+            if recording:
+
+                recording.video = video
+
+                recording.save(
+                    update_fields=["video"]
+                )
+
+            else:
+
+                recording = Recording.objects.create(
                     live_class=live_class,
-                    defaults={
-                        "video": video
-                    }
+                    video=video,
                 )
 
-                messages.success(
-                    request,
-                    "Recording uploaded successfully."
-                )
+            # -------------------------------------------------
+            # DELETE OLD CLOUDINARY FILE
+            # -------------------------------------------------
 
-                return redirect("dashboard")
+            if old_video:
 
-            except Exception as e:
-                print("RECORDING ERROR:", str(e))
-                return HttpResponse(f"ERROR: {str(e)}")
+                try:
+
+                    old_video.delete(
+                        save=False
+                    )
+
+                except Exception:
+
+                    # New recording has already been saved.
+                    # Keep it even if old-asset cleanup fails.
+                    import traceback
+                    traceback.print_exc()
+
+            messages.success(
+                request,
+                "Recording uploaded successfully."
+            )
+
+            return redirect(
+                "dashboard"
+            )
+
+        except Exception:
+
+            import traceback
+            traceback.print_exc()
+
+            messages.error(
+                request,
+                "The recording could not be uploaded. "
+                "Please try again."
+            )
+
+            return redirect(
+                "upload_recording",
+                class_id=live_class.id
+            )
 
     return render(
         request,
