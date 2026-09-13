@@ -12,7 +12,7 @@ from .models import Recording
 from .models import CourseRequest
 from .models import Subscription
 from .models import Attendance
-from .models import (PaymentTransaction,)
+from .models import (PaymentTransaction,Refund,)
 
 
 
@@ -123,6 +123,50 @@ class PaymentTransactionAdmin(admin.ModelAdmin):
         "captured_at",
     )
 
+
+@admin.register(Refund)
+class RefundAdmin(admin.ModelAdmin):
+
+    list_display = (
+        "id",
+        "payment_transaction",
+        "razorpay_refund_id",
+        "razorpay_payment_id",
+        "amount",
+        "currency",
+        "status",
+        "created_at",
+        "processed_at",
+    )
+
+    list_filter = (
+        "status",
+        "currency",
+        "created_at",
+        "processed_at",
+    )
+
+    search_fields = (
+        "razorpay_refund_id",
+        "razorpay_payment_id",
+        "razorpay_event_id",
+        "payment_transaction__razorpay_order_id",
+        "payment_transaction__student__username",
+        "payment_transaction__student__email",
+        "payment_transaction__course__title",
+    )
+
+    readonly_fields = (
+        "payment_transaction",
+        "razorpay_refund_id",
+        "razorpay_payment_id",
+        "razorpay_event_id",
+        "amount",
+        "currency",
+        "status",
+        "created_at",
+        "processed_at",
+    )
     
 admin.site.register(Subscription, SubscriptionAdmin)
 admin.site.register(Enrollment, EnrollmentAdmin)

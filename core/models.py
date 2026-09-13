@@ -123,6 +123,64 @@ class PaymentTransaction(models.Model):
             f"{self.status}"
         )
     
+
+class Refund(models.Model):
+
+    STATUS_CHOICES = (
+        ("created", "Created"),
+        ("processed", "Processed"),
+        ("failed", "Failed"),
+    )
+
+    payment_transaction = models.ForeignKey(
+        PaymentTransaction,
+        on_delete=models.PROTECT,
+        related_name="refunds",
+    )
+
+    razorpay_refund_id = models.CharField(
+        max_length=100,
+        unique=True,
+    )
+
+    razorpay_payment_id = models.CharField(
+        max_length=100,
+    )
+
+    razorpay_event_id = models.CharField(
+        max_length=100,
+        unique=True,
+    )
+
+    amount = models.PositiveIntegerField()
+
+    currency = models.CharField(
+        max_length=10,
+        default="INR",
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="created",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    processed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    def __str__(self):
+        return (
+            f"{self.payment_transaction.student.username} - "
+            f"{self.razorpay_refund_id} - "
+            f"{self.status}"
+        )
+
     
 #Live Class Model
 class LiveClass(models.Model):
@@ -513,5 +571,3 @@ def create_student_profile(sender, instance, created, **kwargs):
         StudentProfile.objects.get_or_create(
             student=instance
         )
-
-

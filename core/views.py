@@ -500,7 +500,7 @@ def create_live_class(request):
 
 import razorpay
 from django.conf import settings
-from .models import (Course,Enrollment,PaymentTransaction,)
+from .models import (Course,Enrollment,PaymentTransaction,Refund,)
 
 @login_required
 def buy_course(request, course_id):
@@ -1175,23 +1175,6 @@ def razorpay_webhook(request):
             status=400
         )
 
-    # ---------------------------------------------------------
-    # DUPLICATE EVENT CHECK
-    # ---------------------------------------------------------
-
-    if PaymentTransaction.objects.filter(
-        razorpay_event_id=webhook_event_id
-    ).exists():
-
-        logger.info(
-            "Duplicate Razorpay webhook ignored: event_id=%s",
-            webhook_event_id,
-        )
-
-        return HttpResponse(
-            "OK",
-            status=200
-        )
 
     # ---------------------------------------------------------
     # PARSE JSON AFTER SIGNATURE VERIFICATION
@@ -1215,6 +1198,54 @@ def razorpay_webhook(request):
         )
 
     event_name = data.get("event")
+
+    # ---------------------------------------------------------
+    # DUPLICATE EVENT CHECK
+    # ---------------------------------------------------------
+
+    if event_name in {
+        "payment.failed",
+        "payment.captured",
+    }:
+
+        if PaymentTransaction.objects.filter(
+            razorpay_event_id=webhook_event_id
+        ).exists():
+
+            logger.info(
+                "Duplicate Razorpay payment webhook ignored: "
+                "event_id=%s event=%s",
+                webhook_event_id,
+                event_name,
+            )
+
+            return HttpResponse(
+                "OK",
+                status=200
+            )
+
+
+    elif event_name in {
+        "refund.created",
+        "refund.processed",
+        "refund.failed",
+    }:
+
+        if Refund.objects.filter(
+            razorpay_event_id=webhook_event_id
+        ).exists():
+
+            logger.info(
+                "Duplicate Razorpay refund webhook ignored: "
+                "event_id=%s event=%s",
+                webhook_event_id,
+                event_name,
+            )
+
+            return HttpResponse(
+                "OK",
+                status=200
+            )
 
     # ---------------------------------------------------------
     # HANDLE PAYMENT FAILED
@@ -1724,6 +1755,369 @@ def razorpay_webhook(request):
         return HttpResponse(
             "OK",
             status=200
+        )
+
+    # ---------------------------------------------------------
+    # HANDLE REFUND EVENTS
+    # ---------------------------------------------------------
+
+    if event_name in {
+        "refund.created",
+        "refund.processed",
+        "refund.failed",
+    }:
+
+        try:
+
+            refund = (
+                data["payload"]
+                ["refund"]
+                ["entity"]
+            )
+
+            refund_id = refund.get("id")
+            payment_id = refund.get("payment_id")
+            refund_amount = refund.get("amount")
+            refund_currency = refund.get("currency")
+
+            if not refund_id:
+                raise ValueError(
+                    "Missing Razorpay refund ID."
+                )
+
+            if not payment_id:
+                raise ValueError(
+                    "Missing Razorpay payment ID."
+                )
+
+            if refund_amount is None:
+                raise ValueError(
+                    "Missing refund amount."
+                )
+
+            if not refund_currency:
+                raise ValueError(
+                    "Missing refund currency."
+                )
+
+        except (KeyError, TypeError, ValueError) as e:
+
+            logger.warning(
+                "Razorpay refund webhook contained "
+                "invalid data: %s",
+                str(e),
+            )
+
+            return HttpResponse(
+                "Invalid refund payload.",
+                status=400,
+            )
+
+        # -----------------------------------------------------
+        # FIND ORIGINAL PAYMENT TRANSACTION
+        # -----------------------------------------------------
+
+        payment_transaction = (
+            PaymentTransaction.objects
+            .filter(
+                razorpay_payment_id=payment_id
+            )
+            .first()
+        )
+
+        if payment_transaction is None:
+
+            logger.warning(
+                "Razorpay refund rejected: "
+                "payment transaction not found "
+                "for payment_id=%s",
+                payment_id,
+            )
+
+            return HttpResponse(
+                "Payment transaction not found.",
+                status=400,
+            )
+
+        # -----------------------------------------------------
+        # VERIFY REFUND CURRENCY
+        # -----------------------------------------------------
+
+        if refund_currency != payment_transaction.currency:
+
+            logger.warning(
+                "Razorpay refund rejected: "
+                "currency mismatch for refund_id=%s",
+                refund_id,
+            )
+
+            return HttpResponse(
+                "Refund currency verification failed.",
+                status=400,
+            )
+
+        # -----------------------------------------------------
+        # DETERMINE INCOMING STATUS
+        # -----------------------------------------------------
+
+        incoming_status = {
+            "refund.created": "created",
+            "refund.failed": "failed",
+            "refund.processed": "processed",
+        }[event_name]
+
+        status_priority = {
+            "created": 1,
+            "failed": 2,
+            "processed": 3,
+        }
+
+        # -----------------------------------------------------
+        # FIND EXISTING REFUND
+        # -----------------------------------------------------
+
+        existing_refund = (
+            Refund.objects
+            .filter(
+                razorpay_refund_id=refund_id
+            )
+            .first()
+        )
+
+        # -----------------------------------------------------
+        # EXPLICIT DUPLICATE EVENT CHECK
+        # -----------------------------------------------------
+
+        if (
+            existing_refund is not None
+            and existing_refund.razorpay_event_id
+            == webhook_event_id
+        ):
+
+            logger.info(
+                "Duplicate Razorpay refund webhook ignored: "
+                "refund_id=%s event_id=%s event=%s",
+                refund_id,
+                webhook_event_id,
+                event_name,
+            )
+
+            return HttpResponse(
+                "OK",
+                status=200,
+            )
+
+        # -----------------------------------------------------
+        # VERIFY EXISTING REFUND CONSISTENCY
+        # -----------------------------------------------------
+
+        if existing_refund is not None:
+
+            if (
+                existing_refund.razorpay_payment_id
+                != payment_id
+            ):
+
+                logger.warning(
+                    "Razorpay refund rejected: "
+                    "payment mismatch for refund_id=%s",
+                    refund_id,
+                )
+
+                return HttpResponse(
+                    "Refund payment verification failed.",
+                    status=400,
+                )
+
+            if (
+                existing_refund.amount
+                != int(refund_amount)
+            ):
+
+                logger.warning(
+                    "Razorpay refund rejected: "
+                    "amount mismatch for refund_id=%s",
+                    refund_id,
+                )
+
+                return HttpResponse(
+                    "Refund amount verification failed.",
+                    status=400,
+                )
+
+            if (
+                existing_refund.currency
+                != refund_currency
+            ):
+
+                logger.warning(
+                    "Razorpay refund rejected: "
+                    "currency mismatch for refund_id=%s",
+                    refund_id,
+                )
+
+                return HttpResponse(
+                    "Refund currency verification failed.",
+                    status=400,
+                )
+
+        # -----------------------------------------------------
+        # CREATE / UPDATE REFUND LEDGER
+        # -----------------------------------------------------
+
+        try:
+
+            with transaction.atomic():
+
+                if existing_refund is None:
+
+                    refund_record = Refund.objects.create(
+                        payment_transaction=payment_transaction,
+                        razorpay_refund_id=refund_id,
+                        razorpay_payment_id=payment_id,
+                        razorpay_event_id=webhook_event_id,
+                        amount=int(refund_amount),
+                        currency=refund_currency,
+                        status=incoming_status,
+                        processed_at=(
+                            timezone.now()
+                            if incoming_status == "processed"
+                            else None
+                        ),
+                    )
+
+                else:
+
+                    refund_record = existing_refund
+
+                    current_priority = status_priority.get(
+                        refund_record.status,
+                        0,
+                    )
+
+                    incoming_priority = status_priority[
+                        incoming_status
+                    ]
+
+                    # -------------------------------------------------
+                    # ONLY MOVE FORWARD IN STATUS
+                    # -------------------------------------------------
+
+                    if incoming_priority < current_priority:
+
+                        logger.info(
+                            "Stale Razorpay refund event ignored: "
+                            "refund_id=%s current_status=%s "
+                            "incoming_status=%s event_id=%s",
+                            refund_id,
+                            refund_record.status,
+                            incoming_status,
+                            webhook_event_id,
+                        )
+
+                        return HttpResponse(
+                            "OK",
+                            status=200,
+                        )
+
+                    fields_to_update = []
+
+                    if (
+                        incoming_priority
+                        > current_priority
+                    ):
+                        refund_record.status = (
+                            incoming_status
+                        )
+
+                        fields_to_update.append(
+                            "status"
+                        )
+
+                    # -------------------------------------------------
+                    # RECORD FINAL PROCESSED TIME
+                    # -------------------------------------------------
+
+                    if (
+                        incoming_status == "processed"
+                        and refund_record.processed_at is None
+                    ):
+
+                        refund_record.processed_at = (
+                            timezone.now()
+                        )
+
+                        fields_to_update.append(
+                            "processed_at"
+                        )
+
+                    # -------------------------------------------------
+                    # STORE LATEST ACCEPTED EVENT ID
+                    # -------------------------------------------------
+
+                    if (
+                        incoming_priority
+                        >= current_priority
+                    ):
+
+                        refund_record.razorpay_event_id = (
+                            webhook_event_id
+                        )
+
+                        fields_to_update.append(
+                            "razorpay_event_id"
+                        )
+
+                    if fields_to_update:
+
+                        refund_record.save(
+                            update_fields=fields_to_update
+                        )
+
+        except Exception:
+
+            logger.exception(
+                "Failed to record Razorpay refund: "
+                "refund_id=%s payment_id=%s",
+                refund_id,
+                payment_id,
+            )
+
+            return HttpResponse(
+                "Refund processing failed.",
+                status=500,
+            )
+
+        logger.info(
+            "Razorpay refund recorded: "
+            "refund_id=%s payment_id=%s "
+            "amount=%s status=%s event_id=%s",
+            refund_id,
+            payment_id,
+            refund_amount,
+            refund_record.status,
+            webhook_event_id,
+        )
+
+        return HttpResponse(
+            "OK",
+            status=200,
+        )
+
+    # ---------------------------------------------------------
+    # HANDLE REFUND SPEED CHANGED
+    # ---------------------------------------------------------
+
+    if event_name == "refund.speed_changed":
+
+        logger.info(
+            "Razorpay refund speed changed: event_id=%s",
+            webhook_event_id,
+        )
+
+        return HttpResponse(
+            "OK",
+            status=200,
         )
 
     # ---------------------------------------------------------
