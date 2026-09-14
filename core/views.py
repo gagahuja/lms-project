@@ -3611,27 +3611,13 @@ def serve_assignment_file(request, assignment_id):
             status=404
         )
 
-    import mimetypes
+    # ---------------------------------------------------------
+    # REDIRECT TO CLOUDINARY
+    # ---------------------------------------------------------
 
-    content_type, _ = mimetypes.guess_type(
-        assignment.file.name
+    return redirect(
+        assignment.file.url
     )
-
-    if not content_type:
-
-        content_type = "application/octet-stream"
-
-    response = FileResponse(
-        assignment.file.open("rb"),
-        content_type=content_type
-    )
-
-    response["Content-Disposition"] = (
-        f'inline; filename="'
-        f'{assignment.file.name.split("/")[-1]}"'
-    )
-
-    return response
 
 
 @login_required
