@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.db.models import Avg, Max, Min, Sum
+from django.db.models import Avg, Max, Min, Sum, Count
 from django.utils import timezone
 
 from core.models import (
@@ -104,6 +104,9 @@ def build_teacher_dashboard(user):
         LiveClass.objects.filter(
             course__in=courses,
             is_completed=False
+        )
+        .annotate(
+            recording_count=Count("recordings")
         )
         .order_by("-date")
     )

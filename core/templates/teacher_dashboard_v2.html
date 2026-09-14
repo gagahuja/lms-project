@@ -740,6 +740,30 @@
 
                     {% endif %}
 
+
+                    <!-- RECORDING -->
+                    {% if cls.recording_count %}
+
+                        <a
+                            href="{% url 'upload_recording' cls.id %}"
+                            class="btn btn-warning btn-sm">
+
+                            🔄 Replace Recording
+
+                        </a>
+
+                    {% else %}
+
+                        <a
+                            href="{% url 'upload_recording' cls.id %}"
+                            class="btn btn-primary btn-sm">
+
+                            🎥 Upload Recording
+
+                        </a>
+
+                    {% endif %}
+
                 </div>
 
             </div>
