@@ -3683,27 +3683,13 @@ def serve_submission_file(request, submission_id):
             status=404
         )
 
-    import mimetypes
+    # ---------------------------------------------------------
+    # REDIRECT TO CLOUDINARY
+    # ---------------------------------------------------------
 
-    content_type, _ = mimetypes.guess_type(
-        submission.file.name
+    return redirect(
+        submission.file.url
     )
-
-    if not content_type:
-
-        content_type = "application/octet-stream"
-
-    response = FileResponse(
-        submission.file.open("rb"),
-        content_type=content_type
-    )
-
-    response["Content-Disposition"] = (
-        f'inline; filename="'
-        f'{submission.file.name.split("/")[-1]}"'
-    )
-
-    return response
 
 
 @login_required
@@ -3769,28 +3755,13 @@ def serve_checked_submission_file(request, submission_id):
             status=404
         )
 
-    import mimetypes
+    # ---------------------------------------------------------
+    # REDIRECT TO CLOUDINARY
+    # ---------------------------------------------------------
 
-    content_type, _ = mimetypes.guess_type(
-        submission.checked_file.name
+    return redirect(
+        submission.checked_file.url
     )
-
-    if not content_type:
-
-        content_type = "application/octet-stream"
-
-    response = FileResponse(
-        submission.checked_file.open("rb"),
-        content_type=content_type
-    )
-
-    response["Content-Disposition"] = (
-        f'inline; filename="'
-        f'{submission.checked_file.name.split("/")[-1]}"'
-    )
-
-    return response
-
 
 
 from django.contrib.auth.decorators import login_required
