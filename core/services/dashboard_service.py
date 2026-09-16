@@ -18,6 +18,8 @@ from core.models import (
     StudentProfile,
     User,
     Doubt,
+    PaymentTransaction,
+    Refund,
 )
 
 from core.services.streak_service import update_streak
@@ -157,12 +159,29 @@ def build_teacher_dashboard(user):
         1,
     )
 
-    total_revenue = (
-        Enrollment.objects.filter(
-            course__in=courses
+    captured_revenue = (
+        PaymentTransaction.objects.filter(
+            course__in=courses,
+            status="captured",
+            currency="INR",
         ).aggregate(
-            revenue=Sum("course__price")
+            revenue=Sum("amount")
         )["revenue"] or 0
+    )
+
+    processed_refunds = (
+        Refund.objects.filter(
+            payment_transaction__course__in=courses,
+            status="processed",
+            currency="INR",
+        ).aggregate(
+            refunds=Sum("amount")
+        )["refunds"] or 0
+    )
+
+    total_revenue = round(
+        (captured_revenue - processed_refunds) / 100,
+        2,
     )
 
     total_live_classes = live_classes.count()
