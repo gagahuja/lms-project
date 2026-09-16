@@ -144,6 +144,11 @@ def build_teacher_dashboard(user):
         status="submitted"
     ).count()
 
+    checked_submissions = max(
+        total_submissions - pending_reviews,
+        0,
+    )
+
     pending_submissions = pending_reviews
 
     checked = submissions.filter(
@@ -254,6 +259,8 @@ def build_teacher_dashboard(user):
         "total_submissions": total_submissions,
 
         "pending_reviews": pending_reviews,
+
+        "checked_submissions": checked_submissions,
 
         "pending_submissions": pending_submissions,
 
