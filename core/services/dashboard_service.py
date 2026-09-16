@@ -73,26 +73,25 @@ def build_teacher_dashboard(user):
     # CHAT STUDENTS
     # =========================================================
 
-    chat_students = []
-
-    for course in courses:
-
-        course_students = (
-            User.objects
+    chat_students = [
+        {
+            "course": enrollment.course,
+            "student": enrollment.student,
+        }
+        for enrollment in (
+            Enrollment.objects
             .filter(
-                enrollment__course=course,
-                user_type="student",
+                course__in=courses,
+                student__user_type="student",
+            )
+            .select_related("course", "student")
+            .order_by(
+                "course__title",
+                "student__username",
             )
             .distinct()
-            .order_by("username")
         )
-
-        for student in course_students:
-
-            chat_students.append({
-                "course": course,
-                "student": student,
-            })
+    ]
 
     assignments = Assignment.objects.filter(
         lesson__module__course__in=courses
@@ -277,9 +276,13 @@ def build_teacher_dashboard(user):
 
     assignment_stats = []
 
-    total_enrolled = Enrollment.objects.filter(
-        course__in=courses
-    ).count()
+    total_enrolled = (
+        Enrollment.objects
+        .filter(course__in=courses)
+        .values("student_id")
+        .distinct()
+        .count()
+    )
 
     for assignment in assignments:
 
@@ -364,65 +367,97 @@ def build_teacher_dashboard(user):
     context["assignment_stats"] = assignment_stats
 
     # ==========================================
-    # Top Students
+    # Student Performance Data
     # ==========================================
-
-    top_students = []
 
     total_lessons = Lesson.objects.filter(
         module__course__in=courses
     ).count()
 
+    student_progress_map = {
+        row["student_id"]: row["completed"]
+        for row in (
+            Progress.objects
+            .filter(
+                student__in=students,
+                lesson__module__course__in=courses,
+                completed=True,
+            )
+            .values("student_id")
+            .annotate(completed=Count("id"))
+        )
+    }
+
+    student_submission_map = {
+        row["student_id"]: row["submitted"]
+        for row in (
+            Submission.objects
+            .filter(
+                student__in=students,
+                assignment__lesson__module__course__in=courses,
+            )
+            .values("student_id")
+            .annotate(submitted=Count("id"))
+        )
+    }
+
+    student_marks_map = {
+        row["student_id"]: row["average"]
+        for row in (
+            Submission.objects
+            .filter(
+                student__in=students,
+                assignment__lesson__module__course__in=courses,
+                status="checked",
+                marks__isnull=False,
+            )
+            .values("student_id")
+            .annotate(average=Avg("marks"))
+        )
+    }
+
+    total_student_assignments = assignments.count()
+
+    # ==========================================
+    # Top Students
+    # ==========================================
+
+    top_students = []
+
     for student in students:
 
-        checked = Submission.objects.filter(
-            student=student,
-            assignment__lesson__module__course__in=courses,
-            status="checked",
-            marks__isnull=False
+        completed = student_progress_map.get(
+            student.id,
+            0,
         )
-
-        average = (
-            checked.aggregate(
-                Avg("marks")
-            )["marks__avg"]
-            or 0
-        )
-
-        completed = Progress.objects.filter(
-            student=student,
-            lesson__module__course__in=courses,
-            completed=True
-        ).count()
 
         progress = 0
 
         if total_lessons:
-
             progress = round(
                 completed * 100 / total_lessons
             )
 
+        average = student_marks_map.get(
+            student.id,
+            0,
+        )
+
         top_students.append({
-
             "student": student,
-
             "average": round(
-                average,
-                1
+                average or 0,
+                1,
             ),
-
             "progress": progress,
-
         })
 
     top_students.sort(
         key=lambda x: x["average"],
-        reverse=True
+        reverse=True,
     )
 
     context["top_students"] = top_students[:10]
-
 
     # ==========================================
     # Students Needing Attention
@@ -432,46 +467,36 @@ def build_teacher_dashboard(user):
 
     for student in students:
 
-        completed = Progress.objects.filter(
-            student=student,
-            lesson__module__course__in=courses,
-            completed=True
-        ).count()
+        completed = student_progress_map.get(
+            student.id,
+            0,
+        )
 
         progress = 0
 
         if total_lessons:
-
             progress = round(
                 completed * 100 / total_lessons
             )
 
-        total_student_assignments = Assignment.objects.filter(
-            lesson__module__course__in=courses
-        ).count()
-
-        submitted = Submission.objects.filter(
-            student=student,
-            assignment__lesson__module__course__in=courses
-        ).count()
+        submitted = student_submission_map.get(
+            student.id,
+            0,
+        )
 
         pending = max(
             total_student_assignments - submitted,
-            0
+            0,
         )
 
-        checked = Submission.objects.filter(
-            student=student,
-            assignment__lesson__module__course__in=courses,
-            status="checked",
-            marks__isnull=False
+        average = student_marks_map.get(
+            student.id,
+            0,
         )
 
-        average = (
-            checked.aggregate(
-                Avg("marks")
-            )["marks__avg"]
-            or 0
+        average = round(
+            average or 0,
+            1,
         )
 
         if (
@@ -479,20 +504,11 @@ def build_teacher_dashboard(user):
             or pending > 3
             or average < 40
         ):
-
             attention_students.append({
-
                 "student": student,
-
                 "progress": progress,
-
                 "pending": pending,
-
-                "average": round(
-                    average,
-                    1
-                )
-
+                "average": average,
             })
 
     context["attention_students"] = attention_students
