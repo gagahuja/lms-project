@@ -63,7 +63,6 @@ urlpatterns = [
     path('typing/', views.typing),
     path("live-class/<int:pk>/", views.live_class, name="live_class"),
     path('upload-recording/<int:class_id>/', views.upload_recording, name='upload_recording'),
-    path('ai-help/', views.ai_help),
     path('delete-recording/<int:recording_id>/',views.delete_recording,name='delete_recording'),
     path("gradebook/",views.gradebook,name="gradebook"),
     path("update-grade/<int:submission_id>/",views.update_grade,name="update_grade",),

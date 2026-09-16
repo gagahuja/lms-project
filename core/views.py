@@ -5979,15 +5979,6 @@ from .models import Message
 import json
 from django.http import JsonResponse
 
-def ai_help(request):
-    data = json.loads(request.body)
-    question = data.get("question")
-
-    # TEMP RESPONSE (you can connect OpenAI later)
-    answer = "This is AI response to: " + question
-
-    return JsonResponse({"answer": answer})
-
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
