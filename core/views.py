@@ -5500,7 +5500,10 @@ def answer_doubt(request, doubt_id):
     # ---------------------------------------------------------
 
     doubt.answer = answer
-    doubt.answer_image = answer_image
+
+    if answer_image:
+        doubt.answer_image = answer_image
+
     doubt.answered_at = timezone.now()
 
     doubt.save(
