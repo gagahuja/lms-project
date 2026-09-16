@@ -3789,6 +3789,53 @@ def check_submissions(request, assignment_id):
         marks = request.POST.get("marks")
         checked_file = request.FILES.get("checked_file")
 
+        # -----------------------------------------------------
+        # CHECKED FILE VALIDATION
+        # -----------------------------------------------------
+
+        if checked_file:
+
+            import os
+
+            allowed_extensions = {
+                ".pdf",
+                ".doc",
+                ".docx",
+                ".ppt",
+                ".pptx",
+                ".zip",
+            }
+
+            extension = os.path.splitext(
+                checked_file.name
+            )[1].lower()
+
+            if extension not in allowed_extensions:
+
+                messages.error(
+                    request,
+                    "Only PDF, DOC, DOCX, PPT, PPTX and ZIP files are allowed."
+                )
+
+                return redirect(
+                    "check_submissions",
+                    assignment_id=assignment.id
+                )
+
+            MAX_FILE_SIZE = 20 * 1024 * 1024
+
+            if checked_file.size > MAX_FILE_SIZE:
+
+                messages.error(
+                    request,
+                    "Maximum allowed checked file size is 20 MB."
+                )
+
+                return redirect(
+                    "check_submissions",
+                    assignment_id=assignment.id
+                )
+
         submission = get_object_or_404(
             Submission,
             id=submission_id,

@@ -129,7 +129,12 @@
         <input
             type="file"
             name="checked_file"
+            accept=".pdf,.doc,.docx,.ppt,.pptx,.zip"
             class="form-control mb-3">
+
+        <div class="form-text">
+            PDF, DOC, DOCX, PPT, PPTX or ZIP only. Maximum size: 20 MB.
+        </div>
 
         {% if s.checked_file %}
 

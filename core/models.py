@@ -266,7 +266,10 @@ class Submission(models.Model):
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, related_name="submissions")
     student = models.ForeignKey('User', on_delete=models.CASCADE, related_name="submissions")
 
-    file = models.FileField(upload_to='submissions/')
+    file = models.FileField(
+        upload_to="submissions/",
+        max_length=255,
+    )
     submitted_at = models.DateTimeField(auto_now_add=True)
 
     marks = models.PositiveIntegerField(
@@ -274,7 +277,12 @@ class Submission(models.Model):
         blank=True
     )
     remarks = models.TextField(blank=True, null=True)
-    checked_file = models.FileField(upload_to='checked/', blank=True, null=True)
+    checked_file = models.FileField(
+        upload_to="checked/",
+        blank=True,
+        null=True,
+        max_length=255,
+    )
     STATUS = (
         ("submitted", "Submitted"),
         ("checked", "Checked"),
