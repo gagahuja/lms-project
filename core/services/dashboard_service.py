@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.db.models import Avg, Max, Min, Sum, Count
+from django.db.models import Avg, Max, Min, Sum, Count, Q
 from django.utils import timezone
 
 from core.models import (
@@ -184,20 +184,46 @@ def build_teacher_dashboard(user):
         2,
     )
 
-    total_live_classes = live_classes.count()
+    # =========================================================
+    # TEACHER ATTENDANCE
+    # =========================================================
 
-    attendance_records = Attendance.objects.filter(
-        live_class__course__in=courses
+    attendance_classes = LiveClass.objects.filter(
+        course__in=courses
+    ).filter(
+        Q(is_completed=True) | Q(date__lte=timezone.now())
+    )
+
+    expected_attendances = 0
+
+    for attendance_class in attendance_classes:
+        expected_attendances += (
+            Enrollment.objects.filter(
+                course=attendance_class.course
+            )
+            .values("student_id")
+            .distinct()
+            .count()
+        )
+
+    actual_attendances = (
+        Attendance.objects.filter(
+            live_class__in=attendance_classes
+        )
+        .values(
+            "live_class_id",
+            "student_id",
+        )
+        .distinct()
+        .count()
     )
 
     attendance_percentage = 0
 
-    if total_live_classes:
-
+    if expected_attendances:
         attendance_percentage = round(
-            attendance_records.count()
-            * 100
-            / total_live_classes
+            actual_attendances * 100 / expected_attendances,
+            1,
         )
 
     context = {
