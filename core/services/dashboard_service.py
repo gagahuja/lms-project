@@ -94,11 +94,23 @@ def build_teacher_dashboard(user):
     ]
 
     assignments = Assignment.objects.filter(
-        lesson__module__course__in=courses
+        Q(
+            lesson__module__course__in=courses
+        )
+        |
+        Q(
+            module__course__in=courses
+        )
     )
 
     submissions = Submission.objects.filter(
-        assignment__lesson__module__course__in=courses
+        Q(
+            assignment__lesson__module__course__in=courses
+        )
+        |
+        Q(
+            assignment__module__course__in=courses
+        )
     )
 
     live_classes = (
@@ -400,8 +412,14 @@ def build_teacher_dashboard(user):
         for row in (
             Submission.objects
             .filter(
+                Q(
+                    assignment__lesson__module__course__in=courses
+                )
+                |
+                Q(
+                    assignment__module__course__in=courses
+                ),
                 student__in=students,
-                assignment__lesson__module__course__in=courses,
             )
             .values("student_id")
             .annotate(submitted=Count("id"))
@@ -413,8 +431,14 @@ def build_teacher_dashboard(user):
         for row in (
             Submission.objects
             .filter(
+                Q(
+                    assignment__lesson__module__course__in=courses
+                )
+                |
+                Q(
+                    assignment__module__course__in=courses
+                ),
                 student__in=students,
-                assignment__lesson__module__course__in=courses,
                 status="checked",
                 marks__isnull=False,
             )
@@ -528,7 +552,13 @@ def build_teacher_dashboard(user):
 
     recent_submissions = (
         Submission.objects.filter(
-            assignment__lesson__module__course__in=courses
+            Q(
+                assignment__lesson__module__course__in=courses
+            )
+            |
+            Q(
+                assignment__module__course__in=courses
+            )
         )
         .select_related(
             "student",
@@ -553,9 +583,15 @@ def build_teacher_dashboard(user):
 
     recent_reviews = (
         Submission.objects.filter(
-            assignment__lesson__module__course__in=courses,
+            Q(
+                assignment__lesson__module__course__in=courses
+            )
+            |
+            Q(
+                assignment__module__course__in=courses
+            ),
             status="checked",
-            reviewed_at__isnull=False
+            reviewed_at__isnull=False,
         )
         .select_related(
             "student",
@@ -934,10 +970,15 @@ def build_student_dashboard(user):
     assignments = (
         Assignment.objects
         .filter(
-            lesson__module__course__in=enrolled_courses
+            Q(
+                lesson__module__course__in=enrolled_courses
+            )
+            |
+            Q(
+                module__course__in=enrolled_courses
+            )
         )
     )
-
 
     assignment_data = []
 

@@ -1,4 +1,4 @@
-from django.db.models import Avg, Max, Min
+from django.db.models import Avg, Max, Min, Q
 
 from core.models import (
     Assignment,
@@ -11,7 +11,13 @@ def get_assignment_statistics(courses):
     assignment_stats = []
 
     assignments = Assignment.objects.filter(
-        lesson__module__course__in=courses
+        Q(
+            lesson__module__course__in=courses
+        )
+        |
+        Q(
+            module__course__in=courses
+        )
     )
 
     for assignment in assignments:

@@ -37,7 +37,7 @@ from .models import CallAnswer
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Prefetch
-from django.db.models import Avg, Max, Min, Count, Sum
+from django.db.models import Avg, Max, Min, Count, Sum, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.db.models.functions import TruncMonth
 from collections import defaultdict
@@ -227,11 +227,23 @@ def teacher_analytics(request):
     )
 
     assignments = Assignment.objects.filter(
-        lesson__module__course__in=courses
+        Q(
+            lesson__module__course__in=courses
+        )
+        |
+        Q(
+            module__course__in=courses
+        )
     )
 
     submissions = Submission.objects.filter(
-        assignment__lesson__module__course__in=courses
+        Q(
+            assignment__lesson__module__course__in=courses
+        )
+        |
+        Q(
+            assignment__module__course__in=courses
+        )
     )
 
     recordings = Recording.objects.filter(
@@ -976,6 +988,32 @@ def delete_teacher_module(request, module_id):
             course_id=course.id,
         )
 
+
+    if module.assignments.exists():
+
+        messages.error(
+            request,
+            "This module cannot be deleted because it contains assignments."
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+
+    if module.quizzes.exists():
+
+        messages.error(
+            request,
+            "This module cannot be deleted because it contains quizzes."
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
     # ---------------------------------------------------------
     # DELETE MODULE
     # ---------------------------------------------------------
@@ -1192,7 +1230,13 @@ def submit_assignment(request, assignment_id):
     # Check enrollment in the assignment's course
     # ---------------------------------------------------------
 
-    course = assignment.lesson.module.course
+    course = assignment.course
+
+    if course is None:
+        return HttpResponse(
+            "Assignment is not linked to a valid course.",
+            status=500,
+        )
 
     is_enrolled = Enrollment.objects.filter(
         student=request.user,
@@ -1341,12 +1385,19 @@ def view_submissions(request, assignment_id):
 
     assignment = get_object_or_404(
         Assignment.objects.select_related(
-            "lesson__module__course"
+            "lesson__module__course",
+            "module__course",
         ),
-        id=assignment_id
+        id=assignment_id,
     )
 
-    course = assignment.lesson.module.course
+    course = assignment.course
+
+    if course is None:
+        return HttpResponse(
+            "Assignment is not linked to a valid course.",
+            status=500,
+        )
 
     # ---------------------------------------------------------
     # ONLY THE COURSE TEACHER CAN VIEW SUBMISSIONS
@@ -3672,15 +3723,24 @@ from django.shortcuts import get_object_or_404
 def view_assignment(request, assignment_id):
 
     assignment = get_object_or_404(
-        Assignment,
-        id=assignment_id
+        Assignment.objects.select_related(
+            "lesson__module__course",
+            "module__course",
+        ),
+        id=assignment_id,
     )
 
     # ---------------------------------------------------------
     # GET THE COURSE THAT OWNS THIS ASSIGNMENT
     # ---------------------------------------------------------
 
-    course = assignment.lesson.module.course
+    course = assignment.course
+
+    if course is None:
+        return HttpResponse(
+            "Assignment is not linked to a valid course.",
+            status=500,
+        )
 
     # ---------------------------------------------------------
     # ACCESS CONTROL
@@ -3912,12 +3972,19 @@ def serve_assignment_file(request, assignment_id):
 
     assignment = get_object_or_404(
         Assignment.objects.select_related(
-            "lesson__module__course"
+            "lesson__module__course",
+            "module__course",
         ),
-        id=assignment_id
+        id=assignment_id,
     )
 
-    course = assignment.lesson.module.course
+    course = assignment.course
+
+    if course is None:
+        return HttpResponse(
+            "Assignment is not linked to a valid course.",
+            status=500,
+        )
 
     # ---------------------------------------------------------
     # STUDENT ACCESS
@@ -3983,12 +4050,19 @@ def serve_submission_file(request, submission_id):
     submission = get_object_or_404(
         Submission.objects.select_related(
             "student",
-            "assignment__lesson__module__course"
+            "assignment__lesson__module__course",
+            "assignment__module__course",
         ),
-        id=submission_id
+        id=submission_id,
     )
 
-    course = submission.assignment.lesson.module.course
+    course = submission.assignment.course
+
+    if course is None:
+        return HttpResponse(
+            "Assignment is not linked to a valid course.",
+            status=500,
+        )
 
     # ---------------------------------------------------------
     # STUDENT ACCESS
@@ -4055,12 +4129,19 @@ def serve_checked_submission_file(request, submission_id):
     submission = get_object_or_404(
         Submission.objects.select_related(
             "student",
-            "assignment__lesson__module__course"
+            "assignment__lesson__module__course",
+            "assignment__module__course",
         ),
-        id=submission_id
+        id=submission_id,
     )
 
-    course = submission.assignment.lesson.module.course
+    course = submission.assignment.course
+
+    if course is None:
+        return HttpResponse(
+            "Assignment is not linked to a valid course.",
+            status=500,
+        )
 
     # ---------------------------------------------------------
     # STUDENT ACCESS
@@ -4130,9 +4211,18 @@ def check_submissions(request, assignment_id):
         return redirect("dashboard")
 
     assignment = get_object_or_404(
-        Assignment,
+        Assignment.objects.select_related(
+            "lesson__module__course",
+            "module__course",
+        ),
+        Q(
+            lesson__module__course__teacher=request.user
+        )
+        |
+        Q(
+            module__course__teacher=request.user
+        ),
         id=assignment_id,
-        lesson__module__course__teacher=request.user
     )
 
     submissions = Submission.objects.filter(
@@ -6393,11 +6483,18 @@ def gradebook(request):
         return redirect("dashboard")
 
     submissions = Submission.objects.filter(
-        assignment__lesson__module__course__teacher=request.user
+        Q(
+            assignment__lesson__module__course__teacher=request.user
+        )
+        |
+        Q(
+            assignment__module__course__teacher=request.user
+        )
     ).select_related(
         "student",
         "assignment",
-        "assignment__lesson__module__course"
+        "assignment__lesson__module__course",
+        "assignment__module__course",
     )
 
     total = submissions.count()
@@ -6429,7 +6526,13 @@ def gradebook(request):
 
     if course:
         submissions = submissions.filter(
-            assignment__lesson__module__course_id=course
+            Q(
+                assignment__lesson__module__course_id=course
+            )
+            |
+            Q(
+                assignment__module__course_id=course
+            )
         )
 
     if assignment:
@@ -6458,7 +6561,13 @@ def gradebook(request):
     )
 
     assignments = Assignment.objects.filter(
-        lesson__module__course__teacher=request.user
+        Q(
+            lesson__module__course__teacher=request.user
+        )
+        |
+        Q(
+            module__course__teacher=request.user
+        )
     )
 
     return render(
@@ -6485,9 +6594,16 @@ def update_grade(request, submission_id):
         return redirect("dashboard")
 
     submission = get_object_or_404(
-        Submission,
+        Submission.objects.filter(
+            Q(
+                assignment__lesson__module__course__teacher=request.user
+            )
+            |
+            Q(
+                assignment__module__course__teacher=request.user
+            )
+        ),
         id=submission_id,
-        assignment__lesson__module__course__teacher=request.user
     )
 
     marks = request.POST.get("marks")
@@ -6563,7 +6679,13 @@ def student_performance(request):
 
         # ---------- Assignments ----------
         assignments = Assignment.objects.filter(
-            lesson__module__course__in=courses
+            Q(
+                lesson__module__course__in=courses
+            )
+            |
+            Q(
+                module__course__in=courses
+            )
         )
 
         total_assignments = assignments.count()
@@ -6679,7 +6801,13 @@ def student_report(request, student_id):
     ).distinct()
 
     assignments = Assignment.objects.filter(
-        lesson__module__course__in=courses
+        Q(
+            lesson__module__course__in=courses
+        )
+        |
+        Q(
+            module__course__in=courses
+        )
     )
 
     submissions = Submission.objects.filter(

@@ -1,4 +1,4 @@
-from django.db.models import Avg
+from django.db.models import Avg, Q
 
 from core.models import (
     Course,
@@ -21,7 +21,13 @@ def teacher_stats(user):
     )
 
     submissions = Submission.objects.filter(
-        assignment__lesson__module__course__in=courses
+        Q(
+            assignment__lesson__module__course__in=courses
+        )
+        |
+        Q(
+            assignment__module__course__in=courses
+        )
     )
 
     return {
@@ -38,7 +44,13 @@ def teacher_stats(user):
 
         "total_assignments":
             Assignment.objects.filter(
-                lesson__module__course__in=courses
+                Q(
+                    lesson__module__course__in=courses
+                )
+                |
+                Q(
+                    module__course__in=courses
+                )
             ).count(),
 
         "total_live_classes":

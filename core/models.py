@@ -248,19 +248,78 @@ class Lesson(models.Model):
 
 
 class Assignment(models.Model):
-    lesson = models.ForeignKey('Lesson', on_delete=models.CASCADE, related_name="assignments")
-    title = models.CharField(max_length=200)
-    description = models.TextField(blank=True)
+
+    lesson = models.ForeignKey(
+        'Lesson',
+        on_delete=models.CASCADE,
+        related_name="assignments",
+        null=True,
+        blank=True,
+    )
+
+    module = models.ForeignKey(
+        'Module',
+        on_delete=models.CASCADE,
+        related_name="assignments",
+        null=True,
+        blank=True,
+    )
+
+    title = models.CharField(
+        max_length=200
+    )
+
+    description = models.TextField(
+        blank=True
+    )
+
     file = models.FileField(
         upload_to='assignments/',
         storage=RawMediaCloudinaryStorage()
     )
+
     due_date = models.DateField()
-    max_marks = models.PositiveIntegerField(default=100)
-    created_at = models.DateTimeField(auto_now_add=True)
+
+    max_marks = models.PositiveIntegerField(
+        default=100
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
 
     def __str__(self):
         return self.title
+
+    @property
+    def course(self):
+
+        if self.lesson_id:
+            return self.lesson.module.course
+
+        if self.module_id:
+            return self.module.course
+
+        return None
+
+    class Meta:
+
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(
+                        lesson__isnull=False,
+                        module__isnull=True,
+                    )
+                    |
+                    models.Q(
+                        lesson__isnull=True,
+                        module__isnull=False,
+                    )
+                ),
+                name="assignment_exactly_one_parent",
+            ),
+        ]
 
 class Submission(models.Model):
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, related_name="submissions")
@@ -315,8 +374,24 @@ class Progress(models.Model):
 
 
 class Quiz(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    title = models.CharField(max_length=200)
+
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="quizzes",
+    )
+
+    module = models.ForeignKey(
+        Module,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="quizzes",
+    )
+
+    title = models.CharField(
+        max_length=200
+    )
 
     def __str__(self):
         return self.title
@@ -330,6 +405,16 @@ class Question(models.Model):
     option3 = models.CharField(max_length=200)
     option4 = models.CharField(max_length=200)
     correct_answer = models.CharField(max_length=200)
+
+    text_solution = models.TextField(
+        blank=True,
+        null=True,
+    )
+
+    video_solution_url = models.URLField(
+        blank=True,
+        null=True,
+    )
 
     def __str__(self):
         return self.question
