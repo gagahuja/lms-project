@@ -1,0 +1,526 @@
+{% extends "base.html" %}
+
+{% block global_welcome %}{% endblock %}
+
+{% block content %}
+
+<style>
+    .course-manager {
+        max-width: 1450px;
+        margin: 0 auto;
+        padding: 1.25rem;
+    }
+
+    .manager-header {
+        background: linear-gradient(
+            135deg,
+            rgba(99, 102, 241, 0.12),
+            rgba(139, 92, 246, 0.06)
+        );
+        border: 1px solid rgba(99, 102, 241, 0.15);
+        border-radius: 18px;
+        padding: 1.5rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .manager-title {
+        font-size: clamp(1.6rem, 2.4vw, 2.2rem);
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+
+    .manager-subtitle {
+        color: #64748b;
+        margin-bottom: 0;
+    }
+
+    .back-link {
+        margin-bottom: 1rem;
+    }
+
+    .summary-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 1rem;
+        height: 100%;
+    }
+
+    .summary-label {
+        color: #64748b;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .summary-value {
+        color: #0f172a;
+        font-size: 1.6rem;
+        font-weight: 700;
+        margin-top: 0.25rem;
+    }
+
+    .content-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .content-header {
+        padding: 1rem 1.15rem;
+        border-bottom: 1px solid #eef2f7;
+    }
+
+    .module-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+
+    .module-card:last-child {
+        margin-bottom: 0;
+    }
+
+    .module-header {
+        background: #f8fafc;
+        padding: 0.9rem 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .module-title {
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .lesson-row {
+        padding: 0.85rem 1rem;
+        border-top: 1px solid #eef2f7;
+    }
+
+    .lesson-title {
+        font-weight: 650;
+        color: #334155;
+    }
+
+    .assignment-row {
+        margin-top: 0.55rem;
+        padding-left: 1rem;
+        font-size: 0.82rem;
+        color: #64748b;
+    }
+
+    .empty-state {
+        padding: 3rem 1rem;
+        text-align: center;
+        color: #64748b;
+    }
+
+    .dark-mode .manager-header,
+    .dark-mode .summary-card,
+    .dark-mode .content-card {
+        background: #0f172a;
+        border-color: #1e293b;
+    }
+
+    .dark-mode .manager-subtitle,
+    .dark-mode .summary-label {
+        color: #94a3b8;
+    }
+
+    .dark-mode .summary-value,
+    .dark-mode .module-title,
+    .dark-mode .lesson-title {
+        color: #e2e8f0;
+    }
+
+    .dark-mode .module-header {
+        background: #111827;
+    }
+
+    .dark-mode .lesson-row {
+        border-color: #1e293b;
+    }
+
+    @media (max-width: 768px) {
+        .course-manager {
+            padding: 0.75rem;
+        }
+
+        .module-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+    }
+</style>
+
+<div class="course-manager">
+
+    <div class="back-link">
+        <a href="{% url 'dashboard' %}"
+           class="btn btn-sm btn-outline-secondary">
+            ← Back to Dashboard
+        </a>
+    </div>
+
+
+    <!-- HEADER -->
+
+    <div class="manager-header">
+
+        <div class="d-flex flex-column flex-lg-row
+                    justify-content-between
+                    align-items-lg-center
+                    gap-3">
+
+            <div>
+
+                <div class="small text-muted mb-1">
+                    TEACHER COURSE MANAGER
+                </div>
+
+                <h1 class="manager-title">
+                    {{ course.title }}
+                </h1>
+
+                <p class="manager-subtitle">
+                    Manage and review your course structure and content.
+                </p>
+
+            </div>
+
+            {% if course.is_private %}
+                <span class="badge rounded-pill text-bg-secondary">
+                    Private Course
+                </span>
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- SUMMARY -->
+
+    <div class="row g-3 mb-4">
+
+        <div class="col-6 col-md-3">
+            <div class="summary-card">
+                <div class="summary-label">Students</div>
+                <div class="summary-value">
+                    {{ total_students }}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="summary-card">
+                <div class="summary-label">Modules</div>
+                <div class="summary-value">
+                    {{ total_modules }}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="summary-card">
+                <div class="summary-label">Lessons</div>
+                <div class="summary-value">
+                    {{ total_lessons }}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="summary-card">
+                <div class="summary-label">Assignments</div>
+                <div class="summary-value">
+                    {{ total_assignments }}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- COURSE CONTENT -->
+
+    <div class="content-card">
+
+        <div class="content-header">
+
+            <div class="d-flex flex-column flex-md-row
+                        justify-content-between
+                        align-items-md-center
+                        gap-3">
+
+                <div>
+
+                    <h2 class="h5 mb-1">
+                        Course Content
+                    </h2>
+
+                    <div class="small text-muted">
+                        Manage the module, lesson and assignment structure.
+                    </div>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="btn btn-sm btn-primary"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#addModuleForm"
+                    aria-expanded="false"
+                    aria-controls="addModuleForm"
+                >
+                    + Add Module
+                </button>
+
+            </div>
+
+
+            <div class="collapse mt-3" id="addModuleForm">
+
+                <form
+                    method="POST"
+                    action="{% url 'add_teacher_module' course.id %}"
+                    class="border rounded-3 p-3 bg-light"
+                >
+
+                    {% csrf_token %}
+
+                    <label
+                        for="module-title"
+                        class="form-label fw-semibold"
+                    >
+                        Module Title
+                    </label>
+
+                    <input
+                        type="text"
+                        id="module-title"
+                        name="title"
+                        class="form-control"
+                        maxlength="200"
+                        placeholder="e.g. Real Numbers"
+                        required
+                    >
+
+                    <div class="d-flex gap-2 mt-3">
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                        >
+                            Create Module
+                        </button>
+
+                        <button
+                            type="button"
+                            class="btn btn-outline-secondary"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#addModuleForm"
+                        >
+                            Cancel
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </div>
+
+        <div class="p-3">
+
+            {% for module in modules %}
+
+                <div class="module-card">
+
+                    <div class="module-header">
+
+                        <div class="d-flex align-items-center gap-2">
+
+                            <div class="module-title">
+                                📚 {{ module.title }}
+                            </div>
+
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2">
+
+                            <span class="badge rounded-pill text-bg-light">
+                                {{ module.lessons.all|length }}
+                                lesson{{ module.lessons.all|length|pluralize }}
+                            </span>
+
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-secondary"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#editModule{{ module.id }}"
+                                aria-expanded="false"
+                                aria-controls="editModule{{ module.id }}"
+                            >
+                                Edit
+                            </button>
+
+                            <form
+                                method="POST"
+                                action="{% url 'delete_teacher_module' module.id %}"
+                                class="d-inline"
+                                onsubmit="return confirm(
+                                    'Delete module &quot;{{ module.title|escapejs }}&quot;? This module must be empty.'
+                                );"
+                            >
+                                {% csrf_token %}
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-sm btn-outline-danger"
+                                >
+                                    Delete
+                                </button>
+                            </form>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="collapse" id="editModule{{ module.id }}">
+
+                        <div class="p-3 border-top bg-light">
+
+                            <form
+                                method="POST"
+                                action="{% url 'edit_teacher_module' module.id %}"
+                            >
+
+                                {% csrf_token %}
+
+                                <label
+                                    for="module-title-{{ module.id }}"
+                                    class="form-label fw-semibold"
+                                >
+                                    Module Title
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="module-title-{{ module.id }}"
+                                    name="title"
+                                    class="form-control"
+                                    maxlength="200"
+                                    value="{{ module.title }}"
+                                    required
+                                >
+
+                                <div class="d-flex gap-2 mt-3">
+
+                                    <button
+                                        type="submit"
+                                        class="btn btn-primary btn-sm"
+                                    >
+                                        Save Changes
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-outline-secondary btn-sm"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#editModule{{ module.id }}"
+                                    >
+                                        Cancel
+                                    </button>
+
+                                </div>
+
+                            </form>
+
+                        </div>
+
+                    </div>
+
+
+                    {% for lesson in module.lessons.all %}
+
+                        <div class="lesson-row">
+
+                            <div class="lesson-title">
+                                📖 {{ lesson.title }}
+                            </div>
+
+                            {% if lesson.assignments.all %}
+
+                                {% for assignment in lesson.assignments.all %}
+
+                                    <div class="assignment-row">
+                                        📝 {{ assignment.title }}
+                                        · Due
+                                        {{ assignment.due_date|date:"d M Y" }}
+                                        · Max
+                                        {{ assignment.max_marks }}
+                                        marks
+                                    </div>
+
+                                {% empty %}
+
+                                    <div class="assignment-row">
+                                        No assignments for this lesson.
+                                    </div>
+
+                                {% endfor %}
+
+                            {% else %}
+
+                                <div class="assignment-row">
+                                    No assignments for this lesson.
+                                </div>
+
+                            {% endif %}
+
+                        </div>
+
+                    {% empty %}
+
+                        <div class="p-3 text-muted small">
+                            No lessons have been added to this module yet.
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% empty %}
+
+                <div class="empty-state">
+
+                    <div class="fs-1 mb-2">
+                        📚
+                    </div>
+
+                    <h5 class="mb-1">
+                        No modules yet
+                    </h5>
+
+                    <p class="mb-0">
+                        This course does not have any modules yet.
+                    </p>
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

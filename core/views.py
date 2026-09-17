@@ -778,6 +778,302 @@ def payment_success(request, course_id):
     return redirect("dashboard")
 
 
+@require_POST
+@login_required
+def add_teacher_module(request, course_id):
+
+    # ---------------------------------------------------------
+    # GET COURSE
+    # ---------------------------------------------------------
+
+    course = get_object_or_404(
+        Course,
+        id=course_id,
+    )
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can manage courses.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to manage this course.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # GET MODULE TITLE
+    # ---------------------------------------------------------
+
+    title = request.POST.get(
+        "title",
+        "",
+    ).strip()
+
+    if not title:
+
+        messages.error(
+            request,
+            "Module title is required.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # CREATE MODULE
+    # ---------------------------------------------------------
+
+    Module.objects.create(
+        course=course,
+        title=title,
+    )
+
+    messages.success(
+        request,
+        f"Module '{title}' created successfully.",
+    )
+
+    return redirect(
+        "teacher_course_manager",
+        course_id=course.id,
+    )
+
+
+@require_POST
+@login_required
+def edit_teacher_module(request, module_id):
+
+    # ---------------------------------------------------------
+    # GET MODULE + COURSE
+    # ---------------------------------------------------------
+
+    module = get_object_or_404(
+        Module.objects.select_related("course"),
+        id=module_id,
+    )
+
+    course = module.course
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can manage courses.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to manage this course.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # GET TITLE
+    # ---------------------------------------------------------
+
+    title = request.POST.get(
+        "title",
+        "",
+    ).strip()
+
+    if not title:
+
+        messages.error(
+            request,
+            "Module title is required.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # UPDATE MODULE
+    # ---------------------------------------------------------
+
+    module.title = title
+
+    module.save(
+        update_fields=[
+            "title",
+        ]
+    )
+
+    messages.success(
+        request,
+        f"Module renamed to '{title}'.",
+    )
+
+    return redirect(
+        "teacher_course_manager",
+        course_id=course.id,
+    )
+
+
+@require_POST
+@login_required
+def delete_teacher_module(request, module_id):
+
+    # ---------------------------------------------------------
+    # GET MODULE + COURSE
+    # ---------------------------------------------------------
+
+    module = get_object_or_404(
+        Module.objects.select_related("course"),
+        id=module_id,
+    )
+
+    course = module.course
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can manage courses.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to manage this course.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # SAFETY CHECK
+    # ---------------------------------------------------------
+
+    if module.lessons.exists():
+
+        messages.error(
+            request,
+            "This module cannot be deleted because it contains lessons."
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # DELETE MODULE
+    # ---------------------------------------------------------
+
+    module_title = module.title
+
+    module.delete()
+
+    messages.success(
+        request,
+        f"Module '{module_title}' deleted successfully.",
+    )
+
+    return redirect(
+        "teacher_course_manager",
+        course_id=course.id,
+    )
+
+
+@login_required
+def teacher_course_manager(request, course_id):
+
+    # ---------------------------------------------------------
+    # GET COURSE
+    # ---------------------------------------------------------
+
+    course = get_object_or_404(
+        Course.objects.prefetch_related(
+            "modules__lessons__assignments",
+        ),
+        id=course_id,
+    )
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can manage courses.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to manage this course.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # COURSE COUNTS
+    # ---------------------------------------------------------
+
+    modules = list(course.modules.all())
+
+    total_modules = len(modules)
+
+    total_lessons = sum(
+        len(module.lessons.all())
+        for module in modules
+    )
+
+    total_assignments = sum(
+        len(lesson.assignments.all())
+        for module in modules
+        for lesson in module.lessons.all()
+    )
+
+    total_students = (
+        Enrollment.objects
+        .filter(course=course)
+        .values("student_id")
+        .distinct()
+        .count()
+    )
+
+    # ---------------------------------------------------------
+    # CONTEXT
+    # ---------------------------------------------------------
+
+    context = {
+        "course": course,
+        "modules": modules,
+        "total_modules": total_modules,
+        "total_lessons": total_lessons,
+        "total_assignments": total_assignments,
+        "total_students": total_students,
+    }
+
+    return render(
+        request,
+        "teacher_course_manager.html",
+        context,
+    )
+
+
 from django.shortcuts import get_object_or_404
 
 @login_required

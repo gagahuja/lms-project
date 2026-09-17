@@ -20,6 +20,26 @@ urlpatterns = [
     path('buy/<int:course_id>/', views.buy_course, name='buy_course'),
     path('payment-success/<int:course_id>/', views.payment_success),
     path('course/<int:course_id>/', views.course_detail, name='course_detail'),
+    path(
+        'teacher-course/<int:course_id>/',
+        views.teacher_course_manager,
+        name='teacher_course_manager',
+    ),
+    path(
+        'teacher-course/<int:course_id>/add-module/',
+        views.add_teacher_module,
+        name='add_teacher_module',
+    ),
+    path(
+        'teacher-module/<int:module_id>/edit/',
+        views.edit_teacher_module,
+        name='edit_teacher_module',
+    ),
+    path(
+        'teacher-module/<int:module_id>/delete/',
+        views.delete_teacher_module,
+        name='delete_teacher_module',
+    ),
     path("submit-assignment/<int:assignment_id>/",views.submit_assignment,name="submit_assignment"),
     path('submissions/<int:assignment_id>/',views.view_submissions,name='view_submissions'),
     path('webhook/', views.razorpay_webhook),
