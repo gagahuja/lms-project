@@ -3168,7 +3168,7 @@ def generate_ai_quiz(request, course_id):
             # -------------------------------------------------
 
             prompt = f"""
-Create exactly 5 multiple-choice questions for a school-level
+Generate exactly 20 multiple-choice questions for a school-level
 quiz on the topic:
 
 {topic}
@@ -3247,15 +3247,11 @@ GENERAL RULES:
             print(content)
 
             # -------------------------------------------------
-            # CREATE QUIZ
+            # VALIDATE GEMINI QUESTIONS BEFORE SAVING ANYTHING
             # -------------------------------------------------
 
-            quiz = Quiz.objects.create(
-                course=course,
-                title=f"AI Quiz - {topic}"
-            )
-
-            question_count = 0
+            valid_questions = []
+            seen_questions = set()
 
             # -------------------------------------------------
             # READ GEMINI RESPONSE
@@ -3292,33 +3288,99 @@ GENERAL RULES:
                 correct_answer = normalize_math_text(parts[5])
 
                 # -------------------------------------------------
-                # CREATE QUESTION
+                # BASIC VALIDATION
                 # -------------------------------------------------
 
-                Question.objects.create(
-                    quiz=quiz,
-                    question=question_text,
-                    option1=option1,
-                    option2=option2,
-                    option3=option3,
-                    option4=option4,
-                    correct_answer=correct_answer
-                )
+                if not all([
+                    question_text,
+                    option1,
+                    option2,
+                    option3,
+                    option4,
+                    correct_answer,
+                ]):
+                    continue
 
-                question_count += 1
+                # -------------------------------------------------
+                # CORRECT ANSWER MUST MATCH ONE OPTION
+                # -------------------------------------------------
+
+                options = {
+                    option1,
+                    option2,
+                    option3,
+                    option4,
+                }
+
+                if correct_answer not in options:
+                    continue
+
+                # -------------------------------------------------
+                # PREVENT DUPLICATE QUESTIONS
+                # -------------------------------------------------
+
+                question_key = question_text.casefold()
+
+                if question_key in seen_questions:
+                    continue
+
+                seen_questions.add(question_key)
+
+                # -------------------------------------------------
+                # STORE VALID QUESTION FOR LATER
+                # -------------------------------------------------
+
+                valid_questions.append({
+                    "question": question_text,
+                    "option1": option1,
+                    "option2": option2,
+                    "option3": option3,
+                    "option4": option4,
+                    "correct_answer": correct_answer,
+                })
 
             # -------------------------------------------------
-            # MAKE SURE QUESTIONS WERE CREATED
+            # MINIMUM 20 VALID QUESTIONS REQUIRED
             # -------------------------------------------------
 
-            if question_count == 0:
+            question_count = len(valid_questions)
 
-                quiz.delete()
+            print(
+                "VALID AI QUIZ QUESTIONS:",
+                question_count
+            )
+
+            if question_count < 20:
 
                 return HttpResponse(
-                    "❌ Gemini returned an unexpected quiz format. "
-                    "Please try again."
+                    f"❌ Quiz generation failed. "
+                    f"Only {question_count} valid questions were generated. "
+                    f"At least 20 valid questions are required. "
+                    f"Please try again."
                 )
+
+            # -------------------------------------------------
+            # CREATE QUIZ + QUESTIONS ATOMICALLY
+            # -------------------------------------------------
+
+            with transaction.atomic():
+
+                quiz = Quiz.objects.create(
+                    course=course,
+                    title=f"AI Quiz - {topic}"
+                )
+
+                for question_data in valid_questions:
+
+                    Question.objects.create(
+                        quiz=quiz,
+                        question=question_data["question"],
+                        option1=question_data["option1"],
+                        option2=question_data["option2"],
+                        option3=question_data["option3"],
+                        option4=question_data["option4"],
+                        correct_answer=question_data["correct_answer"],
+                    )
 
             # -------------------------------------------------
             # SEND TEACHER TO QUIZ
@@ -3327,7 +3389,6 @@ GENERAL RULES:
             return redirect(
                 f"/quiz/{quiz.id}/"
             )
-
         except Exception as e:
 
             print("GEMINI ERROR:", str(e))
