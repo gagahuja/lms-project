@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
 
@@ -66,22 +67,67 @@
 
     </div>
 
-    <a href="{{ s.file.url }}"
+    {% if s.file.name|lower|slice:"-4:" == ".pdf" %}
+
+        <button
+            type="button"
+            class="btn btn-primary secure-pdf-btn"
+            data-pdf-url="{% url 'serve_submission_file' s.id %}"
+            data-pdf-type="submitted"
+        >
+            👁 View Submitted PDF
+        </button>
+
+        <div
+            class="secure-pdf-container mt-3"
+            style="display:none;"
+        ></div>
+
+    {% else %}
+
+        <a href="{{ s.file.url }}"
         target="_blank"
         class="btn btn-primary">
 
-        👁 View Submitted File
+            👁 View Submitted File
 
-    </a>
+        </a>
+
+    {% endif %}
 
     {% if s.remarks %}
         <p class="mt-2"><strong>Remarks:</strong> {{ s.remarks }}</p>
     {% endif %}
 
     {% if s.checked_file %}
-        <a href="{{ s.checked_file.url }}" class="btn btn-success btn-sm mt-1">
-            Download Checked File
-        </a>
+
+        {% if s.checked_file.name|lower|slice:"-4:" == ".pdf" %}
+
+            <button
+                type="button"
+                class="btn btn-success btn-sm mt-1 secure-pdf-btn"
+                data-pdf-url="{% url 'serve_checked_submission_file' s.id %}"
+                data-pdf-type="checked"
+            >
+                📄 View Checked PDF
+            </button>
+
+            <div
+                class="secure-pdf-container mt-3"
+                style="display:none;"
+            ></div>
+
+        {% else %}
+
+            <a href="{{ s.checked_file.url }}"
+            class="btn btn-success btn-sm mt-1">
+
+                Download Checked File
+
+            </a>
+
+        {% endif %}
+
     {% endif %}
 
     <hr>
@@ -140,13 +186,33 @@
 
         <div class="mt-2">
 
-            <a href="{{ s.checked_file.url }}"
-            target="_blank"
-            class="btn btn-outline-success btn-sm">
+            {% if s.checked_file.name|lower|slice:"-4:" == ".pdf" %}
 
-                📄 Current Checked Copy
+                <button
+                    type="button"
+                    class="btn btn-outline-success btn-sm secure-pdf-btn"
+                    data-pdf-url="{% url 'serve_checked_submission_file' s.id %}"
+                    data-pdf-type="checked"
+                >
+                    📄 View Current Checked PDF
+                </button>
 
-            </a>
+                <div
+                    class="secure-pdf-container mt-3"
+                    style="display:none;"
+                ></div>
+
+            {% else %}
+
+                <a href="{{ s.checked_file.url }}"
+                target="_blank"
+                class="btn btn-outline-success btn-sm">
+
+                    📄 Current Checked Copy
+
+                </a>
+
+            {% endif %}
 
         </div>
 
@@ -163,5 +229,200 @@
 
 </div>
 {% endfor %}
+
+<script src="{% static 'pdfjs/pdf.js' %}"></script>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "{% static 'pdfjs/pdf.worker.js' %}";
+
+
+function addSecurePdfWatermark(
+    context,
+    width,
+    height,
+    text
+) {
+    context.save();
+
+    context.globalAlpha = 0.18;
+    context.fillStyle = "#555";
+    context.font = "bold 16px Arial";
+    context.textAlign = "center";
+
+    context.translate(
+        width / 2,
+        height / 2
+    );
+
+    context.rotate(
+        -Math.PI / 6
+    );
+
+    context.fillText(
+        text,
+        0,
+        0
+    );
+
+    context.restore();
+}
+
+
+document.querySelectorAll(".secure-pdf-btn").forEach(
+    function(button) {
+
+        button.addEventListener(
+            "click",
+            function() {
+
+                if (button.dataset.loading === "1") {
+                    return;
+                }
+
+                const container =
+                    button.parentElement.querySelector(
+                        ".secure-pdf-container"
+                    );
+
+                const url =
+                    button.dataset.pdfUrl;
+
+                if (!container || !url) {
+                    return;
+                }
+
+                button.dataset.loading = "1";
+                button.disabled = true;
+                button.textContent = "Loading PDF...";
+
+                container.style.display = "block";
+                container.innerHTML = "";
+
+                const watermarkText =
+                    "This PDF belongs to: " +
+                    "{{ request.user.username|escapejs }}" +
+                    " | Viewed on: " +
+                    new Date().toLocaleString();
+
+                pdfjsLib.getDocument({
+                    url: url,
+                    httpHeaders: {
+                        "X-ScoreSkill-Viewer": "1"
+                    }
+                }).promise.then(
+                    function(pdf) {
+
+                        button.textContent =
+                            "PDF Loaded";
+
+                        for (
+                            let pageNumber = 1;
+                            pageNumber <= pdf.numPages;
+                            pageNumber++
+                        ) {
+
+                            pdf.getPage(
+                                pageNumber
+                            ).then(
+                                function(page) {
+
+                                    const scale = 1.5;
+
+                                    const viewport =
+                                        page.getViewport({
+                                            scale: scale
+                                        });
+
+                                    const canvas =
+                                        document.createElement(
+                                            "canvas"
+                                        );
+
+                                    canvas.style.display =
+                                        "block";
+
+                                    canvas.style.maxWidth =
+                                        "100%";
+
+                                    canvas.style.height =
+                                        "auto";
+
+                                    canvas.style.marginBottom =
+                                        "20px";
+
+                                    canvas.style.border =
+                                        "1px solid #ddd";
+
+                                    const context =
+                                        canvas.getContext(
+                                            "2d"
+                                        );
+
+                                    canvas.width =
+                                        viewport.width;
+
+                                    canvas.height =
+                                        viewport.height;
+
+                                    container.appendChild(
+                                        canvas
+                                    );
+
+                                    page.render({
+                                        canvasContext:
+                                            context,
+                                        viewport:
+                                            viewport
+                                    }).promise.then(
+                                        function() {
+
+                                            addSecurePdfWatermark(
+                                                context,
+                                                canvas.width,
+                                                canvas.height,
+                                                watermarkText
+                                            );
+
+                                        }
+                                    );
+
+                                }
+                            );
+
+                        }
+
+                    }
+                ).catch(
+                    function(error) {
+
+                        console.error(
+                            "Secure PDF error:",
+                            error
+                        );
+
+                        container.innerHTML =
+                            '<div class="alert alert-danger">' +
+                            'Unable to load the PDF.' +
+                            '</div>';
+
+                        button.disabled =
+                            false;
+
+                        button.dataset.loading =
+                            "0";
+
+                        button.textContent =
+                            "View PDF";
+
+                    }
+                );
+
+            }
+        );
+
+    }
+);
+</script>
 
 {% endblock %}

@@ -3956,6 +3956,22 @@ def view_assignment(request, assignment_id):
         .first()
     )
 
+    checked_file_is_pdf = (
+        bool(
+            submission
+            and submission.checked_file
+            and submission.checked_file.name.lower().endswith(".pdf")
+        )
+    )
+
+    submitted_file_is_pdf = (
+        bool(
+            submission
+            and submission.file
+            and submission.file.name.lower().endswith(".pdf")
+        )
+    )
+
     return render(
         request,
         "view_assignment.html",
@@ -3963,6 +3979,8 @@ def view_assignment(request, assignment_id):
             "assignment": assignment,
             "watermark_text": watermark_text,
             "submission": submission,
+            "checked_file_is_pdf": checked_file_is_pdf,
+            "submitted_file_is_pdf": submitted_file_is_pdf,
         }
     )
 
@@ -4036,12 +4054,62 @@ def serve_assignment_file(request, assignment_id):
         )
 
     # ---------------------------------------------------------
-    # REDIRECT TO CLOUDINARY
+    # PDF FILE CHECK
     # ---------------------------------------------------------
 
-    return redirect(
-        assignment.file.url
+    file_name = assignment.file.name.lower()
+
+    if not file_name.endswith(".pdf"):
+
+        return HttpResponse(
+            "Assignment PDF is not available.",
+            status=404,
+        )
+
+    # ---------------------------------------------------------
+    # PDF.JS VIEWER CHECK
+    # ---------------------------------------------------------
+
+    if request.headers.get("X-ScoreSkill-Viewer") != "1":
+
+        return HttpResponse(
+            "Direct file access is not allowed.",
+            status=403,
+        )
+
+
+    # ---------------------------------------------------------
+    # OPEN CLOUDINARY FILE
+    # ---------------------------------------------------------
+
+    try:
+
+        file_handle = assignment.file.open("rb")
+
+    except Exception:
+
+        return HttpResponse(
+            "Unable to open assignment file.",
+            status=404,
+        )
+
+
+    # ---------------------------------------------------------
+    # SERVE PDF THROUGH DJANGO
+    # ---------------------------------------------------------
+
+    response = FileResponse(
+        file_handle,
+        content_type="application/pdf",
     )
+
+    response["Content-Disposition"] = "inline"
+    response["Cache-Control"] = "private, no-store, max-age=0"
+    response["Pragma"] = "no-cache"
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Referrer-Policy"] = "same-origin"
+
+    return response
 
 
 @login_required
@@ -4115,12 +4183,69 @@ def serve_submission_file(request, submission_id):
         )
 
     # ---------------------------------------------------------
-    # REDIRECT TO CLOUDINARY
+    # CHECK FILE TYPE
     # ---------------------------------------------------------
 
-    return redirect(
-        submission.file.url
+    file_name = submission.file.name.lower()
+
+    is_pdf = file_name.endswith(".pdf")
+
+
+    # ---------------------------------------------------------
+    # NON-PDF FILES
+    # ---------------------------------------------------------
+
+    if not is_pdf:
+
+        return redirect(
+            submission.file.url
+        )
+
+
+    # ---------------------------------------------------------
+    # PDF.JS VIEWER CHECK
+    # ---------------------------------------------------------
+
+    if request.headers.get("X-ScoreSkill-Viewer") != "1":
+
+        return HttpResponse(
+            "Direct submission-PDF access is not allowed.",
+            status=403,
+        )
+
+
+    # ---------------------------------------------------------
+    # OPEN SUBMITTED PDF
+    # ---------------------------------------------------------
+
+    try:
+
+        file_handle = submission.file.open("rb")
+
+    except Exception:
+
+        return HttpResponse(
+            "Unable to open submitted PDF.",
+            status=404,
+        )
+
+
+    # ---------------------------------------------------------
+    # SERVE PDF THROUGH DJANGO
+    # ---------------------------------------------------------
+
+    response = FileResponse(
+        file_handle,
+        content_type="application/pdf",
     )
+
+    response["Content-Disposition"] = "inline"
+    response["Cache-Control"] = "private, no-store, max-age=0"
+    response["Pragma"] = "no-cache"
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Referrer-Policy"] = "same-origin"
+
+    return response
 
 
 @login_required
@@ -4194,12 +4319,69 @@ def serve_checked_submission_file(request, submission_id):
         )
 
     # ---------------------------------------------------------
-    # REDIRECT TO CLOUDINARY
+    # PDF FILE CHECK
     # ---------------------------------------------------------
 
-    return redirect(
-        submission.checked_file.url
+    file_name = submission.checked_file.name.lower()
+
+    is_pdf = file_name.endswith(".pdf")
+
+
+    # ---------------------------------------------------------
+    # NON-PDF FILES
+    # ---------------------------------------------------------
+
+    if not is_pdf:
+
+        return redirect(
+            submission.checked_file.url
+        )
+
+
+    # ---------------------------------------------------------
+    # PDF.JS VIEWER CHECK
+    # ---------------------------------------------------------
+
+    if request.headers.get("X-ScoreSkill-Viewer") != "1":
+
+        return HttpResponse(
+            "Direct checked-PDF access is not allowed.",
+            status=403,
+        )
+
+
+    # ---------------------------------------------------------
+    # OPEN CHECKED PDF
+    # ---------------------------------------------------------
+
+    try:
+
+        file_handle = submission.checked_file.open("rb")
+
+    except Exception:
+
+        return HttpResponse(
+            "Unable to open checked PDF.",
+            status=404,
+        )
+
+
+    # ---------------------------------------------------------
+    # SERVE PDF THROUGH DJANGO
+    # ---------------------------------------------------------
+
+    response = FileResponse(
+        file_handle,
+        content_type="application/pdf",
     )
+
+    response["Content-Disposition"] = "inline"
+    response["Cache-Control"] = "private, no-store, max-age=0"
+    response["Pragma"] = "no-cache"
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Referrer-Policy"] = "same-origin"
+
+    return response
 
 
 from django.contrib.auth.decorators import login_required
