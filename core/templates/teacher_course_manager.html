@@ -113,6 +113,23 @@
         color: #64748b;
     }
 
+    .module-assignment-section {
+        padding: 0.85rem 1rem;
+        border-top: 1px solid #eef2f7;
+    }
+
+    .module-assignment-section .text-dark {
+        color: #334155 !important;
+    }
+
+    .dark-mode .module-assignment-section {
+        border-color: #1e293b;
+    }
+
+    .dark-mode .module-assignment-section .text-dark {
+        color: #e2e8f0 !important;
+    }
+
     .empty-state {
         padding: 3rem 1rem;
         text-align: center;
@@ -494,6 +511,480 @@
                         </div>
 
                     {% endfor %}
+
+                    <!-- MODULE ASSIGNMENTS -->
+
+                    <div class="module-assignment-section mt-3">
+
+                        <div class="d-flex flex-column flex-md-row
+                                    justify-content-between
+                                    align-items-md-center
+                                    gap-2">
+
+                            <div>
+
+                                <div class="fw-semibold text-dark">
+                                    Module Assignments
+                                </div>
+
+                                <div class="small text-muted">
+                                    Assignments that belong to the complete module.
+                                </div>
+
+                            </div>
+
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-primary"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#addModuleAssignment{{ module.id }}"
+                                aria-expanded="false"
+                                aria-controls="addModuleAssignment{{ module.id }}"
+                            >
+                                + Add Module Assignment
+                            </button>
+
+                        </div>
+
+
+                        <div
+                            class="collapse mt-3"
+                            id="addModuleAssignment{{ module.id }}"
+                        >
+
+                            <form
+                                method="POST"
+                                enctype="multipart/form-data"
+                                action="{% url 'add_teacher_module_assignment' module.id %}"
+                                class="border rounded-3 p-3 bg-light"
+                            >
+
+                                {% csrf_token %}
+
+                                <div class="mb-3">
+
+                                    <label
+                                        for="module-assignment-title-{{ module.id }}"
+                                        class="form-label fw-semibold"
+                                    >
+                                        Assignment Title
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        id="module-assignment-title-{{ module.id }}"
+                                        name="title"
+                                        class="form-control"
+                                        maxlength="200"
+                                        placeholder="e.g. Real Numbers Practice"
+                                        required
+                                    >
+
+                                </div>
+
+
+                                <div class="mb-3">
+
+                                    <label
+                                        for="module-assignment-description-{{ module.id }}"
+                                        class="form-label fw-semibold"
+                                    >
+                                        Description
+                                    </label>
+
+                                    <textarea
+                                        id="module-assignment-description-{{ module.id }}"
+                                        name="description"
+                                        class="form-control"
+                                        rows="3"
+                                        placeholder="Enter assignment instructions..."
+                                    ></textarea>
+
+                                </div>
+
+
+                                <div class="mb-3">
+
+                                    <label
+                                        for="module-assignment-file-{{ module.id }}"
+                                        class="form-label fw-semibold"
+                                    >
+                                        Assignment File
+                                        <span class="text-muted fw-normal">
+                                            (Optional)
+                                        </span>
+                                    </label>
+
+                                    <input
+                                        type="file"
+                                        id="module-assignment-file-{{ module.id }}"
+                                        name="file"
+                                        class="form-control"
+                                        accept=".pdf,.doc,.docx,.ppt,.pptx,.zip"
+                                    >
+
+                                    <div class="form-text">
+                                        Optional. PDF, DOC, DOCX, PPT, PPTX or ZIP.
+                                        Maximum size: 20 MB.
+                                    </div>
+
+                                </div>
+
+
+                                <div class="row">
+
+                                    <div class="col-md-6 mb-3">
+
+                                        <label
+                                            for="module-assignment-due-date-{{ module.id }}"
+                                            class="form-label fw-semibold"
+                                        >
+                                            Due Date
+                                        </label>
+
+                                        <input
+                                            type="date"
+                                            id="module-assignment-due-date-{{ module.id }}"
+                                            name="due_date"
+                                            class="form-control"
+                                            required
+                                        >
+
+                                    </div>
+
+
+                                    <div class="col-md-6 mb-3">
+
+                                        <label
+                                            for="module-assignment-max-marks-{{ module.id }}"
+                                            class="form-label fw-semibold"
+                                        >
+                                            Maximum Marks
+                                        </label>
+
+                                        <input
+                                            type="number"
+                                            id="module-assignment-max-marks-{{ module.id }}"
+                                            name="max_marks"
+                                            class="form-control"
+                                            min="1"
+                                            step="1"
+                                            value="100"
+                                            required
+                                        >
+
+                                    </div>
+
+                                </div>
+
+
+                                <div class="d-flex gap-2 mt-2">
+
+                                    <button
+                                        type="submit"
+                                        class="btn btn-primary btn-sm"
+                                    >
+                                        Create Module Assignment
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-outline-secondary btn-sm"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#addModuleAssignment{{ module.id }}"
+                                    >
+                                        Cancel
+                                    </button>
+
+                                </div>
+
+                            </form>
+
+                        </div>
+
+
+                        <!-- EXISTING MODULE ASSIGNMENTS -->
+
+                        {% if module.assignments.all %}
+
+                            {% for assignment in module.assignments.all %}
+
+                                <div class="assignment-row mt-2">
+
+                                    <div class="d-flex flex-column flex-md-row
+                                                justify-content-between
+                                                align-items-md-center
+                                                gap-2">
+
+                                        <div>
+
+                                            <div class="fw-semibold">
+                                                📝 {{ assignment.title }}
+                                            </div>
+
+                                            <div class="small text-muted">
+
+                                                Due:
+                                                {{ assignment.due_date|date:"d M Y" }}
+
+                                                <span class="ms-2">
+                                                    Marks:
+                                                    {{ assignment.max_marks }}
+                                                </span>
+
+                                                {% if assignment.file %}
+                                                    <span class="ms-2">
+                                                        📎 File attached
+                                                    </span>
+                                                {% else %}
+                                                    <span class="ms-2">
+                                                        No file
+                                                    </span>
+                                                {% endif %}
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="d-flex gap-2 flex-wrap">
+
+                                            <a
+                                                href="{% url 'view_assignment' assignment.id %}"
+                                                class="btn btn-sm btn-outline-primary"
+                                            >
+                                                View
+                                            </a>
+
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-outline-secondary"
+                                                data-bs-toggle="collapse"
+                                                data-bs-target="#editModuleAssignment{{ assignment.id }}"
+                                                aria-expanded="false"
+                                                aria-controls="editModuleAssignment{{ assignment.id }}"
+                                            >
+                                                Edit
+                                            </button>
+
+                                            <a
+                                                href="{% url 'view_submissions' assignment.id %}"
+                                                class="btn btn-sm btn-outline-info"
+                                            >
+                                                Submissions
+                                            </a>
+
+                                            <form
+                                                method="POST"
+                                                action="{% url 'delete_teacher_module_assignment' assignment.id %}"
+                                                class="d-inline"
+                                                onsubmit="return confirm(
+                                                    'Delete module assignment &quot;{{ assignment.title|escapejs }}&quot;? '
+                                                    + 'This cannot be undone.'
+                                                );"
+                                            >
+                                                {% csrf_token %}
+
+                                                <button
+                                                    type="submit"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                >
+                                                    Delete
+                                                </button>
+
+                                            </form>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <!-- EDIT MODULE ASSIGNMENT -->
+
+                                    <div
+                                        class="collapse mt-3"
+                                        id="editModuleAssignment{{ assignment.id }}"
+                                    >
+
+                                        <form
+                                            method="POST"
+                                            enctype="multipart/form-data"
+                                            action="{% url 'edit_teacher_module_assignment' assignment.id %}"
+                                            class="border rounded-3 p-3 bg-light"
+                                        >
+
+                                            {% csrf_token %}
+
+                                            <div class="mb-3">
+
+                                                <label
+                                                    for="edit-assignment-title-{{ assignment.id }}"
+                                                    class="form-label fw-semibold"
+                                                >
+                                                    Assignment Title
+                                                </label>
+
+                                                <input
+                                                    type="text"
+                                                    id="edit-assignment-title-{{ assignment.id }}"
+                                                    name="title"
+                                                    class="form-control"
+                                                    maxlength="200"
+                                                    value="{{ assignment.title }}"
+                                                    required
+                                                >
+
+                                            </div>
+
+
+                                            <div class="mb-3">
+
+                                                <label
+                                                    for="edit-assignment-description-{{ assignment.id }}"
+                                                    class="form-label fw-semibold"
+                                                >
+                                                    Description
+                                                </label>
+
+                                                <textarea
+                                                    id="edit-assignment-description-{{ assignment.id }}"
+                                                    name="description"
+                                                    class="form-control"
+                                                    rows="3"
+                                                >{{ assignment.description }}</textarea>
+
+                                            </div>
+
+
+                                            <div class="mb-3">
+
+                                                <label
+                                                    for="edit-assignment-file-{{ assignment.id }}"
+                                                    class="form-label fw-semibold"
+                                                >
+                                                    Replace Assignment File
+                                                    <span class="text-muted fw-normal">
+                                                        (Optional)
+                                                    </span>
+                                                </label>
+
+                                                {% if assignment.file %}
+
+                                                    <div class="small text-muted mb-2">
+                                                        Current file:
+                                                        {{ assignment.file.name }}
+                                                    </div>
+
+                                                {% else %}
+
+                                                    <div class="small text-muted mb-2">
+                                                        No file is currently attached.
+                                                    </div>
+
+                                                {% endif %}
+
+                                                <input
+                                                    type="file"
+                                                    id="edit-assignment-file-{{ assignment.id }}"
+                                                    name="file"
+                                                    class="form-control"
+                                                    accept=".pdf,.doc,.docx,.ppt,.pptx,.zip"
+                                                >
+
+                                                <div class="form-text">
+                                                    Leave empty to keep the current file.
+                                                    PDF, DOC, DOCX, PPT, PPTX or ZIP.
+                                                    Maximum size: 20 MB.
+                                                </div>
+
+                                            </div>
+
+
+                                            <div class="row">
+
+                                                <div class="col-md-6 mb-3">
+
+                                                    <label
+                                                        for="edit-assignment-due-{{ assignment.id }}"
+                                                        class="form-label fw-semibold"
+                                                    >
+                                                        Due Date
+                                                    </label>
+
+                                                    <input
+                                                        type="date"
+                                                        id="edit-assignment-due-{{ assignment.id }}"
+                                                        name="due_date"
+                                                        class="form-control"
+                                                        value="{{ assignment.due_date|date:'Y-m-d' }}"
+                                                        required
+                                                    >
+
+                                                </div>
+
+
+                                                <div class="col-md-6 mb-3">
+
+                                                    <label
+                                                        for="edit-assignment-marks-{{ assignment.id }}"
+                                                        class="form-label fw-semibold"
+                                                    >
+                                                        Maximum Marks
+                                                    </label>
+
+                                                    <input
+                                                        type="number"
+                                                        id="edit-assignment-marks-{{ assignment.id }}"
+                                                        name="max_marks"
+                                                        class="form-control"
+                                                        min="1"
+                                                        step="1"
+                                                        value="{{ assignment.max_marks }}"
+                                                        required
+                                                    >
+
+                                                </div>
+
+                                            </div>
+
+
+                                            <div class="d-flex gap-2 mt-2">
+
+                                                <button
+                                                    type="submit"
+                                                    class="btn btn-primary btn-sm"
+                                                >
+                                                    Save Changes
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-outline-secondary btn-sm"
+                                                    data-bs-toggle="collapse"
+                                                    data-bs-target="#editModuleAssignment{{ assignment.id }}"
+                                                >
+                                                    Cancel
+                                                </button>
+
+                                            </div>
+
+                                        </form>
+
+                                    </div>
+
+                                </div>
+
+                            {% endfor %}
+
+                        {% else %}
+
+                            <div class="assignment-row">
+                                No module assignments yet.
+                            </div>
+
+                        {% endif %}
+
+                    </div>
 
                 </div>
 

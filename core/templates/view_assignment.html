@@ -47,6 +47,68 @@ body{
 
 <h3>{{ assignment.title }}</h3>
 
+<div class="card mt-3 mb-3">
+
+    <div class="card-body">
+
+        <h5 class="mb-3">
+            Assignment Details
+        </h5>
+
+        {% if assignment.description %}
+
+            <div class="mb-3">
+                <strong>Description:</strong>
+
+                <div class="mt-1 text-muted">
+                    {{ assignment.description|linebreaksbr }}
+                </div>
+            </div>
+
+        {% endif %}
+
+        <div class="row">
+
+            <div class="col-md-6 mb-2">
+                <strong>Due Date:</strong>
+                {{ assignment.due_date|date:"d M Y" }}
+            </div>
+
+            <div class="col-md-6 mb-2">
+                <strong>Maximum Marks:</strong>
+                {{ assignment.max_marks }}
+            </div>
+
+        </div>
+
+        {% if assignment.module %}
+
+            <div class="mt-2">
+                <strong>Module:</strong>
+                {{ assignment.module.title }}
+            </div>
+
+        {% endif %}
+
+        {% if assignment.file %}
+
+            <div class="mt-3">
+                <strong>Assignment File:</strong>
+                PDF document available for secure viewing.
+            </div>
+
+        {% else %}
+
+            <div class="alert alert-secondary mt-3 mb-0">
+                No assignment file has been attached.
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
 {% if messages %}
     {% for message in messages %}
         <div class="alert alert-{{ message.tags }} mt-3">
@@ -186,18 +248,14 @@ body{
 
 {% endif %}
 
-<!-- 🔒 SECURE VIEW -->
-<div id="pdf-container">
+{% if assignment.file %}
 
-    <!-- <div class="watermark">
-        {{ request.user.username }}
-        {{ request.user.email }}
-        {{ now|date:"d M Y H:i" }}
-    </div> -->
+    <!-- 🔒 SECURE VIEW -->
 
-    <!-- <div id="pdf-container"></div> -->
+    <div id="pdf-container">
+    </div>
 
-</div>
+{% endif %}
 
 <hr>
 
@@ -490,6 +548,7 @@ if (
 
 {% endif %}
 
+{% if assignment.file %}
 <script>
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -607,6 +666,7 @@ function addWatermark(
 }
 
 </script>
+{% endif %}
 
 <script>
 document.addEventListener(

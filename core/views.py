@@ -861,6 +861,529 @@ def add_teacher_module(request, course_id):
         course_id=course.id,
     )
 
+@require_POST
+@login_required
+def add_teacher_module_assignment(request, module_id):
+
+    # ---------------------------------------------------------
+    # GET MODULE + COURSE
+    # ---------------------------------------------------------
+
+    module = get_object_or_404(
+        Module.objects.select_related("course"),
+        id=module_id,
+    )
+
+    course = module.course
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can manage courses.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to manage this module.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # GET FORM DATA
+    # ---------------------------------------------------------
+
+    title = request.POST.get(
+        "title",
+        "",
+    ).strip()
+
+    description = request.POST.get(
+        "description",
+        "",
+    ).strip()
+
+    due_date = request.POST.get(
+        "due_date",
+        "",
+    ).strip()
+
+    max_marks = request.POST.get(
+        "max_marks",
+        "100",
+    ).strip()
+
+    file = request.FILES.get("file")
+
+    # ---------------------------------------------------------
+    # REQUIRED FIELD VALIDATION
+    # ---------------------------------------------------------
+
+    if not title:
+
+        messages.error(
+            request,
+            "Assignment title is required.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    if not due_date:
+
+        messages.error(
+            request,
+            "Due date is required.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # DUE DATE VALIDATION
+    # ---------------------------------------------------------
+
+    try:
+
+        assignment_due_date = timezone.datetime.strptime(
+            due_date,
+            "%Y-%m-%d",
+        ).date()
+
+    except (TypeError, ValueError):
+
+        messages.error(
+            request,
+            "Please enter a valid due date.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # MAXIMUM MARKS VALIDATION
+    # ---------------------------------------------------------
+
+    try:
+
+        marks_value = int(max_marks)
+
+    except (TypeError, ValueError):
+
+        messages.error(
+            request,
+            "Maximum marks must be a valid whole number.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    if marks_value <= 0:
+
+        messages.error(
+            request,
+            "Maximum marks must be greater than zero.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # OPTIONAL FILE VALIDATION
+    # ---------------------------------------------------------
+
+    if file:
+
+        import os
+
+        allowed_extensions = {
+            ".pdf",
+            ".doc",
+            ".docx",
+            ".ppt",
+            ".pptx",
+            ".zip",
+        }
+
+        extension = os.path.splitext(
+            file.name
+        )[1].lower()
+
+        if extension not in allowed_extensions:
+
+            messages.error(
+                request,
+                "Only PDF, DOC, DOCX, PPT, PPTX and ZIP files are allowed.",
+            )
+
+            return redirect(
+                "teacher_course_manager",
+                course_id=course.id,
+            )
+
+        MAX_FILE_SIZE = 20 * 1024 * 1024
+
+        if file.size > MAX_FILE_SIZE:
+
+            messages.error(
+                request,
+                "Maximum allowed assignment file size is 20 MB.",
+            )
+
+            return redirect(
+                "teacher_course_manager",
+                course_id=course.id,
+            )
+
+    # ---------------------------------------------------------
+    # CREATE MODULE ASSIGNMENT
+    # ---------------------------------------------------------
+
+    assignment = Assignment(
+        module=module,
+        lesson=None,
+        title=title,
+        description=description,
+        due_date=assignment_due_date,
+        max_marks=marks_value,
+    )
+
+    if file:
+        assignment.file = file
+
+    assignment.save()
+
+    # ---------------------------------------------------------
+    # SUCCESS
+    # ---------------------------------------------------------
+
+    messages.success(
+        request,
+        f"Module assignment '{title}' created successfully.",
+    )
+
+    return redirect(
+        "teacher_course_manager",
+        course_id=course.id,
+    )
+
+@require_POST
+@login_required
+def edit_teacher_module_assignment(request, assignment_id):
+
+    # ---------------------------------------------------------
+    # GET MODULE ASSIGNMENT + COURSE
+    # ---------------------------------------------------------
+
+    assignment = get_object_or_404(
+        Assignment.objects.select_related(
+            "module__course",
+        ),
+        id=assignment_id,
+        module__isnull=False,
+    )
+
+    module = assignment.module
+    course = module.course
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can manage courses.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to edit this module assignment.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # GET FORM DATA
+    # ---------------------------------------------------------
+
+    title = request.POST.get(
+        "title",
+        "",
+    ).strip()
+
+    description = request.POST.get(
+        "description",
+        "",
+    ).strip()
+
+    due_date = request.POST.get(
+        "due_date",
+        "",
+    ).strip()
+
+    max_marks = request.POST.get(
+        "max_marks",
+        "",
+    ).strip()
+
+    replacement_file = request.FILES.get("file")
+
+    # ---------------------------------------------------------
+    # REQUIRED FIELD VALIDATION
+    # ---------------------------------------------------------
+
+    if not title:
+
+        messages.error(
+            request,
+            "Assignment title is required.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    if not due_date:
+
+        messages.error(
+            request,
+            "Due date is required.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # DUE DATE VALIDATION
+    # ---------------------------------------------------------
+
+    try:
+
+        assignment_due_date = timezone.datetime.strptime(
+            due_date,
+            "%Y-%m-%d",
+        ).date()
+
+    except (TypeError, ValueError):
+
+        messages.error(
+            request,
+            "Please enter a valid due date.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # MAXIMUM MARKS VALIDATION
+    # ---------------------------------------------------------
+
+    try:
+
+        marks_value = int(max_marks)
+
+    except (TypeError, ValueError):
+
+        messages.error(
+            request,
+            "Maximum marks must be a valid whole number.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    if marks_value <= 0:
+
+        messages.error(
+            request,
+            "Maximum marks must be greater than zero.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # OPTIONAL REPLACEMENT FILE VALIDATION
+    # ---------------------------------------------------------
+
+    if replacement_file:
+
+        import os
+
+        allowed_extensions = {
+            ".pdf",
+            ".doc",
+            ".docx",
+            ".ppt",
+            ".pptx",
+            ".zip",
+        }
+
+        extension = os.path.splitext(
+            replacement_file.name
+        )[1].lower()
+
+        if extension not in allowed_extensions:
+
+            messages.error(
+                request,
+                "Only PDF, DOC, DOCX, PPT, PPTX and ZIP files are allowed.",
+            )
+
+            return redirect(
+                "teacher_course_manager",
+                course_id=course.id,
+            )
+
+        MAX_FILE_SIZE = 20 * 1024 * 1024
+
+        if replacement_file.size > MAX_FILE_SIZE:
+
+            messages.error(
+                request,
+                "Maximum allowed assignment file size is 20 MB.",
+            )
+
+            return redirect(
+                "teacher_course_manager",
+                course_id=course.id,
+            )
+
+    # ---------------------------------------------------------
+    # UPDATE ASSIGNMENT
+    # ---------------------------------------------------------
+
+    assignment.title = title
+    assignment.description = description
+    assignment.due_date = assignment_due_date
+    assignment.max_marks = marks_value
+
+    # Only replace the existing file when a new file
+    # has actually been uploaded.
+    if replacement_file:
+        assignment.file = replacement_file
+
+    assignment.save(
+        update_fields=[
+            "title",
+            "description",
+            "due_date",
+            "max_marks",
+            "file",
+        ]
+    )
+
+    # ---------------------------------------------------------
+    # SUCCESS
+    # ---------------------------------------------------------
+
+    messages.success(
+        request,
+        f"Module assignment '{title}' updated successfully.",
+    )
+
+    return redirect(
+        "teacher_course_manager",
+        course_id=course.id,
+    )
+
+@require_POST
+@login_required
+def delete_teacher_module_assignment(request, assignment_id):
+
+    # ---------------------------------------------------------
+    # GET MODULE ASSIGNMENT + COURSE
+    # ---------------------------------------------------------
+
+    assignment = get_object_or_404(
+        Assignment.objects.select_related(
+            "module__course",
+        ),
+        id=assignment_id,
+        module__isnull=False,
+    )
+
+    module = assignment.module
+    course = module.course
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can manage courses.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to delete this module assignment.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # STUDENT SUBMISSION SAFETY CHECK
+    # ---------------------------------------------------------
+
+    if assignment.submissions.exists():
+
+        messages.error(
+            request,
+            "This assignment cannot be deleted because students "
+            "have already submitted work.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # DELETE ASSIGNMENT
+    # ---------------------------------------------------------
+
+    assignment_title = assignment.title
+
+    assignment.delete()
+
+    messages.success(
+        request,
+        f"Module assignment '{assignment_title}' deleted successfully.",
+    )
+
+    return redirect(
+        "teacher_course_manager",
+        course_id=course.id,
+    )
 
 @require_POST
 @login_required
@@ -1043,6 +1566,7 @@ def teacher_course_manager(request, course_id):
     course = get_object_or_404(
         Course.objects.prefetch_related(
             "modules__lessons__assignments",
+            "modules__assignments",
         ),
         id=course_id,
     )
@@ -1079,9 +1603,13 @@ def teacher_course_manager(request, course_id):
     )
 
     total_assignments = sum(
-        len(lesson.assignments.all())
+        len(module.assignments.all())
+        +
+        sum(
+            len(lesson.assignments.all())
+            for lesson in module.lessons.all()
+        )
         for module in modules
-        for lesson in module.lessons.all()
     )
 
     total_students = (

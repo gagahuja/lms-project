@@ -31,6 +31,21 @@ urlpatterns = [
         name='add_teacher_module',
     ),
     path(
+    'teacher-module/<int:module_id>/add-assignment/',
+        views.add_teacher_module_assignment,
+        name='add_teacher_module_assignment',
+    ),
+    path(
+        'teacher-module-assignment/<int:assignment_id>/edit/',
+        views.edit_teacher_module_assignment,
+        name='edit_teacher_module_assignment',
+    ),
+    path(
+    'teacher-module-assignment/<int:assignment_id>/delete/',
+        views.delete_teacher_module_assignment,
+        name='delete_teacher_module_assignment',
+    ),
+    path(
         'teacher-module/<int:module_id>/edit/',
         views.edit_teacher_module,
         name='edit_teacher_module',
