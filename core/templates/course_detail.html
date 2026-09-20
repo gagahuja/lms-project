@@ -109,6 +109,37 @@
     border-bottom: none;
 }
 
+.module-assignment-section {
+    padding: 16px 20px;
+    background: #fafbff;
+    border-top: 1px solid #edf0f4;
+}
+
+.module-assignment-item {
+    padding: 14px 16px;
+    margin-top: 10px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+}
+
+.module-assignment-title {
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.module-assignment-meta {
+    color: #64748b;
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+.module-assignment-description {
+    color: #64748b;
+    font-size: 13px;
+    margin-top: 5px;
+}
+
 .lesson-info {
     flex: 1;
 }
@@ -394,11 +425,19 @@
                 📘 {{ module.title }}
             </h4>
 
-            <span class="text-muted">
+            <div class="text-muted text-end">
 
-                {{ module.lessons.all|length }} lesson{{ module.lessons.all|length|pluralize }}
+                <div>
+                    {{ module.lessons.all|length }}
+                    lesson{{ module.lessons.all|length|pluralize }}
+                </div>
 
-            </span>
+                <div>
+                    {{ module.assignments.all|length }}
+                    module assignment{{ module.assignments.all|pluralize }}
+                </div>
+
+            </div>
 
         </div>
 
@@ -507,6 +546,99 @@
         </div>
 
         {% endfor %}
+
+        <!-- =====================================================
+            MODULE ASSIGNMENTS
+            ===================================================== -->
+
+        <div class="module-assignment-section">
+
+            <div class="fw-semibold">
+                📝 Module Assignments
+            </div>
+
+            <div class="small text-muted mb-2">
+                Assignments covering the complete module.
+            </div>
+
+
+            {% for assignment in module.assignments.all %}
+
+                <div class="module-assignment-item">
+
+                    <div class="d-flex flex-column
+                                flex-md-row
+                                justify-content-between
+                                align-items-md-center
+                                gap-3">
+
+                        <div class="flex-grow-1">
+
+                            <div class="module-assignment-title">
+                                {{ assignment.title }}
+                            </div>
+
+                            {% if assignment.description %}
+
+                                <div class="module-assignment-description">
+                                    {{ assignment.description|truncatewords:25 }}
+                                </div>
+
+                            {% endif %}
+
+                            <div class="module-assignment-meta">
+
+                                Due:
+                                {{ assignment.due_date|date:"d M Y" }}
+
+                                <span class="ms-2">
+                                    Marks:
+                                    {{ assignment.max_marks }}
+                                </span>
+
+                                {% if assignment.file %}
+
+                                    <span class="ms-2">
+                                        📎 File available
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="ms-2">
+                                        No file
+                                    </span>
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="lesson-actions">
+
+                            <a
+                                href="{% url 'view_assignment' assignment.id %}"
+                                class="btn btn-primary btn-sm"
+                            >
+                                Open Assignment
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            {% empty %}
+
+                <div class="small text-muted mt-2">
+                    No module assignments available yet.
+                </div>
+
+            {% endfor %}
+
+        </div>
 
     </div>
 

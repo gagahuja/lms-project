@@ -8,6 +8,7 @@ from core.models import (
     Progress,
     Quiz,
     QuizResult,
+    Assignment,
 )
 from urllib.parse import parse_qs, urlparse
 
@@ -61,7 +62,14 @@ def build_course_learning_context(user, course):
             Prefetch(
                 "lessons",
                 queryset=lessons_queryset
-            )
+            ),
+            Prefetch(
+                "assignments",
+                queryset=Assignment.objects.order_by(
+                    "due_date",
+                    "id",
+                ),
+            ),
         )
         .order_by("id")
     )
