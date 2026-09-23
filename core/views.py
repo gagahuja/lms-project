@@ -5,6 +5,7 @@ from django.views.decorators.http import require_POST
 from .models import User
 from .models import Course
 from .models import Enrollment
+import io
 import hashlib
 import hmac
 from .models import StudentProfile
@@ -62,6 +63,11 @@ from .services.ai_feedback_service import (
 from .services.course_learning_service import (
     build_course_learning_context,
     get_lesson_learning_context,
+)
+from core.services.document_preview_service import (
+    convert_cloudinary_file_to_pdf,
+    is_office_preview_file,
+    DocumentPreviewError,
 )
 import logging
 
@@ -4484,6 +4490,22 @@ def view_assignment(request, assignment_id):
         .first()
     )
 
+    assignment_file_is_pdf = (
+        bool(
+            assignment.file
+            and assignment.file.name.lower().endswith(".pdf")
+        )
+    )
+
+    assignment_file_is_office = (
+        bool(
+            assignment.file
+            and is_office_preview_file(
+                assignment.file.name
+            )
+        )
+    )
+
     checked_file_is_pdf = (
         bool(
             submission
@@ -4509,6 +4531,8 @@ def view_assignment(request, assignment_id):
             "submission": submission,
             "checked_file_is_pdf": checked_file_is_pdf,
             "submitted_file_is_pdf": submitted_file_is_pdf,
+            "assignment_file_is_pdf": assignment_file_is_pdf,
+            "assignment_file_is_office": assignment_file_is_office,
         }
     )
 
@@ -4527,6 +4551,7 @@ def serve_assignment_file(request, assignment_id):
     course = assignment.course
 
     if course is None:
+
         return HttpResponse(
             "Assignment is not linked to a valid course.",
             status=500,
@@ -4540,14 +4565,14 @@ def serve_assignment_file(request, assignment_id):
 
         is_enrolled = Enrollment.objects.filter(
             student=request.user,
-            course=course
+            course=course,
         ).exists()
 
         if not is_enrolled:
 
             return HttpResponse(
                 "You are not enrolled in this course.",
-                status=403
+                status=403,
             )
 
     # ---------------------------------------------------------
@@ -4560,14 +4585,14 @@ def serve_assignment_file(request, assignment_id):
 
             return HttpResponse(
                 "You are not authorized to view this assignment.",
-                status=403
+                status=403,
             )
 
     else:
 
         return HttpResponse(
             "You are not authorized to view this assignment.",
-            status=403
+            status=403,
         )
 
     # ---------------------------------------------------------
@@ -4578,67 +4603,129 @@ def serve_assignment_file(request, assignment_id):
 
         return HttpResponse(
             "Assignment file not found.",
-            status=404
-        )
-
-    # ---------------------------------------------------------
-    # PDF FILE CHECK
-    # ---------------------------------------------------------
-
-    file_name = assignment.file.name.lower()
-
-    if not file_name.endswith(".pdf"):
-
-        return HttpResponse(
-            "Assignment PDF is not available.",
             status=404,
         )
 
     # ---------------------------------------------------------
-    # PDF.JS VIEWER CHECK
+    # FILE TYPE CHECK
     # ---------------------------------------------------------
 
-    if request.headers.get("X-ScoreSkill-Viewer") != "1":
+    file_name = assignment.file.name.lower()
+
+    is_pdf = file_name.endswith(".pdf")
+
+    is_office = is_office_preview_file(
+        assignment.file.name
+    )
+
+    # ---------------------------------------------------------
+    # OTHER FILE TYPES
+    # ---------------------------------------------------------
+
+    if not is_pdf and not is_office:
+
+        return redirect(
+            assignment.file.url
+        )
+
+    # ---------------------------------------------------------
+    # SECURE VIEWER CHECK
+    # ---------------------------------------------------------
+
+    if request.headers.get(
+        "X-ScoreSkill-Viewer"
+    ) != "1":
 
         return HttpResponse(
             "Direct file access is not allowed.",
             status=403,
         )
 
+    # =========================================================
+    # PDF FILE
+    # =========================================================
 
-    # ---------------------------------------------------------
-    # OPEN CLOUDINARY FILE
-    # ---------------------------------------------------------
+    if is_pdf:
 
-    try:
+        try:
 
-        file_handle = assignment.file.open("rb")
+            file_handle = assignment.file.open(
+                "rb"
+            )
 
-    except Exception:
+        except Exception:
 
-        return HttpResponse(
-            "Unable to open assignment file.",
-            status=404,
+            return HttpResponse(
+                "Unable to open assignment PDF.",
+                status=404,
+            )
+
+        response = FileResponse(
+            file_handle,
+            content_type="application/pdf",
         )
 
+        response["Content-Disposition"] = "inline"
+        response["Cache-Control"] = (
+            "private, no-store, max-age=0"
+        )
+        response["Pragma"] = "no-cache"
+        response["X-Content-Type-Options"] = "nosniff"
+        response["Referrer-Policy"] = "same-origin"
+
+        return response
+
+    # =========================================================
+    # OFFICE DOCUMENT
+    # =========================================================
+
+    if is_office:
+
+        try:
+
+            pdf_bytes = (
+                convert_cloudinary_file_to_pdf(
+                    assignment.file
+                )
+            )
+
+        except DocumentPreviewError as exc:
+
+            logger.error(
+                "Assignment document preview failed "
+                "for assignment=%s: %s",
+                assignment.id,
+                exc,
+            )
+
+            return HttpResponse(
+                "Unable to generate document preview.",
+                status=503,
+            )
+
+        response = FileResponse(
+            io.BytesIO(pdf_bytes),
+            content_type="application/pdf",
+        )
+
+        response["Content-Disposition"] = "inline"
+        response["Cache-Control"] = (
+            "private, no-store, max-age=0"
+        )
+        response["Pragma"] = "no-cache"
+        response["X-Content-Type-Options"] = "nosniff"
+        response["Referrer-Policy"] = "same-origin"
+
+        return response
 
     # ---------------------------------------------------------
-    # SERVE PDF THROUGH DJANGO
+    # SAFETY FALLBACK
     # ---------------------------------------------------------
 
-    response = FileResponse(
-        file_handle,
-        content_type="application/pdf",
+    return HttpResponse(
+        "Unsupported assignment file type.",
+        status=404,
     )
-
-    response["Content-Disposition"] = "inline"
-    response["Cache-Control"] = "private, no-store, max-age=0"
-    response["Pragma"] = "no-cache"
-    response["X-Content-Type-Options"] = "nosniff"
-    response["Referrer-Policy"] = "same-origin"
-
-    return response
-
 
 @login_required
 def serve_submission_file(request, submission_id):

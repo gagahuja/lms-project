@@ -774,6 +774,13 @@
                                                 Submissions
                                             </a>
 
+                                            <a
+                                                href="{% url 'check_submissions' assignment.id %}"
+                                                class="btn btn-sm btn-outline-warning"
+                                            >
+                                                Review / Check
+                                            </a>
+
                                             <form
                                                 method="POST"
                                                 action="{% url 'delete_teacher_module_assignment' assignment.id %}"

@@ -250,10 +250,69 @@ body{
 
 {% if assignment.file %}
 
-    <!-- 🔒 SECURE VIEW -->
+    {% if assignment_file_is_pdf or assignment_file_is_office %}
 
-    <div id="pdf-container">
-    </div>
+        <!-- =====================================================
+             SECURE ASSIGNMENT DOCUMENT PREVIEW
+             ===================================================== -->
+
+        <div class="card mt-3 mb-3">
+
+            <div class="card-body">
+
+                <h5 class="mb-3">
+                    📄 Assignment File
+                </h5>
+
+                <button
+                    type="button"
+                    id="view-assignment-pdf-btn"
+                    class="btn btn-primary btn-sm"
+                >
+                    View Assignment
+                </button>
+
+                <div
+                    id="pdf-container"
+                    class="mt-3"
+                ></div>
+
+            </div>
+
+        </div>
+
+    {% else %}
+
+        <!-- =====================================================
+             OTHER FILE TYPES
+             ===================================================== -->
+
+        <div class="card mt-3 mb-3">
+
+            <div class="card-body">
+
+                <h5 class="mb-3">
+                    📎 Assignment File
+                </h5>
+
+                <div class="small text-muted mb-3">
+                    File:
+                    {{ assignment.file.name }}
+                </div>
+
+                <a
+                    href="{% url 'serve_assignment_file' assignment.id %}"
+                    target="_blank"
+                    class="btn btn-outline-primary btn-sm"
+                >
+                    Open Assignment File
+                </a>
+
+            </div>
+
+        </div>
+
+    {% endif %}
 
 {% endif %}
 
@@ -272,8 +331,77 @@ body{
 </form>
 
 <script>
+
 const watermarkText =
 `{{ watermark_text|escapejs }}`;
+
+
+function addWatermark(
+    ctx,
+    width,
+    height,
+    text
+) {
+
+    ctx.save();
+
+    ctx.globalAlpha = 0.10;
+    ctx.fillStyle = "red";
+    ctx.font = "bold 28px Arial";
+    ctx.textAlign = "center";
+
+    const lines =
+        text.split("\n");
+
+    for (
+        let x = 150;
+        x < width;
+        x += 250
+    ) {
+
+        for (
+            let y = 150;
+            y < height;
+            y += 250
+        ) {
+
+            ctx.save();
+
+            ctx.translate(
+                x,
+                y
+            );
+
+            ctx.rotate(
+                -45 * Math.PI / 180
+            );
+
+            let offset = 0;
+
+            lines.forEach(
+                function(line) {
+
+                    ctx.fillText(
+                        line,
+                        0,
+                        offset
+                    );
+
+                    offset += 30;
+
+                }
+            );
+
+            ctx.restore();
+
+        }
+
+    }
+
+    ctx.restore();
+
+}
+
 </script>
 
 <script src="{% static 'pdfjs/pdf.js' %}"></script>
@@ -549,123 +677,206 @@ if (
 {% endif %}
 
 {% if assignment.file %}
-<script>
 
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-"{% static 'pdfjs/pdf.worker.js' %}";
+    {% if assignment_file_is_pdf or assignment_file_is_office %}
 
-const url = "{% url 'serve_assignment_file' assignment.id %}";
+    <script>
 
-pdfjsLib.getDocument({
-    url: url,
-    httpHeaders: {
-        "X-ScoreSkill-Viewer": "1"
-    }
-}).promise.then(function(pdf){
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
 
-    const container =
-        document.getElementById("pdf-container");
-
-    for(let pageNumber = 1;
-        pageNumber <= pdf.numPages;
-        pageNumber++){
-
-        pdf.getPage(pageNumber).then(function(page){
-
-            const scale = 1.5;
-
-            const viewport =
-                page.getViewport({ scale });
-
-            const canvas =
-                document.createElement("canvas");
-
-            canvas.style.marginBottom = "20px";
-
-            const context =
-                canvas.getContext("2d");
-
-            canvas.height =
-                viewport.height;
-
-            canvas.width =
-                viewport.width;
-
-            container.appendChild(canvas);
-
-            page.render({
-                canvasContext: context,
-                viewport: viewport
-            }).promise.then(function(){
-
-                addWatermark(
-                    context,
-                    viewport.width,
-                    viewport.height,
-                    watermarkText
+            const button =
+                document.getElementById(
+                    "view-assignment-pdf-btn"
                 );
 
-            });
+            const container =
+                document.getElementById(
+                    "pdf-container"
+                );
 
-        });
-
-    }
-
-});
+            if (!button || !container) {
+                return;
+            }
 
 
+            button.addEventListener(
+                "click",
+                function () {
 
-function addWatermark(
-    ctx,
-    width,
-    height,
-    text
-){
+                    if (
+                        button.dataset.loading === "1"
+                    ) {
+                        return;
+                    }
 
-    ctx.save();
 
-    ctx.globalAlpha = 0.10;
-    ctx.fillStyle = "red";
-    ctx.font = "bold 28px Arial";
-    ctx.textAlign = "center";
+                    button.dataset.loading = "1";
+                    button.disabled = true;
 
-    const lines =
-        text.split("\n");
+                    button.textContent =
+                        "Loading Assignment...";
 
-    for(let x = 150; x < width; x += 250){
 
-        for(let y = 150; y < height; y += 250){
+                    container.innerHTML = "";
 
-            ctx.save();
+                    container.style.display =
+                        "block";
 
-            ctx.translate(x,y);
 
-            ctx.rotate(
-                -45 * Math.PI / 180
+                    const url =
+                        "{% url 'serve_assignment_file' assignment.id %}";
+
+
+                    pdfjsLib.GlobalWorkerOptions.workerSrc =
+                        "{% static 'pdfjs/pdf.worker.js' %}";
+
+
+                    pdfjsLib.getDocument({
+
+                        url: url,
+
+                        httpHeaders: {
+                            "X-ScoreSkill-Viewer": "1"
+                        }
+
+                    }).promise.then(
+                        function (pdf) {
+
+                            for (
+                                let pageNumber = 1;
+                                pageNumber <= pdf.numPages;
+                                pageNumber++
+                            ) {
+
+                                pdf.getPage(
+                                    pageNumber
+                                ).then(
+                                    function (page) {
+
+                                        const scale = 1.5;
+
+
+                                        const viewport =
+                                            page.getViewport({
+                                                scale: scale
+                                            });
+
+
+                                        const canvas =
+                                            document.createElement(
+                                                "canvas"
+                                            );
+
+
+                                        canvas.style.display =
+                                            "block";
+
+                                        canvas.style.maxWidth =
+                                            "100%";
+
+                                        canvas.style.height =
+                                            "auto";
+
+                                        canvas.style.marginBottom =
+                                            "20px";
+
+                                        canvas.style.border =
+                                            "1px solid #ddd";
+
+
+                                        const context =
+                                            canvas.getContext(
+                                                "2d"
+                                            );
+
+
+                                        canvas.width =
+                                            viewport.width;
+
+                                        canvas.height =
+                                            viewport.height;
+
+
+                                        container.appendChild(
+                                            canvas
+                                        );
+
+
+                                        page.render({
+
+                                            canvasContext:
+                                                context,
+
+                                            viewport:
+                                                viewport
+
+                                        }).promise.then(
+                                            function () {
+
+                                                addWatermark(
+                                                    context,
+                                                    viewport.width,
+                                                    viewport.height,
+                                                    watermarkText
+                                                );
+
+                                            }
+                                        );
+
+                                    }
+                                );
+
+                            }
+
+
+                            button.textContent =
+                                "Assignment Loaded";
+
+                            button.dataset.loading =
+                                "0";
+
+                        }
+                    ).catch(
+                        function (error) {
+
+                            console.error(
+                                "Assignment document error:",
+                                error
+                            );
+
+
+                            container.innerHTML =
+                                `
+                                <div class="alert alert-danger">
+                                    Unable to load the assignment document.
+                                </div>
+                                `;
+
+
+                            button.disabled =
+                                false;
+
+                            button.dataset.loading =
+                                "0";
+
+                            button.textContent =
+                                "View Assignment";
+
+                        }
+                    );
+
+                }
             );
 
-            let offset = 0;
-
-            lines.forEach(function(line){
-
-                ctx.fillText(
-                    line,
-                    0,
-                    offset
-                );
-
-                offset += 30;
-
-            });
-
-            ctx.restore();
         }
-    }
+    );
 
-    ctx.restore();
-}
+    </script>
 
-</script>
+    {% endif %}
+
 {% endif %}
 
 <script>
