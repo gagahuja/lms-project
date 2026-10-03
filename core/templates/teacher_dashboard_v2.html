@@ -328,6 +328,89 @@
         background: rgba(185, 28, 28, 0.18);
         color: #fca5a5;
     }
+
+    /* =========================================================
+    RECENT ACTIVITY
+    ========================================================= */
+
+    .activity-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 15px 0;
+        border-bottom: 1px solid #eef1f5;
+    }
+
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+
+    .activity-icon {
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+        border-radius: 10px;
+        background: #f3f6ff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+    }
+
+    .activity-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .activity-text {
+        font-size: 14px;
+        line-height: 1.45;
+        font-weight: 600;
+    }
+
+    .activity-time {
+        display: block;
+        margin-top: 4px;
+        font-size: 12px;
+        color: #8a94a6;
+    }
+
+    .metric-note {
+        margin-top: 5px;
+        font-size: 11px;
+        color: #8a94a6;
+        line-height: 1.35;
+    }
+
+    /* =========================================================
+    TEACHING INTELLIGENCE
+    ========================================================= */
+
+    .intelligence-card {
+        height: 100%;
+        padding: 20px;
+        transition:
+            transform 0.15s ease,
+            box-shadow 0.15s ease;
+    }
+
+    .intelligence-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+    }
+
+    .intelligence-icon {
+        font-size: 30px;
+        line-height: 1;
+        margin-bottom: 14px;
+    }
+
+    .intelligence-action {
+        margin-top: 16px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #4f46e5;
+    }
 </style>
 
 <div class="teacher-dashboard">
@@ -478,25 +561,41 @@
 
                     <div class="attention-item">
 
-                        <div>
+                        <div class="flex-grow-1">
+
                             <div class="attention-title">
                                 Assignment Reviews
                             </div>
 
                             <div class="attention-text">
-                                {{ pending_reviews|default:0 }}
-                                submissions are waiting for review.
+
+                                {% if pending_reviews %}
+                                    {{ pending_reviews }}
+                                    submissions are waiting for review.
+                                {% else %}
+                                    All submissions have been reviewed.
+                                {% endif %}
+
                             </div>
+
                         </div>
 
+
                         {% if pending_reviews %}
-                            <span class="status-pill warning">
-                                {{ pending_reviews }} pending
-                            </span>
+
+                            <a
+                                href="{% url 'gradebook' %}"
+                                class="btn btn-sm btn-outline-primary"
+                            >
+                                Open Gradebook →
+                            </a>
+
                         {% else %}
+
                             <span class="status-pill success">
                                 Up to date
                             </span>
+
                         {% endif %}
 
                     </div>
@@ -518,7 +617,7 @@
                         {% if pending_doubts %}
                             <a href="{% url 'teacher_doubts' %}"
                                class="btn btn-sm btn-outline-primary">
-                                Answer
+                                Answer →
                             </a>
                         {% else %}
                             <span class="status-pill success">
@@ -543,13 +642,20 @@
                         </div>
 
                         {% if attention_students %}
-                            <span class="status-pill warning">
-                                {{ attention_students|length }} students
-                            </span>
+
+                            <a
+                                href="#student-support"
+                                class="btn btn-sm btn-outline-primary"
+                            >
+                                View Students →
+                            </a>
+
                         {% else %}
+
                             <span class="status-pill success">
                                 None
                             </span>
+
                         {% endif %}
 
                     </div>
@@ -795,8 +901,8 @@
                     </div>
 
                     <a href="{% url 'gradebook' %}"
-                       class="btn btn-sm btn-outline-primary">
-                        Open Gradebook
+                    class="btn btn-sm btn-outline-primary">
+                        Open Gradebook →
                     </a>
 
                 </div>
@@ -805,8 +911,12 @@
 
                     <div class="row g-3">
 
+                        <!-- TOTAL SUBMISSIONS -->
+
                         <div class="col-6">
+
                             <div class="metric-card">
+
                                 <div class="metric-label">
                                     Total Submissions
                                 </div>
@@ -814,11 +924,51 @@
                                 <div class="metric-value">
                                     {{ total_submissions|default:0 }}
                                 </div>
+
+                                <div class="metric-note">
+                                    Across your courses
+                                </div>
+
                             </div>
+
                         </div>
 
+
+                        <!-- PENDING REVIEW -->
+
                         <div class="col-6">
+
                             <div class="metric-card">
+
+                                <div class="metric-label">
+                                    Pending Review
+                                </div>
+
+                                <div class="metric-value">
+                                    {{ pending_reviews|default:0 }}
+                                </div>
+
+                                <div class="metric-note">
+
+                                    {% if pending_reviews %}
+                                        Needs your attention
+                                    {% else %}
+                                        All submissions reviewed
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- CHECKED -->
+
+                        <div class="col-6">
+
+                            <div class="metric-card">
+
                                 <div class="metric-label">
                                     Checked
                                 </div>
@@ -826,23 +976,22 @@
                                 <div class="metric-value">
                                     {{ checked_submissions|default:0 }}
                                 </div>
-                            </div>
-                        </div>
 
-                        <div class="col-6">
-                            <div class="metric-card">
-                                <div class="metric-label">
-                                    Pending
+                                <div class="metric-note">
+                                    Reviewed submissions
                                 </div>
 
-                                <div class="metric-value">
-                                    {{ pending_reviews|default:0 }}
-                                </div>
                             </div>
+
                         </div>
 
+
+                        <!-- AVERAGE MARKS -->
+
                         <div class="col-6">
+
                             <div class="metric-card">
+
                                 <div class="metric-label">
                                     Average Marks
                                 </div>
@@ -850,7 +999,13 @@
                                 <div class="metric-value">
                                     {{ average_marks|default:0 }}
                                 </div>
+
+                                <div class="metric-note">
+                                    Based on checked work
+                                </div>
+
                             </div>
+
                         </div>
 
                     </div>
@@ -866,7 +1021,10 @@
 
         <div class="col-lg-6">
 
-            <div class="section-card">
+            <div
+                class="section-card"
+                id="student-support"
+            >
 
                 <div class="section-header">
 
@@ -892,7 +1050,7 @@
 
                         <div class="attention-item">
 
-                            <div>
+                            <div class="flex-grow-1">
 
                                 <div class="attention-title">
                                     {{ row.student.get_full_name|default:row.student.username }}
@@ -902,6 +1060,17 @@
                                     Progress: {{ row.progress }}%
                                     · Average: {{ row.average }}
                                     · Pending: {{ row.pending }}
+                                </div>
+
+                                <div class="mt-2">
+
+                                    <a
+                                        href="{% url 'student_report' row.student.id %}"
+                                        class="btn btn-sm btn-outline-primary"
+                                    >
+                                        View Student Report →
+                                    </a>
+
                                 </div>
 
                             </div>
@@ -916,7 +1085,9 @@
 
                         <div class="empty-state py-4">
 
-                            <div class="fs-2 mb-2">✅</div>
+                            <div class="fs-2 mb-2">
+                                ✅
+                            </div>
 
                             <div class="empty-state-title">
                                 No students currently flagged
@@ -941,10 +1112,14 @@
 
 
     <!-- =====================================================
-         RECENT ACTIVITY + RECORDINGS
-         ===================================================== -->
+        RECENT ACTIVITY + RECORDINGS
+        ===================================================== -->
 
     <div class="row g-4 mb-4">
+
+        <!-- =================================================
+            RECENT ACTIVITY
+            ================================================= -->
 
         <div class="col-lg-7">
 
@@ -953,6 +1128,7 @@
                 <div class="section-header">
 
                     <div>
+
                         <h2 class="section-title">
                             Recent Activity
                         </h2>
@@ -960,9 +1136,11 @@
                         <span class="section-subtitle">
                             What has changed recently in your teaching area.
                         </span>
+
                     </div>
 
                 </div>
+
 
                 <div class="section-body">
 
@@ -970,18 +1148,26 @@
 
                         <div class="activity-item">
 
-                            <div class="activity-dot"></div>
+                            <div class="activity-icon">
+                                {{ item.icon }}
+                            </div>
 
-                            <div>
+
+                            <div class="activity-content">
+
                                 <div class="activity-text">
-                                    {{ item.text|default:item }}
+                                    {{ item.message }}
                                 </div>
 
-                                {% if item.created_at %}
+
+                                {% if item.time %}
+
                                     <span class="activity-time">
-                                        {{ item.created_at|date:"d M Y, h:i A" }}
+                                        {{ item.time|date:"d M Y, h:i A" }}
                                     </span>
+
                                 {% endif %}
+
                             </div>
 
                         </div>
@@ -990,7 +1176,9 @@
 
                         <div class="empty-state py-4">
 
-                            <div class="fs-2 mb-2">🕒</div>
+                            <div class="fs-2 mb-2">
+                                🕒
+                            </div>
 
                             <div class="empty-state-title">
                                 No recent activity
@@ -1011,6 +1199,10 @@
         </div>
 
 
+        <!-- =================================================
+            RECENT RECORDINGS
+            ================================================= -->
+
         <div class="col-lg-5">
 
             <div class="section-card">
@@ -1018,6 +1210,7 @@
                 <div class="section-header">
 
                     <div>
+
                         <h2 class="section-title">
                             Recent Recordings
                         </h2>
@@ -1025,9 +1218,11 @@
                         <span class="section-subtitle">
                             Latest class recordings.
                         </span>
+
                     </div>
 
                 </div>
+
 
                 <div class="section-body">
 
@@ -1035,32 +1230,50 @@
 
                         <div class="attention-item">
 
-                            <div>
+                            <div class="flex-grow-1">
 
                                 <div class="attention-title">
+
                                     {{ recording.title|default:"Class Recording" }}
+
                                 </div>
 
+
                                 {% if recording.live_class %}
+
                                     <div class="attention-text">
+
                                         {{ recording.live_class.title }}
+
                                     </div>
+
                                 {% endif %}
 
+
                                 {% if recording.uploaded_at %}
+
                                     <div class="attention-text">
+
                                         {{ recording.uploaded_at|date:"d M Y, h:i A" }}
+
                                     </div>
+
                                 {% endif %}
 
                             </div>
 
+
                             {% if recording.video %}
-                                <a href="{{ recording.video.url }}"
-                                   target="_blank"
-                                   class="btn btn-sm btn-outline-primary">
+
+                                <a
+                                    href="{{ recording.video.url }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="btn btn-sm btn-outline-primary"
+                                >
                                     View
                                 </a>
+
                             {% endif %}
 
                         </div>
@@ -1069,7 +1282,9 @@
 
                         <div class="empty-state py-4">
 
-                            <div class="fs-2 mb-2">🎬</div>
+                            <div class="fs-2 mb-2">
+                                🎬
+                            </div>
 
                             <div class="empty-state-title">
                                 No recordings yet
@@ -1093,8 +1308,8 @@
 
 
     <!-- =====================================================
-         ANALYTICS / AI
-         ===================================================== -->
+        ANALYTICS / AI
+        ===================================================== -->
 
     <div class="section-card">
 
@@ -1118,12 +1333,14 @@
 
                 <div class="col-md-4">
 
-                    <a href="{% url 'teacher_analytics' %}"
-                       class="text-decoration-none">
+                    <a
+                        href="{% url 'teacher_analytics' %}"
+                        class="text-decoration-none"
+                    >
 
-                        <div class="course-card">
+                        <div class="course-card intelligence-card">
 
-                            <div class="fs-3 mb-2">
+                            <div class="intelligence-icon">
                                 📊
                             </div>
 
@@ -1132,8 +1349,12 @@
                             </div>
 
                             <div class="course-meta mt-1">
-                                Explore performance, enrollment,
-                                submissions and attendance insights.
+                                Performance, enrollment, submissions
+                                and attendance insights.
+                            </div>
+
+                            <div class="intelligence-action">
+                                View Analytics →
                             </div>
 
                         </div>
@@ -1145,12 +1366,14 @@
 
                 <div class="col-md-4">
 
-                    <a href="{% url 'ai_insights' %}"
-                       class="text-decoration-none">
+                    <a
+                        href="{% url 'ai_insights' %}"
+                        class="text-decoration-none"
+                    >
 
-                        <div class="course-card">
+                        <div class="course-card intelligence-card">
 
-                            <div class="fs-3 mb-2">
+                            <div class="intelligence-icon">
                                 🧠
                             </div>
 
@@ -1159,8 +1382,12 @@
                             </div>
 
                             <div class="course-meta mt-1">
-                                Review AI-assisted learning insights
-                                already available in Score Skill.
+                                AI-supported insights to help you
+                                understand student learning.
+                            </div>
+
+                            <div class="intelligence-action">
+                                Open AI Insights →
                             </div>
 
                         </div>
@@ -1172,12 +1399,14 @@
 
                 <div class="col-md-4">
 
-                    <a href="{% url 'gradebook' %}"
-                       class="text-decoration-none">
+                    <a
+                        href="{% url 'gradebook' %}"
+                        class="text-decoration-none"
+                    >
 
-                        <div class="course-card">
+                        <div class="course-card intelligence-card">
 
-                            <div class="fs-3 mb-2">
+                            <div class="intelligence-icon">
                                 📖
                             </div>
 
@@ -1186,8 +1415,12 @@
                             </div>
 
                             <div class="course-meta mt-1">
-                                Review marks, submissions and student
-                                assessment results.
+                                Review marks, submissions and
+                                student assessment results.
+                            </div>
+
+                            <div class="intelligence-action">
+                                Open Gradebook →
                             </div>
 
                         </div>

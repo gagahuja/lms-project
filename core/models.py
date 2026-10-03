@@ -1,4 +1,7 @@
-from cloudinary_storage.storage import RawMediaCloudinaryStorage
+from cloudinary_storage.storage import (
+    RawMediaCloudinaryStorage,
+    VideoMediaCloudinaryStorage,
+)
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -247,6 +250,100 @@ class Lesson(models.Model):
         return self.title
 
 
+class VideoLecture(models.Model):
+
+    lesson = models.ForeignKey(
+        Lesson,
+        on_delete=models.CASCADE,
+        related_name="video_lectures",
+    )
+
+    title = models.CharField(
+        max_length=200,
+    )
+
+    video_url = models.URLField()
+
+    description = models.TextField(
+        blank=True,
+    )
+
+    display_order = models.PositiveIntegerField(
+        default=0,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    def __str__(self):
+        return self.title
+
+
+class LearningRecording(models.Model):
+
+    lesson = models.ForeignKey(
+        Lesson,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="lesson_recordings",
+    )
+
+    module = models.ForeignKey(
+        Module,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="module_recordings",
+    )
+
+    title = models.CharField(
+        max_length=200,
+    )
+
+    description = models.TextField(
+        blank=True,
+    )
+
+    video = models.FileField(
+        upload_to="learning_recordings/",
+        storage=VideoMediaCloudinaryStorage(),
+    )
+
+    display_order = models.PositiveIntegerField(
+        default=0,
+    )
+
+    uploaded_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+
+        constraints = [
+
+            models.CheckConstraint(
+                condition=(
+                    models.Q(
+                        lesson__isnull=False,
+                        module__isnull=True,
+                    )
+                    |
+                    models.Q(
+                        lesson__isnull=True,
+                        module__isnull=False,
+                    )
+                ),
+                name="learning_recording_exactly_one_parent",
+            ),
+
+        ]
+
+
 class Assignment(models.Model):
 
     lesson = models.ForeignKey(
@@ -461,13 +558,57 @@ class Points(models.Model):
 
 
 class Handout(models.Model):
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
-    title = models.CharField(max_length=200)
-    file = models.FileField(upload_to='handouts/')
-    created_at = models.DateTimeField(auto_now_add=True)
+
+    lesson = models.ForeignKey(
+        Lesson,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+
+    module = models.ForeignKey(
+        Module,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="module_handouts",
+    )
+
+    title = models.CharField(
+        max_length=200,
+    )
+
+    file = models.FileField(
+        upload_to="handouts/",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
 
     def __str__(self):
         return self.title
+
+    class Meta:
+
+        constraints = [
+
+            models.CheckConstraint(
+                condition=(
+                    models.Q(
+                        lesson__isnull=False,
+                        module__isnull=True,
+                    )
+                    |
+                    models.Q(
+                        lesson__isnull=True,
+                        module__isnull=False,
+                    )
+                ),
+                name="handout_exactly_one_parent",
+            ),
+
+        ]
     
 
 class Recording(models.Model):

@@ -1,17 +1,533 @@
-{% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
 
-<h3>{{ handout.title }}</h3>
+<style>
 
-<!-- 🔒 SECURE VIEW -->
-<div style="user-select: none;">
-    <iframe
-        src="{% url 'serve_handout' handout.id %}"
-        width="100%"
-        height="500px"
-        style="border-radius:10px;">
-    </iframe>
+    #handout-viewer {
+        position: relative;
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+    }
+
+    #handout-pdf-container {
+        width: 100%;
+        overflow-x: auto;
+        transition: filter 0.15s ease;
+    }
+
+    .handout-page {
+        position: relative;
+        margin: 0 auto 24px auto;
+        max-width: 100%;
+    }
+
+    .handout-page canvas {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    #handout-status {
+        margin-bottom: 15px;
+    }
+
+</style>
+
+
+<div class="container py-4">
+
+    <div class="mb-3">
+
+        <h3 class="mb-1">
+            {{ handout.title }}
+        </h3>
+
+        <div class="small text-muted">
+            View-only document
+        </div>
+
+    </div>
+
+
+    <div id="handout-viewer">
+
+        <div
+            id="handout-status"
+            class="alert alert-info"
+        >
+            Click <strong>View Handout</strong> to open the document.
+        </div>
+
+
+        <button
+            type="button"
+            id="view-handout-btn"
+            class="btn btn-primary btn-sm mb-3"
+        >
+            View Handout
+        </button>
+
+
+        <div
+            id="handout-pdf-container"
+            style="display:none;"
+        ></div>
+
+    </div>
+
 </div>
+
+
+<script src="{% static 'pdfjs/pdf.js' %}"></script>
+
+
+<script>
+
+const watermarkText =
+`{{ watermark_text|escapejs }}`;
+
+
+function addWatermark(
+    ctx,
+    width,
+    height,
+    text
+) {
+
+    ctx.save();
+
+    ctx.globalAlpha = 0.10;
+    ctx.fillStyle = "red";
+    ctx.font = "bold 28px Arial";
+    ctx.textAlign = "center";
+
+
+    const lines =
+        text.split("\n");
+
+
+    for (
+        let x = 150;
+        x < width;
+        x += 250
+    ) {
+
+        for (
+            let y = 150;
+            y < height;
+            y += 250
+        ) {
+
+            ctx.save();
+
+
+            ctx.translate(
+                x,
+                y
+            );
+
+
+            ctx.rotate(
+                -45 * Math.PI / 180
+            );
+
+
+            let offset = 0;
+
+
+            lines.forEach(
+                function(line) {
+
+                    ctx.fillText(
+                        line,
+                        0,
+                        offset
+                    );
+
+                    offset += 30;
+
+                }
+            );
+
+
+            ctx.restore();
+
+        }
+
+    }
+
+
+    ctx.restore();
+
+}
+
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const button =
+            document.getElementById(
+                "view-handout-btn"
+            );
+
+        const container =
+            document.getElementById(
+                "handout-pdf-container"
+            );
+
+        const status =
+            document.getElementById(
+                "handout-status"
+            );
+
+
+        if (
+            !button ||
+            !container ||
+            !status
+        ) {
+            return;
+        }
+
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+            "{% static 'pdfjs/pdf.worker.js' %}";
+
+
+        button.addEventListener(
+            "click",
+            function () {
+
+                if (
+                    button.dataset.loading === "1"
+                ) {
+                    return;
+                }
+
+
+                button.dataset.loading = "1";
+                button.disabled = true;
+
+                button.textContent =
+                    "Loading Handout...";
+
+
+                status.className =
+                    "alert alert-info";
+
+                status.textContent =
+                    "Preparing the document preview...";
+
+
+                container.innerHTML = "";
+
+                container.style.display =
+                    "block";
+
+
+                const url =
+                    "{% url 'serve_handout' handout.id %}";
+
+
+                pdfjsLib.getDocument({
+
+                    url: url,
+
+                    httpHeaders: {
+                        "X-ScoreSkill-Viewer": "1"
+                    }
+
+                }).promise.then(
+
+                    function (pdf) {
+
+                        status.className =
+                            "alert alert-success";
+
+                        status.textContent =
+                            "Document loaded. View only.";
+
+
+                        button.style.display =
+                            "none";
+
+
+                        for (
+                            let pageNumber = 1;
+                            pageNumber <= pdf.numPages;
+                            pageNumber++
+                        ) {
+
+                            pdf.getPage(
+                                pageNumber
+                            ).then(
+
+                                function (page) {
+
+                                    const scale = 1.5;
+
+                                    const viewport =
+                                        page.getViewport({
+                                            scale: scale
+                                        });
+
+
+                                    const pageWrapper =
+                                        document.createElement(
+                                            "div"
+                                        );
+
+                                    pageWrapper.className =
+                                        "handout-page";
+
+                                    pageWrapper.style.width =
+                                        viewport.width + "px";
+
+
+                                    const canvas =
+                                        document.createElement(
+                                            "canvas"
+                                        );
+
+
+                                    canvas.width =
+                                        viewport.width;
+
+                                    canvas.height =
+                                        viewport.height;
+
+
+                                    const context =
+                                        canvas.getContext(
+                                            "2d"
+                                        );
+
+
+                                    pageWrapper.appendChild(
+                                        canvas
+                                    );
+
+                                    container.appendChild(
+                                        pageWrapper
+                                    );
+
+
+                                    page.render({
+
+                                        canvasContext:
+                                            context,
+
+                                        viewport:
+                                            viewport
+
+                                    }).promise.then(
+
+                                        function () {
+
+                                            addWatermark(
+                                                context,
+                                                viewport.width,
+                                                viewport.height,
+                                                watermarkText
+                                            );
+
+                                        }
+
+                                    );
+
+                                }
+
+                            );
+
+                        }
+
+                    }
+
+                ).catch(
+
+                    function (error) {
+
+                        console.error(
+                            "Handout PDF preview failed:",
+                            error
+                        );
+
+
+                        status.className =
+                            "alert alert-danger";
+
+                        status.textContent =
+                            "Unable to load the handout preview.";
+
+
+                        container.innerHTML = "";
+
+                        container.style.display =
+                            "none";
+
+
+                        button.disabled = false;
+
+                        button.dataset.loading =
+                            "0";
+
+                        button.textContent =
+                            "View Handout";
+
+                    }
+
+                );
+
+            }
+        );
+
+    }
+);
+
+</script>
+
+
+<!-- =========================================================
+     SECURITY DETERRENTS
+     ========================================================= -->
+
+
+<script>
+
+document.addEventListener(
+    "contextmenu",
+    function (e) {
+
+        e.preventDefault();
+
+    }
+);
+
+</script>
+
+
+<script>
+
+document.addEventListener(
+    "keydown",
+    function (e) {
+
+        /* Ctrl + S / P / U */
+
+        if (
+            e.ctrlKey &&
+            (
+                e.key.toLowerCase() === "s" ||
+                e.key.toLowerCase() === "p" ||
+                e.key.toLowerCase() === "u"
+            )
+        ) {
+
+            e.preventDefault();
+
+        }
+
+
+        /* Ctrl + Shift + I / J / C */
+
+        if (
+            e.ctrlKey &&
+            e.shiftKey &&
+            (
+                e.key.toLowerCase() === "i" ||
+                e.key.toLowerCase() === "j" ||
+                e.key.toLowerCase() === "c"
+            )
+        ) {
+
+            e.preventDefault();
+
+        }
+
+
+        /* Print Screen */
+
+        if (
+            e.key === "PrintScreen"
+        ) {
+
+            e.preventDefault();
+
+        }
+
+    }
+);
+
+</script>
+
+
+<script>
+
+document.addEventListener(
+    "visibilitychange",
+    function () {
+
+        const pdf =
+            document.getElementById(
+                "handout-pdf-container"
+            );
+
+
+        if (!pdf) {
+            return;
+        }
+
+
+        if (document.hidden) {
+
+            pdf.style.filter =
+                "blur(25px)";
+
+        }
+        else {
+
+            pdf.style.filter =
+                "none";
+
+        }
+
+    }
+);
+
+</script>
+
+
+<script>
+
+document.addEventListener(
+    "dragstart",
+    function (e) {
+
+        e.preventDefault();
+
+    }
+);
+
+</script>
+
+
+<script>
+
+document.addEventListener(
+    "selectstart",
+    function (e) {
+
+        e.preventDefault();
+
+    }
+);
+
+</script>
 
 {% endblock %}

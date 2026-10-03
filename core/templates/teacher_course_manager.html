@@ -361,7 +361,7 @@
 
                     <div class="module-header">
 
-                        <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
 
                             <div class="module-title">
                                 📚 {{ module.title }}
@@ -369,12 +369,45 @@
 
                         </div>
 
-                        <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
 
                             <span class="badge rounded-pill text-bg-light">
                                 {{ module.lessons.all|length }}
                                 lesson{{ module.lessons.all|length|pluralize }}
                             </span>
+
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-primary"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#addLesson{{ module.id }}"
+                                aria-expanded="false"
+                                aria-controls="addLesson{{ module.id }}"
+                            >
+                                + Add Lesson
+                            </button>
+
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-primary"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#addModuleHandout{{ module.id }}"
+                                aria-expanded="false"
+                                aria-controls="addModuleHandout{{ module.id }}"
+                            >
+                                + Add Module Handout
+                            </button>
+
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-primary"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#addModuleRecording{{ module.id }}"
+                                aria-expanded="false"
+                                aria-controls="addModuleRecording{{ module.id }}"
+                            >
+                                + Add Module Recording
+                            </button>
 
                             <button
                                 type="button"
@@ -403,6 +436,63 @@
                                 >
                                     Delete
                                 </button>
+                            </form>
+
+                        </div>
+
+                    </div>
+
+                    <div
+                        class="collapse"
+                        id="addLesson{{ module.id }}"
+                    >
+
+                        <div class="p-3 border-top bg-light">
+
+                            <form
+                                method="POST"
+                                action="{% url 'add_teacher_lesson' module.id %}"
+                            >
+
+                                {% csrf_token %}
+
+                                <label
+                                    for="lesson-title-{{ module.id }}"
+                                    class="form-label fw-semibold"
+                                >
+                                    Lesson Title
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="lesson-title-{{ module.id }}"
+                                    name="title"
+                                    class="form-control"
+                                    maxlength="200"
+                                    placeholder="e.g. HCF and LCM"
+                                    required
+                                >
+
+                                <div class="d-flex gap-2 mt-3">
+
+                                    <button
+                                        type="submit"
+                                        class="btn btn-primary btn-sm"
+                                    >
+                                        Create Lesson
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-outline-secondary btn-sm"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#addLesson{{ module.id }}"
+                                    >
+                                        Cancel
+                                    </button>
+
+                                </div>
+
                             </form>
 
                         </div>
@@ -464,6 +554,644 @@
 
                     </div>
 
+                    <div
+                        class="collapse mt-3"
+                        id="addModuleHandout{{ module.id }}"
+                    >
+
+                        <div class="p-3 border-top bg-light">
+
+                            <form
+                                method="POST"
+                                enctype="multipart/form-data"
+                                action="{% url 'add_teacher_module_handout' module.id %}"
+                            >
+
+                                {% csrf_token %}
+
+
+                                <div class="mb-3">
+
+                                    <label
+                                        for="module-handout-title-{{ module.id }}"
+                                        class="form-label fw-semibold"
+                                    >
+                                        Module Handout Title
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        id="module-handout-title-{{ module.id }}"
+                                        name="title"
+                                        class="form-control"
+                                        maxlength="200"
+                                        placeholder="e.g. Real Numbers Formula Sheet"
+                                        required
+                                    >
+
+                                </div>
+
+
+                                <div class="mb-3">
+
+                                    <label
+                                        for="module-handout-file-{{ module.id }}"
+                                        class="form-label fw-semibold"
+                                    >
+                                        Handout File
+                                    </label>
+
+                                    <input
+                                        type="file"
+                                        id="module-handout-file-{{ module.id }}"
+                                        name="file"
+                                        class="form-control"
+                                        required
+                                    >
+
+                                    <div class="form-text">
+                                        Upload the handout for this complete module.
+                                    </div>
+
+                                </div>
+
+
+                                <div class="d-flex gap-2">
+
+                                    <button
+                                        type="submit"
+                                        class="btn btn-primary btn-sm"
+                                    >
+                                        Create Module Handout
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-outline-secondary btn-sm"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#addModuleHandout{{ module.id }}"
+                                    >
+                                        Cancel
+                                    </button>
+
+                                </div>
+
+                            </form>
+
+                        </div>
+
+                    </div>
+
+                    <div class="mt-3">
+
+                        <div class="small fw-semibold text-muted mb-2">
+                            Module Handouts
+                        </div>
+
+
+                        {% for handout in module.module_handouts.all %}
+
+                            <div class="assignment-row">
+
+                                <div
+                                    class="d-flex justify-content-between align-items-start gap-3"
+                                >
+
+                                    <div class="flex-grow-1">
+
+                                        <div class="fw-semibold">
+
+                                            📄
+
+                                            <a
+                                                href="{% url 'view_handout' handout.id %}"
+                                                class="text-decoration-none"
+                                            >
+                                                {{ handout.title }}
+                                            </a>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="d-flex gap-2 flex-shrink-0">
+
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-secondary"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#editModuleHandout{{ handout.id }}"
+                                            aria-expanded="false"
+                                            aria-controls="editModuleHandout{{ handout.id }}"
+                                        >
+                                            Edit
+                                        </button>
+
+
+                                        <form
+                                            method="POST"
+                                            action="{% url 'delete_teacher_module_handout' handout.id %}"
+                                            class="d-inline"
+                                            onsubmit="return confirm(
+                                                'Delete module handout &quot;{{ handout.title|escapejs }}&quot;?'
+                                            );"
+                                        >
+
+                                            {% csrf_token %}
+
+                                            <button
+                                                type="submit"
+                                                class="btn btn-sm btn-outline-danger"
+                                            >
+                                                Delete
+                                            </button>
+
+                                        </form>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div
+                                    class="collapse mt-3"
+                                    id="editModuleHandout{{ handout.id }}"
+                                >
+
+                                    <div class="p-3 border-top bg-light">
+
+                                        <form
+                                            method="POST"
+                                            enctype="multipart/form-data"
+                                            action="{% url 'edit_teacher_module_handout' handout.id %}"
+                                        >
+
+                                            {% csrf_token %}
+
+
+                                            <div class="mb-3">
+
+                                                <label
+                                                    for="edit-module-handout-title-{{ handout.id }}"
+                                                    class="form-label fw-semibold"
+                                                >
+                                                    Module Handout Title
+                                                </label>
+
+                                                <input
+                                                    type="text"
+                                                    id="edit-module-handout-title-{{ handout.id }}"
+                                                    name="title"
+                                                    class="form-control"
+                                                    maxlength="200"
+                                                    value="{{ handout.title }}"
+                                                    required
+                                                >
+
+                                            </div>
+
+
+                                            <div class="mb-3">
+
+                                                <label
+                                                    for="edit-module-handout-file-{{ handout.id }}"
+                                                    class="form-label fw-semibold"
+                                                >
+                                                    Replace File
+                                                </label>
+
+                                                <input
+                                                    type="file"
+                                                    id="edit-module-handout-file-{{ handout.id }}"
+                                                    name="file"
+                                                    class="form-control"
+                                                >
+
+                                                <div class="form-text">
+                                                    Leave this empty to keep the existing file.
+                                                </div>
+
+                                            </div>
+
+
+                                            <div class="d-flex gap-2">
+
+                                                <button
+                                                    type="submit"
+                                                    class="btn btn-primary btn-sm"
+                                                >
+                                                    Save Changes
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-outline-secondary btn-sm"
+                                                    data-bs-toggle="collapse"
+                                                    data-bs-target="#editModuleHandout{{ handout.id }}"
+                                                >
+                                                    Cancel
+                                                </button>
+
+                                            </div>
+
+                                        </form>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        {% empty %}
+
+                            <div class="assignment-row">
+                                No module handouts added yet.
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                    <!-- =====================================================
+                        ADD MODULE RECORDING
+                        ===================================================== -->
+
+                    <div
+                        class="collapse mt-3"
+                        id="addModuleRecording{{ module.id }}"
+                    >
+
+                        <div class="p-3 border-top bg-light">
+
+                            <form
+                                method="POST"
+                                enctype="multipart/form-data"
+                                action="{% url 'add_teacher_module_recording' module.id %}"
+                            >
+
+                                {% csrf_token %}
+
+
+                                <div class="mb-3">
+
+                                    <label
+                                        for="module-recording-title-{{ module.id }}"
+                                        class="form-label fw-semibold"
+                                    >
+                                        Module Recording Title
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        id="module-recording-title-{{ module.id }}"
+                                        name="title"
+                                        class="form-control"
+                                        maxlength="200"
+                                        placeholder="e.g. Real Numbers Full Revision"
+                                        required
+                                    >
+
+                                </div>
+
+
+                                <div class="mb-3">
+
+                                    <label
+                                        for="module-recording-description-{{ module.id }}"
+                                        class="form-label fw-semibold"
+                                    >
+                                        Description
+                                    </label>
+
+                                    <textarea
+                                        id="module-recording-description-{{ module.id }}"
+                                        name="description"
+                                        class="form-control"
+                                        rows="3"
+                                        placeholder="Brief description of this recording."
+                                    ></textarea>
+
+                                </div>
+
+
+                                <div class="mb-3">
+
+                                    <label
+                                        for="module-recording-video-{{ module.id }}"
+                                        class="form-label fw-semibold"
+                                    >
+                                        Recording Video
+                                    </label>
+
+                                    <input
+                                        type="file"
+                                        id="module-recording-video-{{ module.id }}"
+                                        name="video"
+                                        class="form-control"
+                                        accept="video/*"
+                                        required
+                                    >
+
+                                    <div class="form-text">
+                                        Upload the recorded class or educational video for this module.
+                                    </div>
+
+                                </div>
+
+
+                                <div class="mb-3">
+
+                                    <label
+                                        for="module-recording-order-{{ module.id }}"
+                                        class="form-label fw-semibold"
+                                    >
+                                        Display Order
+                                    </label>
+
+                                    <input
+                                        type="number"
+                                        id="module-recording-order-{{ module.id }}"
+                                        name="display_order"
+                                        class="form-control"
+                                        min="0"
+                                        value="0"
+                                    >
+
+                                    <div class="form-text">
+                                        Lower numbers appear first.
+                                    </div>
+
+                                </div>
+
+
+                                <div class="d-flex gap-2">
+
+                                    <button
+                                        type="submit"
+                                        class="btn btn-primary btn-sm"
+                                    >
+                                        Create Module Recording
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-outline-secondary btn-sm"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#addModuleRecording{{ module.id }}"
+                                    >
+                                        Cancel
+                                    </button>
+
+                                </div>
+
+                            </form>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- =====================================================
+                        MODULE RECORDINGS
+                        ===================================================== -->
+
+                    <div class="mt-3">
+
+                        <div class="small fw-semibold text-muted mb-2">
+                            Module Recordings
+                        </div>
+
+
+                        {% for recording in module.module_recordings.all %}
+
+                            <div class="assignment-row">
+
+                                <div
+                                    class="d-flex justify-content-between align-items-start gap-3"
+                                >
+
+                                    <div class="flex-grow-1">
+
+                                        <div class="fw-semibold">
+
+                                            &#127909;
+
+                                            {{ recording.title }}
+
+                                        </div>
+
+
+                                        {% if recording.description %}
+
+                                            <div class="small text-muted mt-1">
+
+                                                {{ recording.description }}
+
+                                            </div>
+
+                                        {% endif %}
+
+
+                                        <div class="small text-muted mt-1">
+
+                                            Display Order:
+                                            {{ recording.display_order }}
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="d-flex gap-2 flex-shrink-0">
+
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-secondary"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#editModuleRecording{{ recording.id }}"
+                                            aria-expanded="false"
+                                            aria-controls="editModuleRecording{{ recording.id }}"
+                                        >
+                                            Edit
+                                        </button>
+
+
+                                        <form
+                                            method="POST"
+                                            action="{% url 'delete_teacher_module_recording' recording.id %}"
+                                            class="d-inline"
+                                            onsubmit="return confirm(
+                                                'Delete module recording &quot;{{ recording.title|escapejs }}&quot;?'
+                                            );"
+                                        >
+
+                                            {% csrf_token %}
+
+                                            <button
+                                                type="submit"
+                                                class="btn btn-sm btn-outline-danger"
+                                            >
+                                                Delete
+                                            </button>
+
+                                        </form>
+
+                                    </div>
+
+                                </div>
+
+
+                                <!-- =================================================
+                                    EDIT MODULE RECORDING
+                                    ================================================= -->
+
+                                <div
+                                    class="collapse mt-3"
+                                    id="editModuleRecording{{ recording.id }}"
+                                >
+
+                                    <div class="p-3 border-top bg-light">
+
+                                        <form
+                                            method="POST"
+                                            enctype="multipart/form-data"
+                                            action="{% url 'edit_teacher_module_recording' recording.id %}"
+                                        >
+
+                                            {% csrf_token %}
+
+
+                                            <div class="mb-3">
+
+                                                <label
+                                                    for="edit-module-recording-title-{{ recording.id }}"
+                                                    class="form-label fw-semibold"
+                                                >
+                                                    Module Recording Title
+                                                </label>
+
+                                                <input
+                                                    type="text"
+                                                    id="edit-module-recording-title-{{ recording.id }}"
+                                                    name="title"
+                                                    class="form-control"
+                                                    maxlength="200"
+                                                    value="{{ recording.title }}"
+                                                    required
+                                                >
+
+                                            </div>
+
+
+                                            <div class="mb-3">
+
+                                                <label
+                                                    for="edit-module-recording-description-{{ recording.id }}"
+                                                    class="form-label fw-semibold"
+                                                >
+                                                    Description
+                                                </label>
+
+                                                <textarea
+                                                    id="edit-module-recording-description-{{ recording.id }}"
+                                                    name="description"
+                                                    class="form-control"
+                                                    rows="3"
+                                                >{{ recording.description }}</textarea>
+
+                                            </div>
+
+
+                                            <div class="mb-3">
+
+                                                <label
+                                                    for="edit-module-recording-video-{{ recording.id }}"
+                                                    class="form-label fw-semibold"
+                                                >
+                                                    Replace Video
+                                                </label>
+
+                                                <input
+                                                    type="file"
+                                                    id="edit-module-recording-video-{{ recording.id }}"
+                                                    name="video"
+                                                    class="form-control"
+                                                    accept="video/*"
+                                                >
+
+                                                <div class="form-text">
+                                                    Leave this empty to keep the existing video.
+                                                    Maximum file size: 100 MB.
+                                                </div>
+
+                                            </div>
+
+
+                                            <div class="mb-3">
+
+                                                <label
+                                                    for="edit-module-recording-order-{{ recording.id }}"
+                                                    class="form-label fw-semibold"
+                                                >
+                                                    Display Order
+                                                </label>
+
+                                                <input
+                                                    type="number"
+                                                    id="edit-module-recording-order-{{ recording.id }}"
+                                                    name="display_order"
+                                                    class="form-control"
+                                                    min="0"
+                                                    value="{{ recording.display_order }}"
+                                                >
+
+                                                <div class="form-text">
+                                                    Lower numbers appear first.
+                                                </div>
+
+                                            </div>
+
+
+                                            <div class="d-flex gap-2">
+
+                                                <button
+                                                    type="submit"
+                                                    class="btn btn-primary btn-sm"
+                                                >
+                                                    Save Changes
+                                                </button>
+
+
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-outline-secondary btn-sm"
+                                                    data-bs-toggle="collapse"
+                                                    data-bs-target="#editModuleRecording{{ recording.id }}"
+                                                >
+                                                    Cancel
+                                                </button>
+
+                                            </div>
+
+                                        </form>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        {% empty %}
+
+                            <div class="assignment-row">
+                                No module recordings added yet.
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
 
                     {% for lesson in module.lessons.all %}
 
@@ -471,6 +1199,862 @@
 
                             <div class="lesson-title">
                                 📖 {{ lesson.title }}
+                            </div>
+
+                            <div class="d-flex gap-2 mt-2 flex-wrap">
+
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#editLesson{{ lesson.id }}"
+                                    aria-expanded="false"
+                                    aria-controls="editLesson{{ lesson.id }}"
+                                >
+                                    Edit Lesson
+                                </button>
+
+
+                                <form
+                                    method="POST"
+                                    action="{% url 'delete_teacher_lesson' lesson.id %}"
+                                    class="d-inline"
+                                    onsubmit="return confirm(
+                                        'Delete lesson &quot;{{ lesson.title|escapejs }}&quot;? This lesson must be empty.'
+                                    );"
+                                >
+
+                                    {% csrf_token %}
+
+                                    <button
+                                        type="submit"
+                                        class="btn btn-sm btn-outline-danger"
+                                    >
+                                        Delete Lesson
+                                    </button>
+
+                                </form>
+
+
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-primary"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#addVideoLecture{{ lesson.id }}"
+                                    aria-expanded="false"
+                                    aria-controls="addVideoLecture{{ lesson.id }}"
+                                >
+                                    + Add Video Lecture
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-primary"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#addLessonRecording{{ lesson.id }}"
+                                    aria-expanded="false"
+                                    aria-controls="addLessonRecording{{ lesson.id }}"
+                                >
+                                    + Add Lesson Recording
+                                </button>
+
+                            </div>
+
+                            <div
+                                class="collapse mt-3"
+                                id="editLesson{{ lesson.id }}"
+                            >
+
+                                <div class="p-3 border-top bg-light">
+
+                                    <form
+                                        method="POST"
+                                        action="{% url 'edit_teacher_lesson' lesson.id %}"
+                                    >
+
+                                        {% csrf_token %}
+
+                                        <label
+                                            for="edit-lesson-title-{{ lesson.id }}"
+                                            class="form-label fw-semibold"
+                                        >
+                                            Lesson Title
+                                        </label>
+
+                                        <input
+                                            type="text"
+                                            id="edit-lesson-title-{{ lesson.id }}"
+                                            name="title"
+                                            class="form-control"
+                                            maxlength="200"
+                                            value="{{ lesson.title }}"
+                                            required
+                                        >
+
+                                        <div class="d-flex gap-2 mt-3">
+
+                                            <button
+                                                type="submit"
+                                                class="btn btn-primary btn-sm"
+                                            >
+                                                Save Changes
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-secondary btn-sm"
+                                                data-bs-toggle="collapse"
+                                                data-bs-target="#editLesson{{ lesson.id }}"
+                                            >
+                                                Cancel
+                                            </button>
+
+                                        </div>
+
+                                    </form>
+
+                                </div>
+
+                            </div>
+
+                            <div
+                                class="collapse mt-3"
+                                id="addVideoLecture{{ lesson.id }}"
+                            >
+
+                                <div class="p-3 border-top bg-light">
+
+                                    <form
+                                        method="POST"
+                                        action="{% url 'add_teacher_video_lecture' lesson.id %}"
+                                    >
+
+                                        {% csrf_token %}
+
+
+                                        <div class="mb-3">
+
+                                            <label
+                                                for="video-lecture-title-{{ lesson.id }}"
+                                                class="form-label fw-semibold"
+                                            >
+                                                Video Lecture Title
+                                            </label>
+
+                                            <input
+                                                type="text"
+                                                id="video-lecture-title-{{ lesson.id }}"
+                                                name="title"
+                                                class="form-control"
+                                                maxlength="200"
+                                                placeholder="e.g. Introduction to HCF"
+                                                required
+                                            >
+
+                                        </div>
+
+
+                                        <div class="mb-3">
+
+                                            <label
+                                                for="video-lecture-url-{{ lesson.id }}"
+                                                class="form-label fw-semibold"
+                                            >
+                                                YouTube Video URL
+                                            </label>
+
+                                            <input
+                                                type="url"
+                                                id="video-lecture-url-{{ lesson.id }}"
+                                                name="video_url"
+                                                class="form-control"
+                                                placeholder="https://www.youtube.com/watch?v=..."
+                                                required
+                                            >
+
+                                            <div class="form-text">
+                                                Enter a valid YouTube video URL.
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="mb-3">
+
+                                            <label
+                                                for="video-lecture-description-{{ lesson.id }}"
+                                                class="form-label fw-semibold"
+                                            >
+                                                Description
+                                            </label>
+
+                                            <textarea
+                                                id="video-lecture-description-{{ lesson.id }}"
+                                                name="description"
+                                                class="form-control"
+                                                rows="3"
+                                                placeholder="Brief description of this lecture."
+                                            ></textarea>
+
+                                        </div>
+
+
+                                        <div class="mb-3">
+
+                                            <label
+                                                for="video-lecture-order-{{ lesson.id }}"
+                                                class="form-label fw-semibold"
+                                            >
+                                                Display Order
+                                            </label>
+
+                                            <input
+                                                type="number"
+                                                id="video-lecture-order-{{ lesson.id }}"
+                                                name="display_order"
+                                                class="form-control"
+                                                min="0"
+                                                step="1"
+                                                value="0"
+                                            >
+
+                                            <div class="form-text">
+                                                Lower numbers appear first.
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="d-flex gap-2">
+
+                                            <button
+                                                type="submit"
+                                                class="btn btn-primary btn-sm"
+                                            >
+                                                Create Video Lecture
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-secondary btn-sm"
+                                                data-bs-toggle="collapse"
+                                                data-bs-target="#addVideoLecture{{ lesson.id }}"
+                                            >
+                                                Cancel
+                                            </button>
+
+                                        </div>
+
+                                    </form>
+
+                                </div>
+
+                            </div>
+
+                            <!-- =================================================
+                                ADD LESSON RECORDING
+                                ================================================= -->
+
+                            <div
+                                class="collapse mt-3"
+                                id="addLessonRecording{{ lesson.id }}"
+                            >
+
+                                <div class="p-3 border-top bg-light">
+
+                                    <form
+                                        method="POST"
+                                        enctype="multipart/form-data"
+                                        action="{% url 'add_teacher_lesson_recording' lesson.id %}"
+                                    >
+
+                                        {% csrf_token %}
+
+
+                                        <div class="mb-3">
+
+                                            <label
+                                                for="lesson-recording-title-{{ lesson.id }}"
+                                                class="form-label fw-semibold"
+                                            >
+                                                Lesson Recording Title
+                                            </label>
+
+                                            <input
+                                                type="text"
+                                                id="lesson-recording-title-{{ lesson.id }}"
+                                                name="title"
+                                                class="form-control"
+                                                maxlength="200"
+                                                placeholder="e.g. HCF and LCM Recorded Class"
+                                                required
+                                            >
+
+                                        </div>
+
+
+                                        <div class="mb-3">
+
+                                            <label
+                                                for="lesson-recording-description-{{ lesson.id }}"
+                                                class="form-label fw-semibold"
+                                            >
+                                                Description
+                                            </label>
+
+                                            <textarea
+                                                id="lesson-recording-description-{{ lesson.id }}"
+                                                name="description"
+                                                class="form-control"
+                                                rows="3"
+                                                placeholder="Brief description of this recording."
+                                            ></textarea>
+
+                                        </div>
+
+
+                                        <div class="mb-3">
+
+                                            <label
+                                                for="lesson-recording-video-{{ lesson.id }}"
+                                                class="form-label fw-semibold"
+                                            >
+                                                Recording Video
+                                            </label>
+
+                                            <input
+                                                type="file"
+                                                id="lesson-recording-video-{{ lesson.id }}"
+                                                name="video"
+                                                class="form-control"
+                                                accept="video/*"
+                                                required
+                                            >
+
+                                            <div class="form-text">
+                                                Upload the recorded class or educational video.
+                                                Maximum file size: 100 MB.
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="mb-3">
+
+                                            <label
+                                                for="lesson-recording-order-{{ lesson.id }}"
+                                                class="form-label fw-semibold"
+                                            >
+                                                Display Order
+                                            </label>
+
+                                            <input
+                                                type="number"
+                                                id="lesson-recording-order-{{ lesson.id }}"
+                                                name="display_order"
+                                                class="form-control"
+                                                min="0"
+                                                step="1"
+                                                value="0"
+                                            >
+
+                                            <div class="form-text">
+                                                Lower numbers appear first.
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="d-flex gap-2">
+
+                                            <button
+                                                type="submit"
+                                                class="btn btn-primary btn-sm"
+                                            >
+                                                Create Lesson Recording
+                                            </button>
+
+
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-secondary btn-sm"
+                                                data-bs-toggle="collapse"
+                                                data-bs-target="#addLessonRecording{{ lesson.id }}"
+                                            >
+                                                Cancel
+                                            </button>
+
+                                        </div>
+
+                                    </form>
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- =================================================
+                                LESSON RECORDINGS
+                                ================================================= -->
+
+                            <div class="mt-3">
+
+                                <div class="small fw-semibold text-muted mb-2">
+                                    Lesson Recordings
+                                </div>
+
+
+                                {% for recording in lesson.lesson_recordings.all %}
+
+                                    <div class="assignment-row">
+
+                                        <div
+                                            class="d-flex justify-content-between align-items-start gap-3"
+                                        >
+
+                                            <div class="flex-grow-1">
+
+                                                <div class="fw-semibold">
+
+                                                    &#127909;
+
+                                                    {{ recording.title }}
+
+                                                </div>
+
+
+                                                {% if recording.description %}
+
+                                                    <div class="small text-muted mt-1">
+
+                                                        {{ recording.description }}
+
+                                                    </div>
+
+                                                {% endif %}
+
+
+                                                <div class="small text-muted mt-1">
+
+                                                    Display Order:
+                                                    {{ recording.display_order }}
+
+                                                </div>
+
+                                            </div>
+
+
+                                            <div class="d-flex gap-2 flex-shrink-0">
+
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-outline-secondary"
+                                                    data-bs-toggle="collapse"
+                                                    data-bs-target="#editLessonRecording{{ recording.id }}"
+                                                    aria-expanded="false"
+                                                    aria-controls="editLessonRecording{{ recording.id }}"
+                                                >
+                                                    Edit
+                                                </button>
+
+
+                                                <form
+                                                    method="POST"
+                                                    action="{% url 'delete_teacher_lesson_recording' recording.id %}"
+                                                    class="d-inline"
+                                                    onsubmit="return confirm(
+                                                        'Delete lesson recording &quot;{{ recording.title|escapejs }}&quot;?'
+                                                    );"
+                                                >
+
+                                                    {% csrf_token %}
+
+                                                    <button
+                                                        type="submit"
+                                                        class="btn btn-sm btn-outline-danger"
+                                                    >
+                                                        Delete
+                                                    </button>
+
+                                                </form>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <!-- =================================================
+                                            EDIT LESSON RECORDING
+                                            ================================================= -->
+
+                                        <div
+                                            class="collapse mt-3"
+                                            id="editLessonRecording{{ recording.id }}"
+                                        >
+
+                                            <div class="p-3 border-top bg-light">
+
+                                                <form
+                                                    method="POST"
+                                                    enctype="multipart/form-data"
+                                                    action="{% url 'edit_teacher_lesson_recording' recording.id %}"
+                                                >
+
+                                                    {% csrf_token %}
+
+
+                                                    <div class="mb-3">
+
+                                                        <label
+                                                            for="edit-lesson-recording-title-{{ recording.id }}"
+                                                            class="form-label fw-semibold"
+                                                        >
+                                                            Lesson Recording Title
+                                                        </label>
+
+                                                        <input
+                                                            type="text"
+                                                            id="edit-lesson-recording-title-{{ recording.id }}"
+                                                            name="title"
+                                                            class="form-control"
+                                                            maxlength="200"
+                                                            value="{{ recording.title }}"
+                                                            required
+                                                        >
+
+                                                    </div>
+
+
+                                                    <div class="mb-3">
+
+                                                        <label
+                                                            for="edit-lesson-recording-description-{{ recording.id }}"
+                                                            class="form-label fw-semibold"
+                                                        >
+                                                            Description
+                                                        </label>
+
+                                                        <textarea
+                                                            id="edit-lesson-recording-description-{{ recording.id }}"
+                                                            name="description"
+                                                            class="form-control"
+                                                            rows="3"
+                                                        >{{ recording.description }}</textarea>
+
+                                                    </div>
+
+
+                                                    <div class="mb-3">
+
+                                                        <label
+                                                            for="edit-lesson-recording-video-{{ recording.id }}"
+                                                            class="form-label fw-semibold"
+                                                        >
+                                                            Replace Video
+                                                        </label>
+
+                                                        <input
+                                                            type="file"
+                                                            id="edit-lesson-recording-video-{{ recording.id }}"
+                                                            name="video"
+                                                            class="form-control"
+                                                            accept="video/*"
+                                                        >
+
+                                                        <div class="form-text">
+                                                            Leave this empty to keep the existing video.
+                                                            Maximum file size: 100 MB.
+                                                        </div>
+
+                                                    </div>
+
+
+                                                    <div class="mb-3">
+
+                                                        <label
+                                                            for="edit-lesson-recording-order-{{ recording.id }}"
+                                                            class="form-label fw-semibold"
+                                                        >
+                                                            Display Order
+                                                        </label>
+
+                                                        <input
+                                                            type="number"
+                                                            id="edit-lesson-recording-order-{{ recording.id }}"
+                                                            name="display_order"
+                                                            class="form-control"
+                                                            min="0"
+                                                            step="1"
+                                                            value="{{ recording.display_order }}"
+                                                        >
+
+                                                        <div class="form-text">
+                                                            Lower numbers appear first.
+                                                        </div>
+
+                                                    </div>
+
+
+                                                    <div class="d-flex gap-2">
+
+                                                        <button
+                                                            type="submit"
+                                                            class="btn btn-primary btn-sm"
+                                                        >
+                                                            Save Changes
+                                                        </button>
+
+
+                                                        <button
+                                                            type="button"
+                                                            class="btn btn-outline-secondary btn-sm"
+                                                            data-bs-toggle="collapse"
+                                                            data-bs-target="#editLessonRecording{{ recording.id }}"
+                                                        >
+                                                            Cancel
+                                                        </button>
+
+                                                    </div>
+
+                                                </form>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                {% empty %}
+
+                                    <div class="assignment-row">
+                                        No lesson recordings added yet.
+                                    </div>
+
+                                {% endfor %}
+
+                            </div>
+
+                            <div class="mt-3">
+
+                                <div class="small fw-semibold text-muted mb-2">
+                                    Video Lectures
+                                </div>
+
+
+                                {% for lecture in lesson.video_lectures.all %}
+
+                                    <div class="assignment-row">
+
+                                        <div
+                                            class="d-flex justify-content-between align-items-start gap-3"
+                                        >
+
+                                            <div class="flex-grow-1">
+
+                                                <div class="fw-semibold">
+                                                    ▶ {{ lecture.title }}
+                                                </div>
+
+                                                {% if lecture.description %}
+
+                                                    <div class="small text-muted mt-1">
+                                                        {{ lecture.description }}
+                                                    </div>
+
+                                                {% endif %}
+
+                                                <div class="small text-muted mt-1">
+
+                                                    Order:
+                                                    {{ lecture.display_order }}
+
+                                                </div>
+
+                                            </div>
+
+
+                                            <div class="d-flex gap-2 flex-shrink-0">
+
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-outline-secondary"
+                                                    data-bs-toggle="collapse"
+                                                    data-bs-target="#editVideoLecture{{ lecture.id }}"
+                                                    aria-expanded="false"
+                                                    aria-controls="editVideoLecture{{ lecture.id }}"
+                                                >
+                                                    Edit
+                                                </button>
+
+
+                                                <form
+                                                    method="POST"
+                                                    action="{% url 'delete_teacher_video_lecture' lecture.id %}"
+                                                    class="d-inline"
+                                                    onsubmit="return confirm(
+                                                        'Delete video lecture &quot;{{ lecture.title|escapejs }}&quot;?'
+                                                    );"
+                                                >
+
+                                                    {% csrf_token %}
+
+                                                    <button
+                                                        type="submit"
+                                                        class="btn btn-sm btn-outline-danger"
+                                                    >
+                                                        Delete
+                                                    </button>
+
+                                                </form>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <div
+                                            class="collapse mt-3"
+                                            id="editVideoLecture{{ lecture.id }}"
+                                        >
+
+                                            <div class="p-3 border-top bg-light">
+
+                                                <form
+                                                    method="POST"
+                                                    action="{% url 'edit_teacher_video_lecture' lecture.id %}"
+                                                >
+
+                                                    {% csrf_token %}
+
+
+                                                    <div class="mb-3">
+
+                                                        <label
+                                                            for="edit-video-title-{{ lecture.id }}"
+                                                            class="form-label fw-semibold"
+                                                        >
+                                                            Video Lecture Title
+                                                        </label>
+
+                                                        <input
+                                                            type="text"
+                                                            id="edit-video-title-{{ lecture.id }}"
+                                                            name="title"
+                                                            class="form-control"
+                                                            maxlength="200"
+                                                            value="{{ lecture.title }}"
+                                                            required
+                                                        >
+
+                                                    </div>
+
+
+                                                    <div class="mb-3">
+
+                                                        <label
+                                                            for="edit-video-url-{{ lecture.id }}"
+                                                            class="form-label fw-semibold"
+                                                        >
+                                                            YouTube Video URL
+                                                        </label>
+
+                                                        <input
+                                                            type="url"
+                                                            id="edit-video-url-{{ lecture.id }}"
+                                                            name="video_url"
+                                                            class="form-control"
+                                                            value="{{ lecture.video_url }}"
+                                                            required
+                                                        >
+
+                                                        <div class="form-text">
+                                                            Enter a valid YouTube video URL.
+                                                        </div>
+
+                                                    </div>
+
+
+                                                    <div class="mb-3">
+
+                                                        <label
+                                                            for="edit-video-description-{{ lecture.id }}"
+                                                            class="form-label fw-semibold"
+                                                        >
+                                                            Description
+                                                        </label>
+
+                                                        <textarea
+                                                            id="edit-video-description-{{ lecture.id }}"
+                                                            name="description"
+                                                            class="form-control"
+                                                            rows="3"
+                                                        >{{ lecture.description }}</textarea>
+
+                                                    </div>
+
+
+                                                    <div class="mb-3">
+
+                                                        <label
+                                                            for="edit-video-order-{{ lecture.id }}"
+                                                            class="form-label fw-semibold"
+                                                        >
+                                                            Display Order
+                                                        </label>
+
+                                                        <input
+                                                            type="number"
+                                                            id="edit-video-order-{{ lecture.id }}"
+                                                            name="display_order"
+                                                            class="form-control"
+                                                            min="0"
+                                                            step="1"
+                                                            value="{{ lecture.display_order }}"
+                                                        >
+
+                                                        <div class="form-text">
+                                                            Lower numbers appear first.
+                                                        </div>
+
+                                                    </div>
+
+
+                                                    <div class="d-flex gap-2">
+
+                                                        <button
+                                                            type="submit"
+                                                            class="btn btn-primary btn-sm"
+                                                        >
+                                                            Save Changes
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            class="btn btn-outline-secondary btn-sm"
+                                                            data-bs-toggle="collapse"
+                                                            data-bs-target="#editVideoLecture{{ lecture.id }}"
+                                                        >
+                                                            Cancel
+                                                        </button>
+
+                                                    </div>
+
+                                                </form>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                {% empty %}
+
+                                    <div class="assignment-row">
+                                        No video lectures added yet.
+                                    </div>
+
+                                {% endfor %}
+
                             </div>
 
                             {% if lesson.assignments.all %}

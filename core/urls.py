@@ -31,6 +31,86 @@ urlpatterns = [
         name='add_teacher_module',
     ),
     path(
+        "teacher-module/<int:module_id>/add-handout/",
+        views.add_teacher_module_handout,
+        name="add_teacher_module_handout",
+    ),
+    path(
+        "teacher-module/<int:module_id>/add-recording/",
+        views.add_teacher_module_recording,
+        name="add_teacher_module_recording",
+    ),
+    path(
+        "teacher-module-recording/<int:recording_id>/edit/",
+        views.edit_teacher_module_recording,
+        name="edit_teacher_module_recording",
+    ),
+    path(
+        "teacher-module-recording/<int:recording_id>/delete/",
+        views.delete_teacher_module_recording,
+        name="delete_teacher_module_recording",
+    ),
+    path(
+        "teacher-module-handout/<int:handout_id>/edit/",
+        views.edit_teacher_module_handout,
+        name="edit_teacher_module_handout",
+    ),
+    path(
+        "teacher-module-handout/<int:handout_id>/delete/",
+        views.delete_teacher_module_handout,
+        name="delete_teacher_module_handout",
+    ),
+    path(
+        "teacher-module/<int:module_id>/add-lesson/",
+        views.add_teacher_lesson,
+        name="add_teacher_lesson",
+    ),
+    path(
+        "teacher-lesson/<int:lesson_id>/edit/",
+        views.edit_teacher_lesson,
+        name="edit_teacher_lesson",
+    ),
+    path(
+        "teacher-lesson/<int:lesson_id>/add-video-lecture/",
+        views.add_teacher_video_lecture,
+        name="add_teacher_video_lecture",
+    ),
+    path(
+        "teacher-lesson/<int:lesson_id>/add-recording/",
+        views.add_teacher_lesson_recording,
+        name="add_teacher_lesson_recording",
+    ),
+    path(
+        "teacher-lesson-recording/<int:recording_id>/edit/",
+        views.edit_teacher_lesson_recording,
+        name="edit_teacher_lesson_recording",
+    ),
+    path(
+        "teacher-lesson-recording/<int:recording_id>/delete/",
+        views.delete_teacher_lesson_recording,
+        name="delete_teacher_lesson_recording",
+    ),
+    path(
+        "teacher-video-lecture/<int:lecture_id>/edit/",
+        views.edit_teacher_video_lecture,
+        name="edit_teacher_video_lecture",
+    ),
+    path(
+        "teacher-video-lecture/<int:lecture_id>/delete/",
+        views.delete_teacher_video_lecture,
+        name="delete_teacher_video_lecture",
+    ),
+    path(
+        "teacher-lesson/<int:lesson_id>/delete/",
+        views.delete_teacher_lesson,
+        name="delete_teacher_lesson",
+    ),
+    path(
+        'teacher-module/<int:module_id>/edit/',
+        views.edit_teacher_module,
+        name='edit_teacher_module',
+    ),
+    path(
     'teacher-module/<int:module_id>/add-assignment/',
         views.add_teacher_module_assignment,
         name='add_teacher_module_assignment',
@@ -44,11 +124,6 @@ urlpatterns = [
     'teacher-module-assignment/<int:assignment_id>/delete/',
         views.delete_teacher_module_assignment,
         name='delete_teacher_module_assignment',
-    ),
-    path(
-        'teacher-module/<int:module_id>/edit/',
-        views.edit_teacher_module,
-        name='edit_teacher_module',
     ),
     path(
         'teacher-module/<int:module_id>/delete/',
@@ -106,6 +181,27 @@ urlpatterns = [
     path("teacher-analytics/",views.teacher_analytics,name="teacher_analytics",),
     path("student-analytics/",views.student_analytics,name="student_analytics",),
     path("lesson/<int:lesson_id>/",views.lesson_detail,name="lesson_detail"),
+    path(
+        "lesson-recording/<int:recording_id>/",
+        views.view_lesson_recording,
+        name="view_lesson_recording",
+    ),
+    path(
+        "lesson-recording/<int:recording_id>/file/",
+        views.serve_lesson_recording,
+        name="serve_lesson_recording",
+    ),
+    path(
+        "module-recording/<int:recording_id>/",
+        views.view_module_recording,
+        name="view_module_recording",
+    ),
+
+    path(
+        "module-recording/<int:recording_id>/file/",
+        views.serve_module_recording,
+        name="serve_module_recording",
+    ),
     path(
         'password-reset/',
         auth_views.PasswordResetView.as_view(

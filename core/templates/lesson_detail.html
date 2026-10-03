@@ -179,6 +179,129 @@
 
     {% endif %}
 
+    <!-- =====================================================
+        VIDEO LECTURES
+        ===================================================== -->
+
+    {% if video_lectures %}
+
+    <div class="lesson-section">
+
+        <div class="section-header">
+            🎬 Video Lectures
+        </div>
+
+        <div class="section-body">
+
+            {% for lecture in video_lectures %}
+
+                <div class="card shadow-sm mb-4">
+
+                    <div class="card-body">
+
+                        <h5 class="mb-2">
+                            {{ forloop.counter }}.
+                            {{ lecture.title }}
+                        </h5>
+
+
+                        {% if lecture.description %}
+
+                            <p class="text-muted mb-3">
+                                {{ lecture.description }}
+                            </p>
+
+                        {% endif %}
+
+
+                        <div class="ratio ratio-16x9">
+
+                            <iframe
+                                src="{{ lecture.youtube_embed_url }}"
+                                title="{{ lecture.title }}"
+                                frameborder="0"
+                                loading="lazy"
+                                referrerpolicy="strict-origin-when-cross-origin"
+                                allow="accelerometer; autoplay; encrypted-media; picture-in-picture"
+                                allowfullscreen>
+                            </iframe>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+    {% endif %}
+
+    <!-- =====================================================
+        LESSON RECORDINGS
+        ===================================================== -->
+
+    {% if lesson_recordings %}
+
+    <div class="lesson-section">
+
+        <div class="section-header">
+            🎥 Lesson Recordings
+        </div>
+
+        <div class="section-body">
+
+            {% for recording in lesson_recordings %}
+
+                <div class="card shadow-sm mb-4">
+
+                    <div class="card-body">
+
+                        <h5 class="mb-2">
+                            {{ forloop.counter }}.
+                            {{ recording.title }}
+                        </h5>
+
+
+                        {% if recording.description %}
+
+                            <p class="text-muted mb-3">
+                                {{ recording.description }}
+                            </p>
+
+                        {% endif %}
+
+
+                        <div class="small text-muted mb-3">
+
+                            Display Order:
+                            {{ recording.display_order }}
+
+                        </div>
+
+
+                        <a
+                            href="{% url 'view_lesson_recording' recording.id %}"
+                            class="btn btn-primary"
+                        >
+                            ▶ Watch Recording
+                        </a>
+
+                    </div>
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+    {% endif %}
+
 
     <!-- LESSON NOTES -->
 

@@ -9,6 +9,7 @@ from core.models import (
     Quiz,
     QuizResult,
     Assignment,
+    LearningRecording,
 )
 from urllib.parse import parse_qs, urlparse
 
@@ -70,6 +71,8 @@ def build_course_learning_context(user, course):
                     "id",
                 ),
             ),
+            "module_handouts",
+            "module_recordings",
         )
         .order_by("id")
     )
@@ -400,7 +403,9 @@ def get_lesson_learning_context(user, lesson_id):
         )
         .prefetch_related(
             "assignments",
-            "handout_set"
+            "handout_set",
+            "lesson_recordings",
+            "video_lectures",
         )
         .filter(
             id=lesson_id
@@ -413,8 +418,51 @@ def get_lesson_learning_context(user, lesson_id):
 
     course = lesson.module.course
 
+    # =========================================================
+    # LESSON RECORDINGS
+    # =========================================================
+
+    lesson_recordings = (
+        lesson.lesson_recordings
+        .all()
+        .order_by(
+            "display_order",
+            "id",
+        )
+    )
+
     youtube_embed_url = get_youtube_embed_url(
         lesson.video_url
+    )
+
+    # =========================================================
+    # VIDEO LECTURES
+    # =========================================================
+
+    video_lectures = []
+
+    for lecture in lesson.video_lectures.all():
+
+        lecture_embed_url = get_youtube_embed_url(
+            lecture.video_url
+        )
+
+        if not lecture_embed_url:
+            continue
+
+        video_lectures.append({
+            "id": lecture.id,
+            "title": lecture.title,
+            "description": lecture.description,
+            "display_order": lecture.display_order,
+            "youtube_embed_url": lecture_embed_url,
+        })
+
+    video_lectures.sort(
+        key=lambda item: (
+            item["display_order"],
+            item["id"],
+        )
     )
 
     # =========================================================
@@ -513,6 +561,9 @@ def get_lesson_learning_context(user, lesson_id):
         "lesson": lesson,
         "course": course,
         "module": lesson.module,
+
+        "video_lectures": video_lectures,
+        "lesson_recordings": lesson_recordings,
 
         "is_enrolled": is_enrolled,
         "is_completed": is_completed,

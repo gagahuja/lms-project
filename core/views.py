@@ -14,6 +14,7 @@ from .models import Attendance
 from .models import Recording
 from .models import Module
 from .models import Assignment
+from .models import LearningRecording
 from .models import Submission
 from django.contrib.auth import get_user_model
 from django.db.models import Count
@@ -25,6 +26,7 @@ from .models import QuizResult, StudentAnswer
 from .models import Progress
 from .models import Points
 from .models import Handout
+from .models import VideoLecture
 from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
@@ -63,6 +65,7 @@ from .services.ai_feedback_service import (
 from .services.course_learning_service import (
     build_course_learning_context,
     get_lesson_learning_context,
+    get_youtube_embed_url,
 )
 from core.services.document_preview_service import (
     convert_cloudinary_file_to_pdf,
@@ -1393,6 +1396,1627 @@ def delete_teacher_module_assignment(request, assignment_id):
 
 @require_POST
 @login_required
+def add_teacher_module_handout(request, module_id):
+
+    # ---------------------------------------------------------
+    # GET MODULE + COURSE
+    # ---------------------------------------------------------
+
+    module = get_object_or_404(
+        Module.objects.select_related("course"),
+        id=module_id,
+    )
+
+    course = module.course
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can manage module handouts.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to manage this module.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # GET FORM DATA
+    # ---------------------------------------------------------
+
+    title = request.POST.get(
+        "title",
+        "",
+    ).strip()
+
+    file = request.FILES.get("file")
+
+    # ---------------------------------------------------------
+    # TITLE VALIDATION
+    # ---------------------------------------------------------
+
+    if not title:
+
+        messages.error(
+            request,
+            "Module handout title is required.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # FILE VALIDATION
+    # ---------------------------------------------------------
+
+    if not file:
+
+        messages.error(
+            request,
+            "Please select a handout file.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # CREATE MODULE HANDOUT
+    # ---------------------------------------------------------
+
+    Handout.objects.create(
+        lesson=None,
+        module=module,
+        title=title,
+        file=file,
+    )
+
+    messages.success(
+        request,
+        f"Module handout '{title}' added successfully.",
+    )
+
+    return redirect(
+        "teacher_course_manager",
+        course_id=course.id,
+    )
+
+@require_POST
+@login_required
+def add_teacher_module_recording(request, module_id):
+
+    # ---------------------------------------------------------
+    # GET MODULE + COURSE
+    # ---------------------------------------------------------
+
+    module = get_object_or_404(
+        Module.objects.select_related("course"),
+        id=module_id,
+    )
+
+    course = module.course
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can manage module recordings.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to manage this module.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # GET FORM DATA
+    # ---------------------------------------------------------
+
+    title = request.POST.get(
+        "title",
+        "",
+    ).strip()
+
+    description = request.POST.get(
+        "description",
+        "",
+    ).strip()
+
+    video = request.FILES.get(
+        "video"
+    )
+
+    display_order_raw = request.POST.get(
+        "display_order",
+        "0",
+    ).strip()
+
+    # ---------------------------------------------------------
+    # TITLE VALIDATION
+    # ---------------------------------------------------------
+
+    if not title:
+
+        messages.error(
+            request,
+            "Module recording title is required.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # VIDEO VALIDATION
+    # ---------------------------------------------------------
+
+    if not video:
+
+        messages.error(
+            request,
+            "Please select a recording video.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+
+    # ---------------------------------------------------------
+    # VIDEO TYPE VALIDATION
+    # ---------------------------------------------------------
+
+    allowed_video_extensions = {
+        ".mp4",
+        ".webm",
+        ".mov",
+        ".m4v",
+        ".mkv",
+        ".avi",
+    }
+
+    allowed_video_content_types = {
+        "video/mp4",
+        "video/webm",
+        "video/quicktime",
+        "video/x-m4v",
+        "video/x-matroska",
+        "video/x-msvideo",
+    }
+
+
+    video_name = video.name.lower()
+
+    video_extension = ""
+
+    if "." in video_name:
+
+        video_extension = (
+            "."
+            + video_name.rsplit(
+                ".",
+                1
+            )[1]
+        )
+
+
+    if (
+        video_extension
+        not in allowed_video_extensions
+    ):
+
+        messages.error(
+            request,
+            "Unsupported video format. "
+            "Please upload MP4, WebM, MOV, M4V, MKV or AVI.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+
+    if (
+        video.content_type
+        and video.content_type
+        not in allowed_video_content_types
+    ):
+
+        messages.error(
+            request,
+            "The uploaded file does not appear to be a supported video.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+
+    # ---------------------------------------------------------
+    # VIDEO SIZE VALIDATION
+    # ---------------------------------------------------------
+
+    MAX_LEARNING_RECORDING_SIZE = (
+        100 * 1024 * 1024
+    )
+
+
+    if video.size > MAX_LEARNING_RECORDING_SIZE:
+
+        messages.error(
+            request,
+            "Maximum learning recording size is 100 MB.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # DISPLAY ORDER VALIDATION
+    # ---------------------------------------------------------
+
+    try:
+
+        display_order = int(
+            display_order_raw or 0
+        )
+
+    except (TypeError, ValueError):
+
+        messages.error(
+            request,
+            "Display order must be a valid whole number.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    if display_order < 0:
+
+        messages.error(
+            request,
+            "Display order cannot be negative.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # CREATE MODULE RECORDING
+    # ---------------------------------------------------------
+
+    try:
+
+        LearningRecording.objects.create(
+            lesson=None,
+            module=module,
+            title=title,
+            description=description,
+            video=video,
+            display_order=display_order,
+        )
+
+    except Exception as exc:
+
+        logger.exception(
+            "Module recording upload failed "
+            "for module=%s: %s",
+            module.id,
+            exc,
+        )
+
+        messages.error(
+            request,
+            "The recording could not be uploaded. "
+            "Please make sure the selected file is a valid supported video.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+
+    messages.success(
+        request,
+        f"Module recording '{title}' added successfully.",
+    )
+
+    return redirect(
+        "teacher_course_manager",
+        course_id=course.id,
+    )
+
+
+@require_POST
+@login_required
+def add_teacher_lesson_recording(request, lesson_id):
+
+    # ---------------------------------------------------------
+    # GET LESSON + MODULE + COURSE
+    # ---------------------------------------------------------
+
+    lesson = get_object_or_404(
+        Lesson.objects.select_related(
+            "module__course",
+        ),
+        id=lesson_id,
+    )
+
+    module = lesson.module
+    course = module.course
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can manage lesson recordings.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to manage this lesson.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # GET FORM DATA
+    # ---------------------------------------------------------
+
+    title = request.POST.get(
+        "title",
+        "",
+    ).strip()
+
+    description = request.POST.get(
+        "description",
+        "",
+    ).strip()
+
+    video = request.FILES.get(
+        "video",
+    )
+
+    display_order_raw = request.POST.get(
+        "display_order",
+        "0",
+    ).strip()
+
+    # ---------------------------------------------------------
+    # TITLE VALIDATION
+    # ---------------------------------------------------------
+
+    if not title:
+
+        messages.error(
+            request,
+            "Lesson recording title is required.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # VIDEO VALIDATION
+    # ---------------------------------------------------------
+
+    if not video:
+
+        messages.error(
+            request,
+            "Please select a recording video.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # VIDEO TYPE VALIDATION
+    # ---------------------------------------------------------
+
+    allowed_video_extensions = {
+        ".mp4",
+        ".webm",
+        ".mov",
+        ".m4v",
+        ".mkv",
+        ".avi",
+    }
+
+    allowed_video_content_types = {
+        "video/mp4",
+        "video/webm",
+        "video/quicktime",
+        "video/x-m4v",
+        "video/x-matroska",
+        "video/x-msvideo",
+    }
+
+    video_name = video.name.lower()
+
+    video_extension = ""
+
+    if "." in video_name:
+
+        video_extension = (
+            "."
+            + video_name.rsplit(
+                ".",
+                1,
+            )[1]
+        )
+
+    if (
+        video_extension
+        not in allowed_video_extensions
+    ):
+
+        messages.error(
+            request,
+            "Unsupported video format. "
+            "Please upload MP4, WebM, MOV, M4V, MKV or AVI.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    if (
+        video.content_type
+        and video.content_type
+        not in allowed_video_content_types
+    ):
+
+        messages.error(
+            request,
+            "The uploaded file does not appear to be a supported video.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # VIDEO SIZE VALIDATION
+    # ---------------------------------------------------------
+
+    MAX_LEARNING_RECORDING_SIZE = (
+        100 * 1024 * 1024
+    )
+
+    if video.size > MAX_LEARNING_RECORDING_SIZE:
+
+        messages.error(
+            request,
+            "Maximum lesson recording size is 100 MB.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # DISPLAY ORDER VALIDATION
+    # ---------------------------------------------------------
+
+    try:
+
+        display_order = int(
+            display_order_raw or 0
+        )
+
+    except (TypeError, ValueError):
+
+        messages.error(
+            request,
+            "Display order must be a valid whole number.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    if display_order < 0:
+
+        messages.error(
+            request,
+            "Display order cannot be negative.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # CREATE LESSON RECORDING
+    # ---------------------------------------------------------
+
+    try:
+
+        LearningRecording.objects.create(
+            lesson=lesson,
+            module=None,
+            title=title,
+            description=description,
+            video=video,
+            display_order=display_order,
+        )
+
+    except Exception as exc:
+
+        logger.exception(
+            "Lesson recording upload failed "
+            "for lesson=%s: %s",
+            lesson.id,
+            exc,
+        )
+
+        messages.error(
+            request,
+            "The recording could not be uploaded. "
+            "Please make sure the selected file is a valid supported video.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    messages.success(
+        request,
+        f"Lesson recording '{title}' added successfully.",
+    )
+
+    return redirect(
+        "teacher_course_manager",
+        course_id=course.id,
+    )
+
+
+@require_POST
+@login_required
+def edit_teacher_lesson_recording(request, recording_id):
+
+    # ---------------------------------------------------------
+    # GET LESSON RECORDING + LESSON + MODULE + COURSE
+    # ---------------------------------------------------------
+
+    recording = get_object_or_404(
+        LearningRecording.objects.select_related(
+            "lesson__module__course",
+        ).filter(
+            lesson__isnull=False,
+            module__isnull=True,
+        ),
+        id=recording_id,
+    )
+
+    lesson = recording.lesson
+    module = lesson.module
+    course = module.course
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can manage lesson recordings.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to manage this lesson recording.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # FORM DATA
+    # ---------------------------------------------------------
+
+    title = request.POST.get(
+        "title",
+        "",
+    ).strip()
+
+    description = request.POST.get(
+        "description",
+        "",
+    ).strip()
+
+    video = request.FILES.get(
+        "video",
+    )
+
+    display_order_raw = request.POST.get(
+        "display_order",
+        str(recording.display_order),
+    ).strip()
+
+    # ---------------------------------------------------------
+    # TITLE VALIDATION
+    # ---------------------------------------------------------
+
+    if not title:
+
+        messages.error(
+            request,
+            "Lesson recording title is required.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # VIDEO VALIDATION — ONLY IF REPLACEMENT PROVIDED
+    # ---------------------------------------------------------
+
+    if video:
+
+        allowed_video_extensions = {
+            ".mp4",
+            ".webm",
+            ".mov",
+            ".m4v",
+            ".mkv",
+            ".avi",
+        }
+
+        allowed_video_content_types = {
+            "video/mp4",
+            "video/webm",
+            "video/quicktime",
+            "video/x-m4v",
+            "video/x-matroska",
+            "video/x-msvideo",
+        }
+
+        video_name = video.name.lower()
+
+        video_extension = ""
+
+        if "." in video_name:
+
+            video_extension = (
+                "."
+                + video_name.rsplit(
+                    ".",
+                    1,
+                )[1]
+            )
+
+        if (
+            video_extension
+            not in allowed_video_extensions
+        ):
+
+            messages.error(
+                request,
+                "Unsupported video format. "
+                "Please upload MP4, WebM, MOV, M4V, MKV or AVI.",
+            )
+
+            return redirect(
+                "teacher_course_manager",
+                course_id=course.id,
+            )
+
+        if (
+            video.content_type
+            and video.content_type
+            not in allowed_video_content_types
+        ):
+
+            messages.error(
+                request,
+                "The uploaded file does not appear to be a supported video.",
+            )
+
+            return redirect(
+                "teacher_course_manager",
+                course_id=course.id,
+            )
+
+        MAX_LEARNING_RECORDING_SIZE = (
+            100 * 1024 * 1024
+        )
+
+        if video.size > MAX_LEARNING_RECORDING_SIZE:
+
+            messages.error(
+                request,
+                "Maximum lesson recording size is 100 MB.",
+            )
+
+            return redirect(
+                "teacher_course_manager",
+                course_id=course.id,
+            )
+
+    # ---------------------------------------------------------
+    # DISPLAY ORDER VALIDATION
+    # ---------------------------------------------------------
+
+    try:
+
+        display_order = int(
+            display_order_raw or 0
+        )
+
+    except (TypeError, ValueError):
+
+        messages.error(
+            request,
+            "Display order must be a valid whole number.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    if display_order < 0:
+
+        messages.error(
+            request,
+            "Display order cannot be negative.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # UPDATE RECORDING
+    # ---------------------------------------------------------
+
+    old_video_name = recording.video.name
+    old_video_storage = recording.video.storage
+
+    recording.title = title
+    recording.description = description
+    recording.display_order = display_order
+
+    if video:
+
+        recording.video = video
+
+    try:
+
+        recording.save(
+            update_fields=(
+                [
+                    "title",
+                    "description",
+                    "display_order",
+                    "video",
+                ]
+                if video
+                else [
+                    "title",
+                    "description",
+                    "display_order",
+                ]
+            )
+        )
+
+    except Exception as exc:
+
+        logger.exception(
+            "Lesson recording update failed "
+            "for recording=%s: %s",
+            recording.id,
+            exc,
+        )
+
+        messages.error(
+            request,
+            "The lesson recording could not be updated.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # DELETE OLD VIDEO AFTER NEW VIDEO IS SAVED
+    # ---------------------------------------------------------
+
+    if video and old_video_name:
+
+        try:
+
+            old_video_storage.delete(
+                old_video_name,
+            )
+
+        except Exception as exc:
+
+            logger.warning(
+                "Old lesson recording video could not be deleted "
+                "for recording=%s: %s",
+                recording.id,
+                exc,
+            )
+
+    messages.success(
+        request,
+        f"Lesson recording '{title}' updated successfully.",
+    )
+
+    return redirect(
+        "teacher_course_manager",
+        course_id=course.id,
+    )
+
+
+@require_POST
+@login_required
+def delete_teacher_lesson_recording(request, recording_id):
+
+    # ---------------------------------------------------------
+    # GET LESSON RECORDING + LESSON + MODULE + COURSE
+    # ---------------------------------------------------------
+
+    recording = get_object_or_404(
+        LearningRecording.objects.select_related(
+            "lesson__module__course",
+        ).filter(
+            lesson__isnull=False,
+            module__isnull=True,
+        ),
+        id=recording_id,
+    )
+
+    lesson = recording.lesson
+    module = lesson.module
+    course = module.course
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can delete lesson recordings.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to delete this lesson recording.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # STORE VIDEO INFORMATION
+    # ---------------------------------------------------------
+
+    video_name = recording.video.name
+    video_storage = recording.video.storage
+
+    title = recording.title
+
+    # ---------------------------------------------------------
+    # DELETE CLOUDINARY VIDEO
+    # ---------------------------------------------------------
+
+    if video_name:
+
+        try:
+
+            deleted = video_storage.delete(
+                video_name,
+            )
+
+            if not deleted:
+
+                logger.warning(
+                    "Lesson recording video deletion "
+                    "was not confirmed for recording=%s "
+                    "video=%s",
+                    recording.id,
+                    video_name,
+                )
+
+        except Exception as exc:
+
+            logger.error(
+                "Lesson recording video deletion failed "
+                "for recording=%s: %s",
+                recording.id,
+                exc,
+            )
+
+            messages.error(
+                request,
+                "The recording video could not be deleted.",
+            )
+
+            return redirect(
+                "teacher_course_manager",
+                course_id=course.id,
+            )
+
+    # ---------------------------------------------------------
+    # DELETE DATABASE RECORD
+    # ---------------------------------------------------------
+
+    recording.delete()
+
+    messages.success(
+        request,
+        f"Lesson recording '{title}' deleted successfully.",
+    )
+
+    return redirect(
+        "teacher_course_manager",
+        course_id=course.id,
+    )
+
+
+@require_POST
+@login_required
+def edit_teacher_module_recording(request, recording_id):
+
+    # ---------------------------------------------------------
+    # GET RECORDING + MODULE + COURSE
+    # ---------------------------------------------------------
+
+    recording = get_object_or_404(
+        LearningRecording.objects.select_related(
+            "module__course",
+        ).filter(
+            module__isnull=False,
+            lesson__isnull=True,
+        ),
+        id=recording_id,
+    )
+
+    module = recording.module
+    course = module.course
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can manage module recordings.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to manage this module recording.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # FORM DATA
+    # ---------------------------------------------------------
+
+    title = request.POST.get(
+        "title",
+        "",
+    ).strip()
+
+    description = request.POST.get(
+        "description",
+        "",
+    ).strip()
+
+    video = request.FILES.get(
+        "video"
+    )
+
+    display_order_raw = request.POST.get(
+        "display_order",
+        str(recording.display_order),
+    ).strip()
+
+    # ---------------------------------------------------------
+    # TITLE VALIDATION
+    # ---------------------------------------------------------
+
+    if not title:
+
+        messages.error(
+            request,
+            "Module recording title is required.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # VIDEO VALIDATION — ONLY IF REPLACEMENT PROVIDED
+    # ---------------------------------------------------------
+
+    if video:
+
+        allowed_video_extensions = {
+            ".mp4",
+            ".webm",
+            ".mov",
+            ".m4v",
+            ".mkv",
+            ".avi",
+        }
+
+        allowed_video_content_types = {
+            "video/mp4",
+            "video/webm",
+            "video/quicktime",
+            "video/x-m4v",
+            "video/x-matroska",
+            "video/x-msvideo",
+        }
+
+        video_name = video.name.lower()
+
+        video_extension = ""
+
+        if "." in video_name:
+
+            video_extension = (
+                "."
+                + video_name.rsplit(
+                    ".",
+                    1
+                )[1]
+            )
+
+        if (
+            video_extension
+            not in allowed_video_extensions
+        ):
+
+            messages.error(
+                request,
+                "Unsupported video format. "
+                "Please upload MP4, WebM, MOV, M4V, MKV or AVI.",
+            )
+
+            return redirect(
+                "teacher_course_manager",
+                course_id=course.id,
+            )
+
+        if (
+            video.content_type
+            and video.content_type
+            not in allowed_video_content_types
+        ):
+
+            messages.error(
+                request,
+                "The uploaded file does not appear to be a supported video.",
+            )
+
+            return redirect(
+                "teacher_course_manager",
+                course_id=course.id,
+            )
+
+        MAX_LEARNING_RECORDING_SIZE = (
+            100 * 1024 * 1024
+        )
+
+        if video.size > MAX_LEARNING_RECORDING_SIZE:
+
+            messages.error(
+                request,
+                "Maximum learning recording size is 100 MB.",
+            )
+
+            return redirect(
+                "teacher_course_manager",
+                course_id=course.id,
+            )
+
+    # ---------------------------------------------------------
+    # DISPLAY ORDER VALIDATION
+    # ---------------------------------------------------------
+
+    try:
+
+        display_order = int(
+            display_order_raw or 0
+        )
+
+    except (TypeError, ValueError):
+
+        messages.error(
+            request,
+            "Display order must be a valid whole number.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    if display_order < 0:
+
+        messages.error(
+            request,
+            "Display order cannot be negative.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # UPDATE RECORDING
+    # ---------------------------------------------------------
+
+    old_video_name = recording.video.name
+    old_video_storage = recording.video.storage
+
+    recording.title = title
+    recording.description = description
+    recording.display_order = display_order
+
+    if video:
+
+        recording.video = video
+
+    try:
+
+        recording.save(
+            update_fields=[
+                "title",
+                "description",
+                "display_order",
+                "video",
+            ] if video else [
+                "title",
+                "description",
+                "display_order",
+            ]
+        )
+
+    except Exception as exc:
+
+        logger.exception(
+            "Module recording update failed "
+            "for recording=%s: %s",
+            recording.id,
+            exc,
+        )
+
+        messages.error(
+            request,
+            "The module recording could not be updated.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # DELETE OLD VIDEO AFTER NEW VIDEO IS SAVED
+    # ---------------------------------------------------------
+
+    if video and old_video_name:
+
+        try:
+
+            old_video_storage.delete(
+                old_video_name,
+            )
+
+        except Exception as exc:
+
+            logger.warning(
+                "Old module recording video could not be deleted "
+                "for recording=%s: %s",
+                recording.id,
+                exc,
+            )
+
+    messages.success(
+        request,
+        f"Module recording '{title}' updated successfully.",
+    )
+
+    return redirect(
+        "teacher_course_manager",
+        course_id=course.id,
+    )
+
+
+@require_POST
+@login_required
+def delete_teacher_module_recording(request, recording_id):
+
+    # ---------------------------------------------------------
+    # GET MODULE RECORDING + MODULE + COURSE
+    # ---------------------------------------------------------
+
+    recording = get_object_or_404(
+        LearningRecording.objects.select_related(
+            "module__course",
+        ).filter(
+            module__isnull=False,
+            lesson__isnull=True,
+        ),
+        id=recording_id,
+    )
+
+    module = recording.module
+    course = module.course
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can delete module recordings.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to delete this module recording.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # STORE TITLE
+    # ---------------------------------------------------------
+
+    title = recording.title
+
+    # ---------------------------------------------------------
+    # DELETE STORED VIDEO
+    # ---------------------------------------------------------
+
+    if recording.video:
+
+        try:
+
+            recording.video.delete(
+                save=False
+            )
+
+        except Exception as exc:
+
+            logger.error(
+                "Module recording video deletion failed "
+                "for recording=%s: %s",
+                recording.id,
+                exc,
+            )
+
+            messages.error(
+                request,
+                "The recording video could not be deleted.",
+            )
+
+            return redirect(
+                "teacher_course_manager",
+                course_id=course.id,
+            )
+
+    # ---------------------------------------------------------
+    # DELETE DATABASE RECORD
+    # ---------------------------------------------------------
+
+    recording.delete()
+
+    messages.success(
+        request,
+        f"Module recording '{title}' deleted successfully.",
+    )
+
+    return redirect(
+        "teacher_course_manager",
+        course_id=course.id,
+    )
+
+
+@require_POST
+@login_required
+def edit_teacher_module_handout(request, handout_id):
+
+    # ---------------------------------------------------------
+    # GET MODULE HANDOUT + MODULE + COURSE
+    # ---------------------------------------------------------
+
+    handout = get_object_or_404(
+        Handout.objects.select_related(
+            "module__course",
+        ).filter(
+            module__isnull=False,
+        ),
+        id=handout_id,
+    )
+
+    module = handout.module
+    course = module.course
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can manage module handouts.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to manage this module handout.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # GET FORM DATA
+    # ---------------------------------------------------------
+
+    title = request.POST.get(
+        "title",
+        "",
+    ).strip()
+
+    file = request.FILES.get("file")
+
+    # ---------------------------------------------------------
+    # TITLE VALIDATION
+    # ---------------------------------------------------------
+
+    if not title:
+
+        messages.error(
+            request,
+            "Module handout title is required.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # UPDATE HANDOUT
+    # ---------------------------------------------------------
+
+    handout.title = title
+
+    update_fields = [
+        "title",
+    ]
+
+    if file:
+
+        handout.file = file
+
+        update_fields.append(
+            "file"
+        )
+
+    handout.save(
+        update_fields=update_fields,
+    )
+
+    messages.success(
+        request,
+        f"Module handout '{title}' updated successfully.",
+    )
+
+    return redirect(
+        "teacher_course_manager",
+        course_id=course.id,
+    )
+
+
+@require_POST
+@login_required
+def delete_teacher_module_handout(request, handout_id):
+
+    handout = get_object_or_404(
+        Handout.objects.select_related(
+            "module__course",
+        ).filter(
+            module__isnull=False,
+        ),
+        id=handout_id,
+    )
+
+    module = handout.module
+    course = module.course
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can manage module handouts.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to delete this module handout.",
+            status=403,
+        )
+
+    title = handout.title
+
+    if handout.file:
+
+        try:
+            handout.file.delete(
+                save=False
+            )
+        except Exception as exc:
+            logger.error(
+                "Module handout file deletion failed "
+                "for handout=%s: %s",
+                handout.id,
+                exc,
+            )
+
+            messages.error(
+                request,
+                "The handout file could not be deleted.",
+            )
+
+            return redirect(
+                "teacher_course_manager",
+                course_id=course.id,
+            )
+
+    handout.delete()
+
+    messages.success(
+        request,
+        f"Module handout '{title}' deleted successfully.",
+    )
+
+    return redirect(
+        "teacher_course_manager",
+        course_id=course.id,
+    )
+
+@require_POST
+@login_required
+def add_teacher_lesson(request, module_id):
+
+    # ---------------------------------------------------------
+    # GET MODULE + COURSE
+    # ---------------------------------------------------------
+
+    module = get_object_or_404(
+        Module.objects.select_related("course"),
+        id=module_id,
+    )
+
+    course = module.course
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can manage lessons.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to manage this lesson.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # GET LESSON TITLE
+    # ---------------------------------------------------------
+
+    title = request.POST.get(
+        "title",
+        "",
+    ).strip()
+
+    if not title:
+
+        messages.error(
+            request,
+            "Lesson title is required.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # CREATE LESSON
+    # ---------------------------------------------------------
+
+    Lesson.objects.create(
+        module=module,
+        title=title,
+    )
+
+    messages.success(
+        request,
+        f"Lesson '{title}' created successfully.",
+    )
+
+    return redirect(
+        "teacher_course_manager",
+        course_id=course.id,
+    )
+
+@require_POST
+@login_required
 def edit_teacher_module(request, module_id):
 
     # ---------------------------------------------------------
@@ -1467,6 +3091,601 @@ def edit_teacher_module(request, module_id):
         course_id=course.id,
     )
 
+@require_POST
+@login_required
+def edit_teacher_lesson(request, lesson_id):
+
+    # ---------------------------------------------------------
+    # GET LESSON + MODULE + COURSE
+    # ---------------------------------------------------------
+
+    lesson = get_object_or_404(
+        Lesson.objects.select_related(
+            "module__course"
+        ),
+        id=lesson_id,
+    )
+
+    module = lesson.module
+    course = module.course
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can manage lessons.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to manage this lesson.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # GET LESSON TITLE
+    # ---------------------------------------------------------
+
+    title = request.POST.get(
+        "title",
+        "",
+    ).strip()
+
+    if not title:
+
+        messages.error(
+            request,
+            "Lesson title is required.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # UPDATE LESSON
+    # ---------------------------------------------------------
+
+    lesson.title = title
+
+    lesson.save(
+        update_fields=[
+            "title",
+        ]
+    )
+
+    messages.success(
+        request,
+        f"Lesson renamed to '{title}'.",
+    )
+
+    return redirect(
+        "teacher_course_manager",
+        course_id=course.id,
+    )
+
+@require_POST
+@login_required
+def add_teacher_video_lecture(request, lesson_id):
+
+    # ---------------------------------------------------------
+    # GET LESSON + MODULE + COURSE
+    # ---------------------------------------------------------
+
+    lesson = get_object_or_404(
+        Lesson.objects.select_related(
+            "module__course"
+        ),
+        id=lesson_id,
+    )
+
+    module = lesson.module
+    course = module.course
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can manage video lectures.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to manage this lesson.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # GET FORM DATA
+    # ---------------------------------------------------------
+
+    title = request.POST.get(
+        "title",
+        "",
+    ).strip()
+
+    video_url = request.POST.get(
+        "video_url",
+        "",
+    ).strip()
+
+    description = request.POST.get(
+        "description",
+        "",
+    ).strip()
+
+    display_order_raw = request.POST.get(
+        "display_order",
+        "0",
+    ).strip()
+
+    # ---------------------------------------------------------
+    # TITLE VALIDATION
+    # ---------------------------------------------------------
+
+    if not title:
+
+        messages.error(
+            request,
+            "Video lecture title is required.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # VIDEO URL VALIDATION
+    # ---------------------------------------------------------
+
+    if not video_url:
+
+        messages.error(
+            request,
+            "YouTube video URL is required.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    youtube_embed_url = get_youtube_embed_url(
+        video_url
+    )
+
+    if not youtube_embed_url:
+
+        messages.error(
+            request,
+            "Please enter a valid supported YouTube video URL.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # DISPLAY ORDER VALIDATION
+    # ---------------------------------------------------------
+
+    try:
+
+        display_order = int(
+            display_order_raw or 0
+        )
+
+    except (TypeError, ValueError):
+
+        messages.error(
+            request,
+            "Display order must be a whole number.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    if display_order < 0:
+
+        messages.error(
+            request,
+            "Display order cannot be negative.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # CREATE VIDEO LECTURE
+    # ---------------------------------------------------------
+
+    VideoLecture.objects.create(
+        lesson=lesson,
+        title=title,
+        video_url=video_url,
+        description=description,
+        display_order=display_order,
+    )
+
+    messages.success(
+        request,
+        f"Video lecture '{title}' added successfully.",
+    )
+
+    return redirect(
+        "teacher_course_manager",
+        course_id=course.id,
+    )
+
+
+@require_POST
+@login_required
+def edit_teacher_video_lecture(request, lecture_id):
+
+    # ---------------------------------------------------------
+    # GET VIDEO LECTURE + LESSON + MODULE + COURSE
+    # ---------------------------------------------------------
+
+    lecture = get_object_or_404(
+        VideoLecture.objects.select_related(
+            "lesson__module__course"
+        ),
+        id=lecture_id,
+    )
+
+    lesson = lecture.lesson
+    module = lesson.module
+    course = module.course
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can manage video lectures.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to manage this video lecture.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # GET FORM DATA
+    # ---------------------------------------------------------
+
+    title = request.POST.get(
+        "title",
+        "",
+    ).strip()
+
+    video_url = request.POST.get(
+        "video_url",
+        "",
+    ).strip()
+
+    description = request.POST.get(
+        "description",
+        "",
+    ).strip()
+
+    display_order_raw = request.POST.get(
+        "display_order",
+        "0",
+    ).strip()
+
+    # ---------------------------------------------------------
+    # TITLE VALIDATION
+    # ---------------------------------------------------------
+
+    if not title:
+
+        messages.error(
+            request,
+            "Video lecture title is required.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # VIDEO URL VALIDATION
+    # ---------------------------------------------------------
+
+    if not video_url:
+
+        messages.error(
+            request,
+            "YouTube video URL is required.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    youtube_embed_url = get_youtube_embed_url(
+        video_url
+    )
+
+    if not youtube_embed_url:
+
+        messages.error(
+            request,
+            "Please enter a valid supported YouTube video URL.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # DISPLAY ORDER VALIDATION
+    # ---------------------------------------------------------
+
+    try:
+
+        display_order = int(
+            display_order_raw or 0
+        )
+
+    except (TypeError, ValueError):
+
+        messages.error(
+            request,
+            "Display order must be a whole number.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    if display_order < 0:
+
+        messages.error(
+            request,
+            "Display order cannot be negative.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # UPDATE VIDEO LECTURE
+    # ---------------------------------------------------------
+
+    lecture.title = title
+    lecture.video_url = video_url
+    lecture.description = description
+    lecture.display_order = display_order
+
+    lecture.save(
+        update_fields=[
+            "title",
+            "video_url",
+            "description",
+            "display_order",
+        ]
+    )
+
+    messages.success(
+        request,
+        f"Video lecture '{title}' updated successfully.",
+    )
+
+    return redirect(
+        "teacher_course_manager",
+        course_id=course.id,
+    )
+
+
+@require_POST
+@login_required
+def delete_teacher_video_lecture(request, lecture_id):
+
+    # ---------------------------------------------------------
+    # GET VIDEO LECTURE + LESSON + MODULE + COURSE
+    # ---------------------------------------------------------
+
+    lecture = get_object_or_404(
+        VideoLecture.objects.select_related(
+            "lesson__module__course"
+        ),
+        id=lecture_id,
+    )
+
+    lesson = lecture.lesson
+    module = lesson.module
+    course = module.course
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can manage video lectures.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to delete this video lecture.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # DELETE VIDEO LECTURE
+    # ---------------------------------------------------------
+
+    lecture_title = lecture.title
+
+    lecture.delete()
+
+    messages.success(
+        request,
+        f"Video lecture '{lecture_title}' deleted successfully.",
+    )
+
+    return redirect(
+        "teacher_course_manager",
+        course_id=course.id,
+    )
+
+
+@require_POST
+@login_required
+def delete_teacher_lesson(request, lesson_id):
+
+    # ---------------------------------------------------------
+    # GET LESSON + MODULE + COURSE
+    # ---------------------------------------------------------
+
+    lesson = get_object_or_404(
+        Lesson.objects.select_related(
+            "module__course"
+        ),
+        id=lesson_id,
+    )
+
+    module = lesson.module
+    course = module.course
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS CONTROL
+    # ---------------------------------------------------------
+
+    if request.user.user_type != "teacher":
+
+        return HttpResponse(
+            "Only teachers can manage lessons.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+
+        return HttpResponse(
+            "You are not authorized to delete this lesson.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # SAFETY CHECK — ASSIGNMENTS
+    # ---------------------------------------------------------
+
+    if lesson.assignments.exists():
+
+        messages.error(
+            request,
+            "This lesson cannot be deleted because it contains assignments.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # SAFETY CHECK — HANDOUTS
+    # ---------------------------------------------------------
+
+    if lesson.handout_set.exists():
+
+        messages.error(
+            request,
+            "This lesson cannot be deleted because it contains handouts.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # SAFETY CHECK — STUDENT PROGRESS
+    # ---------------------------------------------------------
+
+    if Progress.objects.filter(
+        lesson=lesson
+    ).exists():
+
+        messages.error(
+            request,
+            "This lesson cannot be deleted because student progress exists.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # SAFETY CHECK — LESSON CONTENT
+    # ---------------------------------------------------------
+
+    if (
+        lesson.video_url
+        or lesson.notes
+        or lesson.ai_notes
+    ):
+
+        messages.error(
+            request,
+            "This lesson cannot be deleted because it contains learning content.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
+    # DELETE LESSON
+    # ---------------------------------------------------------
+
+    lesson_title = lesson.title
+
+    lesson.delete()
+
+    messages.success(
+        request,
+        f"Lesson '{lesson_title}' deleted successfully.",
+    )
+
+    return redirect(
+        "teacher_course_manager",
+        course_id=course.id,
+    )
 
 @require_POST
 @login_required
@@ -1543,6 +3762,18 @@ def delete_teacher_module(request, module_id):
             course_id=course.id,
         )
 
+    if module.module_handouts.exists():
+
+        messages.error(
+            request,
+            "This module cannot be deleted because it contains handouts."
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
     # ---------------------------------------------------------
     # DELETE MODULE
     # ---------------------------------------------------------
@@ -1573,6 +3804,9 @@ def teacher_course_manager(request, course_id):
         Course.objects.prefetch_related(
             "modules__lessons__assignments",
             "modules__assignments",
+            "modules__module_handouts",
+            "modules__module_recordings",
+            "modules__lessons__lesson_recordings",
         ),
         id=course_id,
     )
@@ -1739,6 +3973,463 @@ def lesson_detail(request, lesson_id):
         "lesson_detail.html",
         context
     )
+
+
+@login_required
+def view_module_recording(request, recording_id):
+
+    # ---------------------------------------------------------
+    # GET MODULE RECORDING + MODULE + COURSE
+    # ---------------------------------------------------------
+
+    recording = get_object_or_404(
+        LearningRecording.objects.select_related(
+            "module__course",
+        ).filter(
+            module__isnull=False,
+            lesson__isnull=True,
+        ),
+        id=recording_id,
+    )
+
+    module = recording.module
+    course = module.course
+
+    # ---------------------------------------------------------
+    # STUDENT ACCESS
+    # ---------------------------------------------------------
+
+    if request.user.user_type == "student":
+
+        is_enrolled = Enrollment.objects.filter(
+            student=request.user,
+            course=course,
+        ).exists()
+
+        if not is_enrolled:
+
+            return HttpResponse(
+                "You are not enrolled in this course.",
+                status=403,
+            )
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS
+    # ---------------------------------------------------------
+
+    elif request.user.user_type == "teacher":
+
+        if course.teacher_id != request.user.id:
+
+            return HttpResponse(
+                "You are not authorized to view this module recording.",
+                status=403,
+            )
+
+    # ---------------------------------------------------------
+    # OTHER USERS
+    # ---------------------------------------------------------
+
+    else:
+
+        return HttpResponse(
+            "You are not authorized to view this module recording.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # FILE CHECK
+    # ---------------------------------------------------------
+
+    if not recording.video:
+
+        return HttpResponse(
+            "Module recording video not found.",
+            status=404,
+        )
+
+    return render(
+        request,
+        "view_module_recording.html",
+        {
+            "recording": recording,
+            "module": module,
+            "course": course,
+        },
+    )
+
+
+@login_required
+def serve_module_recording(request, recording_id):
+
+    # ---------------------------------------------------------
+    # GET MODULE RECORDING + MODULE + COURSE
+    # ---------------------------------------------------------
+
+    recording = get_object_or_404(
+        LearningRecording.objects.select_related(
+            "module__course",
+        ).filter(
+            module__isnull=False,
+            lesson__isnull=True,
+        ),
+        id=recording_id,
+    )
+
+    module = recording.module
+    course = module.course
+
+    # ---------------------------------------------------------
+    # STUDENT ACCESS
+    # ---------------------------------------------------------
+
+    if request.user.user_type == "student":
+
+        is_enrolled = Enrollment.objects.filter(
+            student=request.user,
+            course=course,
+        ).exists()
+
+        if not is_enrolled:
+
+            return HttpResponse(
+                "You are not enrolled in this course.",
+                status=403,
+            )
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS
+    # ---------------------------------------------------------
+
+    elif request.user.user_type == "teacher":
+
+        if course.teacher_id != request.user.id:
+
+            return HttpResponse(
+                "You are not authorized to view this module recording.",
+                status=403,
+            )
+
+    # ---------------------------------------------------------
+    # OTHER USERS
+    # ---------------------------------------------------------
+
+    else:
+
+        return HttpResponse(
+            "You are not authorized to view this module recording.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # FILE CHECK
+    # ---------------------------------------------------------
+
+    if not recording.video:
+
+        return HttpResponse(
+            "Module recording video not found.",
+            status=404,
+        )
+
+    # ---------------------------------------------------------
+    # SECURE VIEWER CHECK
+    # ---------------------------------------------------------
+
+    if request.headers.get(
+        "X-ScoreSkill-Viewer"
+    ) != "1":
+
+        return HttpResponse(
+            "Direct module recording access is not allowed.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # OPEN VIDEO
+    # ---------------------------------------------------------
+
+    try:
+
+        file_handle = recording.video.open(
+            "rb",
+        )
+
+    except Exception as exc:
+
+        logger.exception(
+            "Module recording video open failed "
+            "for recording=%s: %s",
+            recording.id,
+            exc,
+        )
+
+        return HttpResponse(
+            "Unable to open module recording video.",
+            status=404,
+        )
+
+    # ---------------------------------------------------------
+    # CONTENT TYPE
+    # ---------------------------------------------------------
+
+    import mimetypes
+
+    content_type, _ = mimetypes.guess_type(
+        recording.video.name,
+    )
+
+    if not content_type:
+
+        content_type = "video/mp4"
+
+    # ---------------------------------------------------------
+    # RESPONSE
+    # ---------------------------------------------------------
+
+    response = FileResponse(
+        file_handle,
+        content_type=content_type,
+    )
+
+    response["Content-Disposition"] = "inline"
+    response["Cache-Control"] = (
+        "private, no-store, max-age=0"
+    )
+    response["Pragma"] = "no-cache"
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Referrer-Policy"] = "same-origin"
+
+    return response
+
+
+@login_required
+def view_lesson_recording(request, recording_id):
+
+    # ---------------------------------------------------------
+    # GET LESSON RECORDING + LESSON + MODULE + COURSE
+    # ---------------------------------------------------------
+
+    recording = get_object_or_404(
+        LearningRecording.objects.select_related(
+            "lesson__module__course",
+        ).filter(
+            lesson__isnull=False,
+            module__isnull=True,
+        ),
+        id=recording_id,
+    )
+
+    lesson = recording.lesson
+    course = lesson.module.course
+
+    # ---------------------------------------------------------
+    # STUDENT ACCESS
+    # ---------------------------------------------------------
+
+    if request.user.user_type == "student":
+
+        is_enrolled = Enrollment.objects.filter(
+            student=request.user,
+            course=course,
+        ).exists()
+
+        if not is_enrolled:
+
+            return HttpResponse(
+                "You are not enrolled in this course.",
+                status=403,
+            )
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS
+    # ---------------------------------------------------------
+
+    elif request.user.user_type == "teacher":
+
+        if course.teacher_id != request.user.id:
+
+            return HttpResponse(
+                "You are not authorized to view this lesson recording.",
+                status=403,
+            )
+
+    # ---------------------------------------------------------
+    # OTHER USER TYPES
+    # ---------------------------------------------------------
+
+    else:
+
+        return HttpResponse(
+            "You are not authorized to view this lesson recording.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # FILE CHECK
+    # ---------------------------------------------------------
+
+    if not recording.video:
+
+        return HttpResponse(
+            "Lesson recording video not found.",
+            status=404,
+        )
+
+    return render(
+        request,
+        "view_lesson_recording.html",
+        {
+            "recording": recording,
+            "lesson": lesson,
+            "course": course,
+        },
+    )
+
+
+@login_required
+def serve_lesson_recording(request, recording_id):
+
+    # ---------------------------------------------------------
+    # GET LESSON RECORDING + LESSON + MODULE + COURSE
+    # ---------------------------------------------------------
+
+    recording = get_object_or_404(
+        LearningRecording.objects.select_related(
+            "lesson__module__course",
+        ).filter(
+            lesson__isnull=False,
+            module__isnull=True,
+        ),
+        id=recording_id,
+    )
+
+    lesson = recording.lesson
+    course = lesson.module.course
+
+    # ---------------------------------------------------------
+    # STUDENT ACCESS
+    # ---------------------------------------------------------
+
+    if request.user.user_type == "student":
+
+        is_enrolled = Enrollment.objects.filter(
+            student=request.user,
+            course=course,
+        ).exists()
+
+        if not is_enrolled:
+
+            return HttpResponse(
+                "You are not enrolled in this course.",
+                status=403,
+            )
+
+    # ---------------------------------------------------------
+    # TEACHER ACCESS
+    # ---------------------------------------------------------
+
+    elif request.user.user_type == "teacher":
+
+        if course.teacher_id != request.user.id:
+
+            return HttpResponse(
+                "You are not authorized to view this lesson recording.",
+                status=403,
+            )
+
+    # ---------------------------------------------------------
+    # OTHER USER TYPES
+    # ---------------------------------------------------------
+
+    else:
+
+        return HttpResponse(
+            "You are not authorized to view this lesson recording.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # FILE CHECK
+    # ---------------------------------------------------------
+
+    if not recording.video:
+
+        return HttpResponse(
+            "Lesson recording video not found.",
+            status=404,
+        )
+
+    # ---------------------------------------------------------
+    # SECURE VIEWER CHECK
+    # ---------------------------------------------------------
+
+    if request.headers.get(
+        "X-ScoreSkill-Viewer"
+    ) != "1":
+
+        return HttpResponse(
+            "Direct lesson recording access is not allowed.",
+            status=403,
+        )
+
+    # ---------------------------------------------------------
+    # OPEN VIDEO
+    # ---------------------------------------------------------
+
+    try:
+
+        file_handle = recording.video.open(
+            "rb",
+        )
+
+    except Exception as exc:
+
+        logger.exception(
+            "Lesson recording video open failed "
+            "for recording=%s: %s",
+            recording.id,
+            exc,
+        )
+
+        return HttpResponse(
+            "Unable to open lesson recording video.",
+            status=404,
+        )
+
+    # ---------------------------------------------------------
+    # CONTENT TYPE
+    # ---------------------------------------------------------
+
+    import mimetypes
+
+    content_type, _ = mimetypes.guess_type(
+        recording.video.name,
+    )
+
+    if not content_type:
+
+        content_type = "video/mp4"
+
+    # ---------------------------------------------------------
+    # RESPONSE
+    # ---------------------------------------------------------
+
+    response = FileResponse(
+        file_handle,
+        content_type=content_type,
+    )
+
+    response["Content-Disposition"] = "inline"
+    response["Cache-Control"] = (
+        "private, no-store, max-age=0"
+    )
+    response["Pragma"] = "no-cache"
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Referrer-Policy"] = "same-origin"
+
+    return response
+
 
 from django.shortcuts import get_object_or_404
 
@@ -5198,12 +7889,30 @@ def view_handout(request, handout_id):
 
     handout = get_object_or_404(
         Handout.objects.select_related(
-            "lesson__module__course"
+            "lesson__module__course",
+            "module__course",
         ),
         id=handout_id
     )
 
-    course = handout.lesson.module.course
+    # ---------------------------------------------------------
+    # RESOLVE COURSE
+    # ---------------------------------------------------------
+
+    if handout.lesson_id:
+
+        course = handout.lesson.module.course
+
+    elif handout.module_id:
+
+        course = handout.module.course
+
+    else:
+
+        return HttpResponse(
+            "Handout is not linked to a valid course.",
+            status=500
+        )
 
     # ---------------------------------------------------------
     # STUDENT ACCESS
@@ -5251,11 +7960,23 @@ def view_handout(request, handout_id):
     # DISPLAY HANDOUT
     # ---------------------------------------------------------
 
+    from django.utils import timezone
+
+    now = timezone.localtime()
+
+    watermark_text = (
+        f"This Handout belongs to:\n"
+        f"{request.user.get_full_name() or request.user.username}\n"
+        f"Viewed on:\n"
+        f"{now.strftime('%d-%b-%Y %I:%M %p')}"
+    )
+
     return render(
         request,
         "view_handout.html",
         {
             "handout": handout,
+            "watermark_text": watermark_text,
         }
     )
 
@@ -5265,12 +7986,30 @@ def serve_handout(request, handout_id):
 
     handout = get_object_or_404(
         Handout.objects.select_related(
-            "lesson__module__course"
+            "lesson__module__course",
+            "module__course",
         ),
         id=handout_id
     )
 
-    course = handout.lesson.module.course
+    # ---------------------------------------------------------
+    # RESOLVE COURSE
+    # ---------------------------------------------------------
+
+    if handout.lesson_id:
+
+        course = handout.lesson.module.course
+
+    elif handout.module_id:
+
+        course = handout.module.course
+
+    else:
+
+        return HttpResponse(
+            "Handout is not linked to a valid course.",
+            status=500
+        )
 
     # ---------------------------------------------------------
     # STUDENT ACCESS
@@ -5315,7 +8054,7 @@ def serve_handout(request, handout_id):
         )
 
     # ---------------------------------------------------------
-    # SERVE FILE
+    # FILE CHECK
     # ---------------------------------------------------------
 
     if not handout.file:
@@ -5325,26 +8064,135 @@ def serve_handout(request, handout_id):
             status=404
         )
 
-    import mimetypes
 
-    content_type, _ = mimetypes.guess_type(
+    # ---------------------------------------------------------
+    # FILE TYPE CHECK
+    # ---------------------------------------------------------
+
+    file_name = handout.file.name.lower()
+
+    is_pdf = file_name.endswith(
+        ".pdf"
+    )
+
+    is_office = is_office_preview_file(
         handout.file.name
     )
 
-    if not content_type:
 
-        content_type = "application/octet-stream"
+    # ---------------------------------------------------------
+    # UNSUPPORTED FILE TYPES
+    # ---------------------------------------------------------
 
-    response = FileResponse(
-        handout.file.open("rb"),
-        content_type=content_type
+    if not is_pdf and not is_office:
+
+        return HttpResponse(
+            "This handout format cannot be previewed.",
+            status=404,
+        )
+
+
+    # ---------------------------------------------------------
+    # SECURE VIEWER CHECK
+    # ---------------------------------------------------------
+
+    if request.headers.get(
+        "X-ScoreSkill-Viewer"
+    ) != "1":
+
+        return HttpResponse(
+            "Direct handout file access is not allowed.",
+            status=403,
+        )
+
+
+    # =========================================================
+    # PDF
+    # =========================================================
+
+    if is_pdf:
+
+        try:
+
+            file_handle = handout.file.open(
+                "rb"
+            )
+
+        except Exception:
+
+            return HttpResponse(
+                "Unable to open handout PDF.",
+                status=404,
+            )
+
+        response = FileResponse(
+            file_handle,
+            content_type="application/pdf",
+        )
+
+        response["Content-Disposition"] = "inline"
+        response["Cache-Control"] = (
+            "private, no-store, max-age=0"
+        )
+        response["Pragma"] = "no-cache"
+        response["X-Content-Type-Options"] = "nosniff"
+        response["Referrer-Policy"] = "same-origin"
+
+        return response
+
+
+    # =========================================================
+    # OFFICE DOCUMENT
+    # =========================================================
+
+    if is_office:
+
+        try:
+
+            pdf_bytes = (
+                convert_cloudinary_file_to_pdf(
+                    handout.file
+                )
+            )
+
+        except DocumentPreviewError as exc:
+
+            logger.error(
+                "Handout document preview failed "
+                "for handout=%s: %s",
+                handout.id,
+                exc,
+            )
+
+            return HttpResponse(
+                "Unable to generate handout preview.",
+                status=503,
+            )
+
+        response = FileResponse(
+            io.BytesIO(pdf_bytes),
+            content_type="application/pdf",
+        )
+
+        response["Content-Disposition"] = "inline"
+        response["Cache-Control"] = (
+            "private, no-store, max-age=0"
+        )
+        response["Pragma"] = "no-cache"
+        response["X-Content-Type-Options"] = "nosniff"
+        response["Referrer-Policy"] = "same-origin"
+
+        return response
+
+
+    # ---------------------------------------------------------
+    # SAFETY FALLBACK
+    # ---------------------------------------------------------
+
+    return HttpResponse(
+        "Unsupported handout file type.",
+        status=404,
     )
-
-    response["Content-Disposition"] = (
-        f'inline; filename="{handout.file.name.split("/")[-1]}"'
-    )
-
-    return response
 
 
 @login_required

@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container py-4">
+
+    <div class="card shadow-sm">
+
+        <div class="card-body">
+
+            <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+
+                <div>
+
+                    <h3 class="mb-1">
+                        {{ recording.title }}
+                    </h3>
+
+                    <div class="text-muted">
+                        {{ module.title }}
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {% if recording.description %}
+
+                <div class="text-muted mb-4">
+                    {{ recording.description }}
+                </div>
+
+            {% endif %}
+
+
+            <div
+                id="recording-status"
+                class="alert alert-info"
+            >
+                Preparing video...
+            </div>
+
+
+            <div
+                id="recording-player-container"
+                style="
+                    display:none;
+                    user-select:none;
+                    -webkit-user-select:none;
+                "
+            >
+
+                <video
+                    id="module-recording-player"
+                    controls
+                    controlsList="nodownload noplaybackrate"
+                    disablePictureInPicture
+                    playsinline
+                    preload="metadata"
+                    style="
+                        width:100%;
+                        max-height:70vh;
+                        background:#000;
+                        border-radius:10px;
+                    "
+                >
+                </video>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     SECURE VIDEO LOADING
+     ========================================================= -->
+
+<script>
+
+(function () {
+
+    const status =
+        document.getElementById(
+            "recording-status"
+        );
+
+    const container =
+        document.getElementById(
+            "recording-player-container"
+        );
+
+    const video =
+        document.getElementById(
+            "module-recording-player"
+        );
+
+
+    const videoUrl =
+        "{% url 'serve_module_recording' recording.id %}";
+
+
+    fetch(
+        videoUrl,
+        {
+            method: "GET",
+
+            headers: {
+                "X-ScoreSkill-Viewer": "1"
+            },
+
+            credentials: "same-origin"
+        }
+    )
+    .then(function (response) {
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Video request failed: " +
+                response.status
+            );
+
+        }
+
+        return response.blob();
+
+    })
+    .then(function (blob) {
+
+        const objectUrl =
+            URL.createObjectURL(
+                blob
+            );
+
+        video.src =
+            objectUrl;
+
+        container.style.display =
+            "block";
+
+        status.className =
+            "alert alert-success";
+
+        status.textContent =
+            "Video loaded. View only.";
+
+        video.addEventListener(
+            "loadeddata",
+            function () {
+
+                status.style.display =
+                    "none";
+
+            },
+            {
+                once: true
+            }
+        );
+
+    })
+    .catch(function (error) {
+
+        console.error(
+            "Module recording load failed:",
+            error
+        );
+
+        status.className =
+            "alert alert-danger";
+
+        status.textContent =
+            "Unable to load the recording.";
+
+    });
+
+
+    // ---------------------------------------------------------
+    // CLEAN UP OBJECT URL
+    // ---------------------------------------------------------
+
+    window.addEventListener(
+        "beforeunload",
+        function () {
+
+            if (video.src) {
+
+                URL.revokeObjectURL(
+                    video.src
+                );
+
+            }
+
+        }
+    );
+
+
+    // ---------------------------------------------------------
+    // RIGHT-CLICK
+    // ---------------------------------------------------------
+
+    document.addEventListener(
+        "contextmenu",
+        function (event) {
+
+            event.preventDefault();
+
+        }
+    );
+
+
+    // ---------------------------------------------------------
+    // TEXT SELECTION
+    // ---------------------------------------------------------
+
+    document.addEventListener(
+        "selectstart",
+        function (event) {
+
+            event.preventDefault();
+
+        }
+    );
+
+
+    // ---------------------------------------------------------
+    // DRAG
+    // ---------------------------------------------------------
+
+    document.addEventListener(
+        "dragstart",
+        function (event) {
+
+            event.preventDefault();
+
+        }
+    );
+
+
+    // ---------------------------------------------------------
+    // KEYBOARD DETERRENTS
+    // ---------------------------------------------------------
+
+    document.addEventListener(
+        "keydown",
+        function (event) {
+
+            const key =
+                event.key.toLowerCase();
+
+
+            // Ctrl + S / P / U
+
+            if (
+                event.ctrlKey &&
+                (
+                    key === "s" ||
+                    key === "p" ||
+                    key === "u"
+                )
+            ) {
+
+                event.preventDefault();
+
+                return;
+
+            }
+
+
+            // Ctrl + Shift + I / J / C
+
+            if (
+                event.ctrlKey &&
+                event.shiftKey &&
+                (
+                    key === "i" ||
+                    key === "j" ||
+                    key === "c"
+                )
+            ) {
+
+                event.preventDefault();
+
+                return;
+
+            }
+
+
+            // PrintScreen
+
+            if (
+                event.key === "PrintScreen"
+            ) {
+
+                event.preventDefault();
+
+            }
+
+        }
+    );
+
+
+    // ---------------------------------------------------------
+    // TAB / WINDOW SWITCH BLUR
+    // ---------------------------------------------------------
+
+    document.addEventListener(
+        "visibilitychange",
+        function () {
+
+            if (
+                document.hidden
+            ) {
+
+                video.style.filter =
+                    "blur(25px)";
+
+            }
+            else {
+
+                video.style.filter =
+                    "none";
+
+            }
+
+        }
+    );
+
+
+})();
+
+</script>
+
+{% endblock %}
