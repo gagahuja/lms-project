@@ -63,7 +63,7 @@ def _find_soffice():
     return None
 
 
-def convert_cloudinary_file_to_pdf(file_field):
+def convert_cloudinary_file_to_pdf(file_field, source_bytes=None):
     """
     Convert a stored Office document to PDF and return
     the generated PDF as bytes.
@@ -112,17 +112,22 @@ def convert_cloudinary_file_to_pdf(file_field):
             )
 
             # -------------------------------------------------
-            # DOWNLOAD SOURCE FILE TO TEMPORARY STORAGE
+            # WRITE SOURCE FILE TO TEMPORARY STORAGE
             # -------------------------------------------------
 
-            with file_field.open("rb") as source:
+            if source_bytes is not None:
 
                 with source_path.open("wb") as destination:
+                    destination.write(source_bytes)
 
-                    shutil.copyfileobj(
-                        source,
-                        destination,
-                    )
+            else:
+
+                with file_field.open("rb") as source:
+                    with source_path.open("wb") as destination:
+                        shutil.copyfileobj(
+                            source,
+                            destination,
+                        )
 
             # -------------------------------------------------
             # CONVERT OFFICE FILE -> PDF

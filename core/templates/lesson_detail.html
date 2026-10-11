@@ -64,6 +64,153 @@
     border-radius: 20px;
 }
 
+/* =========================================================
+   LESSON PAGE: TWO-COLUMN LEARNING LAYOUT
+   ========================================================= */
+
+.lesson-layout {
+    display: grid;
+    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.lesson-sidebar {
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    background: #ffffff;
+    border: 1px solid #d9dee7;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.lesson-sidebar-title {
+    color: #0f172a;
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.lesson-sidebar-subtitle {
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.lesson-sidebar-progress {
+    margin: 16px 0;
+}
+
+.lesson-sidebar-progress progress {
+    display: block;
+    width: 100%;
+    height: 8px;
+    border: 0;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.curriculum-module {
+    border-top: 1px solid #e2e8f0;
+}
+
+.curriculum-module summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 13px 2px;
+    color: #334155;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+}
+
+.curriculum-module summary::-webkit-details-marker {
+    display: none;
+}
+
+.curriculum-module summary::after {
+    content: "+";
+    color: #64748b;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.curriculum-module[open] summary::after {
+    content: "\2212";
+}
+
+.curriculum-lessons {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 12px;
+}
+
+.curriculum-lesson {
+    margin: 3px 0;
+}
+
+.curriculum-lesson a {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 10px;
+    border-radius: 8px;
+    color: #475569;
+    font-size: 13px;
+    line-height: 1.5;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+    transition: background-color 0.15s ease;
+}
+
+.curriculum-lesson a:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+.curriculum-lesson.is-current a {
+    background: #eef2ff;
+    color: #4338ca;
+    font-weight: 600;
+    border-left: 3px solid #6366f1;
+    padding-left: 7px;
+}
+
+.curriculum-lesson.is-completed .lesson-status {
+    color: #16a34a;
+}
+
+.curriculum-lesson.is-current .lesson-status {
+    color: #4338ca;
+}
+
+.lesson-status {
+    flex-shrink: 0;
+    font-size: 14px;
+}
+
+.lesson-main {
+    min-width: 0;
+}
+
+@media (max-width: 991.98px) {
+    .lesson-layout {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 20px;
+    }
+
+    .lesson-sidebar {
+        position: static;
+        max-height: none;
+    }
+}
+
 </style>
 
 
@@ -77,6 +224,101 @@
         </a>
 
     </div>
+
+    <!-- TWO-COLUMN LESSON LAYOUT -->
+    <div class="lesson-layout">
+
+        <!-- LEFT: COURSE CURRICULUM -->
+        <aside class="lesson-sidebar">
+
+            <div class="lesson-sidebar-title">
+                Course Curriculum
+            </div>
+
+            <div class="lesson-sidebar-subtitle">
+                {{ course.title }}
+            </div>
+
+            <div class="lesson-sidebar-progress">
+                <div class="d-flex justify-content-between mb-2">
+                    <small class="text-muted">Course progress</small>
+                    <small class="fw-semibold">{{ course_progress }}%</small>
+                </div>
+
+                <progress
+                    value="{{ course_progress }}"
+                    max="100"
+                    aria-label="Course progress"
+                ></progress>
+
+                <div class="lesson-sidebar-subtitle mt-2">
+                    {{ completed_course_lessons }} of
+                    {{ total_course_lessons }} lessons completed
+                </div>
+            </div>
+
+            {% for curriculum_module in curriculum_modules %}
+
+                <details
+                    class="curriculum-module"
+                    {% if curriculum_module.id == module.id %}open{% endif %}
+                >
+
+                    <summary>
+                        <span>{{ curriculum_module.title }}</span>
+                    </summary>
+
+                    <ul class="curriculum-lessons">
+
+                        {% for curriculum_lesson in curriculum_module.lessons.all %}
+
+                            <li class="curriculum-lesson{% if curriculum_lesson.is_current %} is-current{% endif %}{% if curriculum_lesson.is_completed %} is-completed{% endif %}">
+
+                                <a
+                                    href="{% url 'lesson_detail' curriculum_lesson.id %}"
+                                    {% if curriculum_lesson.is_current %}aria-current="page"{% endif %}
+                                >
+
+                                    <span class="lesson-status" aria-hidden="true">
+                                        {% if curriculum_lesson.is_completed %}
+                                            &#10003;
+                                        {% elif curriculum_lesson.is_current %}
+                                            &#9654;
+                                        {% else %}
+                                            &#9675;
+                                        {% endif %}
+                                    </span>
+
+                                    <span>{{ curriculum_lesson.title }}</span>
+
+                                </a>
+
+                            </li>
+
+                        {% empty %}
+
+                            <li class="text-muted small px-2 py-2">
+                                No lessons in this module yet.
+                            </li>
+
+                        {% endfor %}
+
+                    </ul>
+
+                </details>
+
+            {% empty %}
+
+                <p class="text-muted small mt-3">
+                    Curriculum is not available.
+                </p>
+
+            {% endfor %}
+
+        </aside>
+
+        <!-- RIGHT: EXISTING LESSON CONTENT -->
+        <main class="lesson-main">
 
 
     <div class="card shadow-sm mb-4">
@@ -316,7 +558,7 @@
         <div class="section-body">
 
             <a
-                href="{{ lesson.notes.url }}"
+                href="{% url 'view_lesson_notes' lesson.id %}"
                 target="_blank"
                 class="btn btn-primary">
 
@@ -661,6 +903,10 @@
         </div>
 
     </div>
+
+    </main>
+
+</div>
 
 </div>
 

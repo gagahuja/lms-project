@@ -1136,169 +1136,6 @@
 
                 </div>
 
-                <!-- =====================================================
-                    COURSE TOPICS / FULL LEARNING PATH
-                    ===================================================== -->
-
-                {% if item.course_topics %}
-
-                    <details class="course-topics">
-
-                        <summary>
-                            📚 View All Course Topics
-                        </summary>
-
-                        <div class="course-topics-inner">
-
-                            {% for topic_module in item.course_topics %}
-
-                                <details class="topic-module">
-
-                                    <summary class="topic-module-header">
-
-                                        <span>
-                                            📘 {{ topic_module.module.title }}
-                                        </span>
-
-                                        <span class="topic-module-count">
-                                            {{ topic_module.lessons|length }}
-                                            lesson{{ topic_module.lessons|length|pluralize }}
-                                        </span>
-
-                                    </summary>
-
-
-                                    <div class="topic-list">
-
-                                        {% for topic in topic_module.lessons %}
-
-                                            <a
-                                                href="{% url 'lesson_detail' topic.lesson.id %}"
-                                                class="topic-item
-                                                    {% if topic.completed %}
-                                                        topic-item-completed
-                                                    {% elif topic.is_next %}
-                                                        topic-item-next
-                                                    {% else %}
-                                                        topic-item-pending
-                                                    {% endif %}"
-                                            >
-
-                                                <!-- STATUS -->
-
-                                                <span class="topic-status">
-
-                                                    {% if topic.completed %}
-
-                                                        <span
-                                                            class="topic-completed"
-                                                            title="Completed"
-                                                        >
-                                                            ✓
-                                                        </span>
-
-                                                    {% elif topic.is_next %}
-
-                                                        <span
-                                                            class="topic-next"
-                                                            title="Next lesson"
-                                                        >
-                                                            ▶
-                                                        </span>
-
-                                                    {% else %}
-
-                                                        <span
-                                                            class="topic-not-started"
-                                                            title="Not started"
-                                                        >
-                                                            ○
-                                                        </span>
-
-                                                    {% endif %}
-
-                                                </span>
-
-
-                                                <!-- LESSON INFORMATION -->
-
-                                                <span class="topic-content">
-
-                                                    <span class="topic-title">
-                                                        {{ topic.lesson.title }}
-                                                    </span>
-
-                                                    <span class="topic-status-text">
-
-                                                        {% if topic.completed %}
-
-                                                            Completed
-
-                                                        {% elif topic.is_next %}
-
-                                                            Next lesson
-
-                                                        {% else %}
-
-                                                            Not started
-
-                                                        {% endif %}
-
-                                                    </span>
-
-                                                </span>
-
-
-                                                <!-- RIGHT SIDE ACTION -->
-
-                                                <span class="topic-action">
-
-                                                    {% if topic.completed %}
-
-                                                        <span class="topic-review">
-                                                            Review →
-                                                        </span>
-
-                                                    {% elif topic.is_next %}
-
-                                                        <span class="topic-open">
-                                                            Continue →
-                                                        </span>
-
-                                                    {% else %}
-
-                                                        <span class="topic-open">
-                                                            Open →
-                                                        </span>
-
-                                                    {% endif %}
-
-                                                </span>
-
-
-                                            </a>
-
-                                        {% empty %}
-
-                                            <div class="topic-empty">
-                                                No lessons available in this module.
-                                            </div>
-
-                                        {% endfor %}
-
-                                    </div>
-
-                                </details>
-
-                            {% endfor %}
-
-                        </div>
-
-                    </details>
-
-                {% endif %}
-
-
                 <div class="course-actions">
 
                     {% if item.course_completed %}
@@ -1316,26 +1153,26 @@
 
                     {% elif item.next_lesson %}
 
-                        <!-- CONTINUE FROM NEXT UNFINISHED LESSON -->
+                        <!-- OPEN COURSE CURRICULUM -->
 
                         <a
-                            href="{% url 'lesson_detail' item.next_lesson.id %}"
+                            href="{% url 'course_detail' item.course.id %}"
                             class="course-btn course-btn-primary">
 
-                            ▶ Continue Learning
+                            📖 Open Course
 
                         </a>
 
 
                     {% elif item.first_lesson %}
 
-                        <!-- COURSE NOT STARTED -->
+                        <!-- OPEN COURSE CURRICULUM -->
 
                         <a
-                            href="{% url 'lesson_detail' item.first_lesson.id %}"
+                            href="{% url 'course_detail' item.course.id %}"
                             class="course-btn course-btn-primary">
 
-                            ▶ Start Learning
+                            📖 Open Course
 
                         </a>
 

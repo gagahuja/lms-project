@@ -530,6 +530,43 @@ def get_lesson_learning_context(user, lesson_id):
         .order_by("module__id", "id")
     )
 
+    # =========================================================
+    # CURRICULUM SIDEBAR
+    # =========================================================
+
+    completed_lesson_ids = set(
+        Progress.objects.filter(
+            student=user,
+            lesson__module__course=course,
+            completed=True,
+        ).values_list(
+            "lesson_id",
+            flat=True,
+        )
+    )
+
+    curriculum_modules = list(
+        Module.objects.filter(
+            course=course,
+        )
+        .prefetch_related(
+            Prefetch(
+                "lessons",
+                queryset=Lesson.objects.order_by("id"),
+            )
+        )
+        .order_by("id")
+    )
+
+    for curriculum_module in curriculum_modules:
+        for curriculum_lesson in curriculum_module.lessons.all():
+            curriculum_lesson.is_completed = (
+                curriculum_lesson.id in completed_lesson_ids
+            )
+            curriculum_lesson.is_current = (
+                curriculum_lesson.id == lesson.id
+            )
+
     current_index = None
 
     for index, current_lesson in enumerate(lessons):
@@ -561,6 +598,7 @@ def get_lesson_learning_context(user, lesson_id):
         "lesson": lesson,
         "course": course,
         "module": lesson.module,
+        "curriculum_modules": curriculum_modules,
 
         "video_lectures": video_lectures,
         "lesson_recordings": lesson_recordings,

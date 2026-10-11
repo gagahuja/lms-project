@@ -464,18 +464,38 @@ def create_live_class(request):
 
     if request.method == "POST":
 
-        title = request.POST.get("title")
-        course_id = request.POST.get("course")
-        date = request.POST.get("date")
-        meeting_link = request.POST.get("meeting_link")
-        whiteboard = request.POST.get("whiteboard")
+        title = request.POST.get(
+            "title",
+            ""
+        ).strip()
+
+        course_id = request.POST.get(
+            "course"
+        )
+
+        date = request.POST.get(
+            "date"
+        )
+
+        meeting_link = request.POST.get(
+            "meeting_link"
+        )
+
+        whiteboard = request.POST.get(
+            "whiteboard"
+        )
+
+        # -----------------------------------------------------
+        # REQUIRED FIELD VALIDATION
+        # -----------------------------------------------------
 
         if not all([
             title,
             course_id,
             date,
-            meeting_link
+            meeting_link,
         ]):
+
             messages.error(
                 request,
                 "Please fill all required fields."
@@ -485,15 +505,58 @@ def create_live_class(request):
                 "create_live_class"
             )
 
-        parsed_date = parse_datetime(date)
+        # -----------------------------------------------------
+        # COURSE OWNERSHIP VALIDATION
+        # -----------------------------------------------------
+
+        course = get_object_or_404(
+            courses,
+            id=course_id,
+        )
+
+        # -----------------------------------------------------
+        # DATE VALIDATION
+        # -----------------------------------------------------
+
+        parsed_date = parse_datetime(
+            date
+        )
+
+        if parsed_date is None:
+
+            messages.error(
+                request,
+                "Please enter a valid class date and time."
+            )
+
+            return redirect(
+                "create_live_class"
+            )
+
+        # -----------------------------------------------------
+        # TIMEZONE HANDLING
+        # -----------------------------------------------------
+
+        if timezone.is_naive(
+            parsed_date
+        ):
+
+            parsed_date = timezone.make_aware(
+                parsed_date
+            )
+
+        # -----------------------------------------------------
+        # CREATE LIVE CLASS
+        # -----------------------------------------------------
 
         try:
+
             LiveClass.objects.create(
                 title=title,
-                course_id=course_id,
+                course=course,
                 date=parsed_date,
                 meeting_link=meeting_link,
-                whiteboard_link=whiteboard
+                whiteboard_link=whiteboard,
             )
 
             messages.success(
@@ -505,10 +568,19 @@ def create_live_class(request):
                 "dashboard"
             )
 
-        except Exception as e:
+        except Exception:
+
+            logger.exception(
+                "Live class creation failed "
+                "for teacher=%s course=%s",
+                request.user.id,
+                course.id,
+            )
+
             messages.error(
                 request,
-                str(e)
+                "Unable to create the live class. "
+                "Please try again."
             )
 
     return render(
@@ -3632,6 +3704,39 @@ def delete_teacher_lesson(request, lesson_id):
         )
 
     # ---------------------------------------------------------
+    # SAFETY CHECK — VIDEO LECTURES
+    # ---------------------------------------------------------
+
+    if lesson.video_lectures.exists():
+
+        messages.error(
+            request,
+            "This lesson cannot be deleted because it contains video lectures.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+
+    # ---------------------------------------------------------
+    # SAFETY CHECK — LESSON RECORDINGS
+    # ---------------------------------------------------------
+
+    if lesson.lesson_recordings.exists():
+
+        messages.error(
+            request,
+            "This lesson cannot be deleted because it contains recordings.",
+        )
+
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    # ---------------------------------------------------------
     # SAFETY CHECK — STUDENT PROGRESS
     # ---------------------------------------------------------
 
@@ -6042,7 +6147,7 @@ def generate_ai_notes(request, lesson_id):
 
     from django.http import HttpResponse
     from django.conf import settings
-    from openai import OpenAI
+    from google import genai
 
     # ---------------------------------------------------------
     # GET LESSON + COURSE
@@ -6105,7 +6210,7 @@ def generate_ai_notes(request, lesson_id):
     # GENERATE NOTES
     # ---------------------------------------------------------
 
-    notes = ""
+    notes = lesson.ai_notes or ""
 
     if request.method == "POST":
 
@@ -6122,26 +6227,21 @@ def generate_ai_notes(request, lesson_id):
 
         try:
 
-            client = OpenAI(
-                api_key=settings.OPENAI_API_KEY
+            client = genai.Client(
+                api_key=settings.GEMINI_API_KEY
             )
 
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": f"Explain {topic} simply"
-                    }
-                ]
+            response = client.models.generate_content(
+                model="gemini-3.5-flash-lite",
+                contents=f"Explain {topic} simply",
             )
 
-            notes = (
-                response
-                .choices[0]
-                .message
-                .content
-            )
+            notes = (response.text or "").strip()
+
+            if not notes:
+                raise ValueError(
+                    "Gemini returned an empty AI Notes response."
+                )
 
             # SAVE NOTES
             lesson.ai_notes = notes
@@ -10778,3 +10878,193 @@ def leaderboard(request):
         }
 
     )
+
+
+
+# =========================================================
+# SECURE LESSON NOTES ACCESS
+# =========================================================
+
+def _lesson_notes_authorization_error(request, lesson):
+    """Return a 403 response when the user cannot access the course."""
+
+    course = lesson.module.course
+
+    if request.user.user_type == "student":
+        is_enrolled = Enrollment.objects.filter(
+            student=request.user,
+            course=course,
+        ).exists()
+
+        if not is_enrolled:
+            return HttpResponse(
+                "You are not enrolled in this course.",
+                status=403,
+            )
+
+    elif request.user.user_type == "teacher":
+        if course.teacher_id != request.user.id:
+            return HttpResponse(
+                "You are not authorized to view these lesson notes.",
+                status=403,
+            )
+
+    else:
+        return HttpResponse(
+            "You are not authorized to view these lesson notes.",
+            status=403,
+        )
+
+    return None
+
+
+@login_required
+def view_lesson_notes(request, lesson_id):
+    """Display the protected Lesson Notes viewer."""
+
+    lesson = get_object_or_404(
+        Lesson.objects.select_related("module__course"),
+        id=lesson_id,
+    )
+
+    access_error = _lesson_notes_authorization_error(
+        request,
+        lesson,
+    )
+
+    if access_error:
+        return access_error
+
+    if not lesson.notes:
+        return HttpResponse(
+            "Lesson Notes file not found.",
+            status=404,
+        )
+
+    file_name = lesson.notes.name.lower()
+
+    is_pdf = file_name.endswith(".pdf")
+    is_office = is_office_preview_file(lesson.notes.name)
+
+    if not is_pdf and not is_office:
+        return HttpResponse(
+            "This Lesson Notes format cannot be securely previewed.",
+            status=404,
+        )
+
+    now = timezone.localtime()
+
+    watermark_text = (
+        "These Lesson Notes belong to:\n"
+        f"{request.user.get_full_name() or request.user.username}\n"
+        "Viewed on:\n"
+        f"{now.strftime('%d-%b-%Y %I:%M %p')}"
+    )
+
+    return render(
+        request,
+        "view_lesson_notes.html",
+        {
+            "lesson": lesson,
+            "course": lesson.module.course,
+            "watermark_text": watermark_text,
+        },
+    )
+
+
+
+@login_required
+def serve_lesson_notes_file(request, lesson_id):
+    """Serve authenticated Lesson Notes through the protected viewer."""
+
+    lesson = get_object_or_404(
+        Lesson.objects.select_related("module__course"),
+        id=lesson_id,
+    )
+
+    access_error = _lesson_notes_authorization_error(request, lesson)
+    if access_error:
+        return access_error
+
+    if not lesson.notes:
+        return HttpResponse("Lesson Notes file not found.", status=404)
+
+    if request.headers.get("X-ScoreSkill-Viewer") != "1":
+        return HttpResponse(
+            "Direct Lesson Notes file access is not allowed.",
+            status=403,
+        )
+
+    file_name = lesson.notes.name.lower()
+    is_pdf = file_name.endswith(".pdf")
+    is_office = is_office_preview_file(lesson.notes.name)
+
+    if not is_pdf and not is_office:
+        return HttpResponse(
+            "This Lesson Notes format cannot be securely previewed.",
+            status=404,
+        )
+
+    # Retrieve the authenticated raw asset using a short-lived URL.
+    try:
+        import time
+        import requests
+        import cloudinary.utils
+
+        file_format = lesson.notes.name.rsplit(".", 1)[-1].lower()
+
+        signed_url = cloudinary.utils.private_download_url(
+            lesson.notes.name,
+            file_format,
+            resource_type="raw",
+            type="authenticated",
+            expires_at=int(time.time()) + 120,
+        )
+
+        with requests.get(signed_url, timeout=(5, 30)) as download:
+            download.raise_for_status()
+            source_bytes = download.content
+
+    except Exception:
+        logger.exception(
+            "Secure Lesson Notes download failed for lesson=%s",
+            lesson.id,
+        )
+        return HttpResponse(
+            "Unable to retrieve Lesson Notes securely.",
+            status=503,
+        )
+
+    if is_pdf:
+        response = FileResponse(
+            io.BytesIO(source_bytes),
+            content_type="application/pdf",
+        )
+    else:
+        try:
+            pdf_bytes = convert_cloudinary_file_to_pdf(
+                lesson.notes,
+                source_bytes=source_bytes,
+            )
+        except DocumentPreviewError:
+            logger.exception(
+                "Lesson Notes conversion failed for lesson=%s",
+                lesson.id,
+            )
+            return HttpResponse(
+                "Unable to generate the Lesson Notes preview.",
+                status=503,
+            )
+
+        response = FileResponse(
+            io.BytesIO(pdf_bytes),
+            content_type="application/pdf",
+        )
+
+    response["Content-Disposition"] = "inline"
+    response["Cache-Control"] = "private, no-store, max-age=0"
+    response["Pragma"] = "no-cache"
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Referrer-Policy"] = "same-origin"
+
+    return response

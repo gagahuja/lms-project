@@ -116,12 +116,21 @@ def build_teacher_dashboard(user):
     live_classes = (
         LiveClass.objects.filter(
             course__in=courses,
-            is_completed=False
+            is_completed=False,
+        )
+        .filter(
+            Q(
+                date__gte=timezone.now()
+            )
+            |
+            Q(
+                is_live=True
+            )
         )
         .annotate(
             recording_count=Count("recordings")
         )
-        .order_by("-date")
+        .order_by("date")
     )
 
     teacher_recordings = (
@@ -498,48 +507,160 @@ def build_teacher_dashboard(user):
 
     for student in students:
 
-        completed = student_progress_map.get(
-            student.id,
-            0,
+        # ---------------------------------------------------------
+        # STUDENT-SPECIFIC COURSE SCOPE
+        # ---------------------------------------------------------
+
+        enrolled_course_ids = (
+            Enrollment.objects
+            .filter(
+                student=student,
+                course__in=courses,
+            )
+            .values_list(
+                "course_id",
+                flat=True,
+            )
+        )
+
+        # ---------------------------------------------------------
+        # STUDENT-SPECIFIC LESSONS
+        # ---------------------------------------------------------
+
+        student_lessons = Lesson.objects.filter(
+            module__course_id__in=enrolled_course_ids,
+        )
+
+        student_total_lessons = (
+            student_lessons.count()
+        )
+
+        completed_lessons = (
+            Progress.objects
+            .filter(
+                student=student,
+                lesson__in=student_lessons,
+                completed=True,
+            )
+            .count()
         )
 
         progress = 0
 
-        if total_lessons:
+        if student_total_lessons:
+
             progress = round(
-                completed * 100 / total_lessons
+                completed_lessons
+                * 100
+                / student_total_lessons
             )
 
-        submitted = student_submission_map.get(
-            student.id,
-            0,
+        # ---------------------------------------------------------
+        # STUDENT-SPECIFIC ASSIGNMENTS
+        # ---------------------------------------------------------
+
+        student_assignments = assignments.filter(
+            Q(
+                lesson__module__course_id__in=enrolled_course_ids
+            )
+            |
+            Q(
+                module__course_id__in=enrolled_course_ids
+            )
+        ).distinct()
+
+        student_total_assignments = (
+            student_assignments.count()
+        )
+
+        submitted_assignments = (
+            Submission.objects
+            .filter(
+                student=student,
+                assignment__in=student_assignments,
+            )
+            .count()
         )
 
         pending = max(
-            total_student_assignments - submitted,
+            student_total_assignments
+            - submitted_assignments,
             0,
         )
 
-        average = student_marks_map.get(
-            student.id,
-            0,
+        # ---------------------------------------------------------
+        # STUDENT-SPECIFIC GRADED SUBMISSIONS
+        # ---------------------------------------------------------
+
+        checked_marks = (
+            Submission.objects
+            .filter(
+                student=student,
+                assignment__in=student_assignments,
+                status="checked",
+                marks__isnull=False,
+            )
+        )
+
+        checked_count = (
+            checked_marks.count()
+        )
+
+        average = (
+            checked_marks.aggregate(
+                average=Avg("marks")
+            )["average"]
+            or 0
         )
 
         average = round(
-            average or 0,
+            average,
             1,
         )
 
+        # ---------------------------------------------------------
+        # SUPPORT RULES
+        # ---------------------------------------------------------
+
+        needs_support = False
+
         if (
-            progress < 50
-            or pending > 3
-            or average < 40
+            student_total_lessons > 0
+            and progress < 50
         ):
+
+            needs_support = True
+
+        if (
+            student_total_assignments > 0
+            and pending > 3
+        ):
+
+            needs_support = True
+
+        if (
+            checked_count > 0
+            and average < 40
+        ):
+
+            needs_support = True
+
+        # ---------------------------------------------------------
+        # ADD ONLY STUDENTS WITH A REAL SUPPORT CONDITION
+        # ---------------------------------------------------------
+
+        if needs_support:
+
             attention_students.append({
+
                 "student": student,
+
                 "progress": progress,
+
                 "pending": pending,
+
                 "average": average,
+
             })
 
     context["attention_students"] = attention_students

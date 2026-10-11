@@ -3,230 +3,527 @@
 {% block content %}
 
 <style>
+    .student-course-page {
+        max-width: 1180px;
+        margin: 0 auto;
+    }
 
-.course-header {
-    background: linear-gradient(135deg, #5b4bdb, #7c3aed);
-    color: white;
-    border-radius: 14px;
-    padding: 28px;
-    margin-bottom: 24px;
-}
+    .course-hero {
+        background: linear-gradient(135deg, #5b4bdb, #7c3aed);
+        color: #fff;
+        border-radius: 18px;
+        padding: 28px;
+        margin-bottom: 18px;
+        box-shadow: 0 10px 30px rgba(79, 70, 229, 0.18);
+    }
 
-.course-header h1 {
-    margin-bottom: 8px;
-    font-weight: 700;
-}
+    .course-hero h1 {
+        margin: 0 0 8px;
+        font-weight: 750;
+        letter-spacing: -0.02em;
+    }
 
-.course-subtitle {
-    opacity: 0.9;
-    margin-bottom: 22px;
-}
+    .course-hero-subtitle {
+        opacity: 0.92;
+        margin-bottom: 18px;
+    }
 
-.progress-container {
-    background: rgba(255,255,255,0.25);
-    border-radius: 20px;
-    height: 14px;
-    overflow: hidden;
-}
+    .course-hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 20px;
+    }
 
-.course-progress {
-    width: 100%;
-    height: 14px;
-    display: block;
-    border: none;
-    border-radius: 20px;
-    overflow: hidden;
-    background: rgba(255,255,255,0.25);
-}
+    .course-hero-actions .btn {
+        font-weight: 650;
+    }
 
-.course-progress::-webkit-progress-bar {
-    background: rgba(255,255,255,0.25);
-    border-radius: 20px;
-}
+    .course-progress-track {
+        height: 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.25);
+        overflow: hidden;
+    }
 
-.course-progress::-webkit-progress-value {
-    background: #ffffff;
-    border-radius: 20px;
-}
+    .course-progress-fill {
+        width: 0%;
+        height: 100%;
+        background: #fff;
+        border-radius: inherit;
+    }
 
-.course-progress::-moz-progress-bar {
-    background: #ffffff;
-    border-radius: 20px;
-}
+    .course-progress-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 8px;
+        font-size: 14px;
+    }
 
-.progress-text {
-    margin-top: 8px;
-    font-size: 14px;
-    display: flex;
-    justify-content: space-between;
-}
+    .course-overview-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 22px;
+    }
 
-.continue-card {
-    background: white;
-    border: 1px solid #dfe4ec;
-    border-radius: 12px;
-    padding: 22px;
-    margin-bottom: 24px;
-    box-shadow: 0 3px 12px rgba(0,0,0,0.05);
-}
+    .overview-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 16px;
+        box-shadow: 0 3px 14px rgba(15, 23, 42, 0.04);
+    }
 
-.continue-card h4 {
-    margin-bottom: 8px;
-}
+    .overview-label {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
 
-.module-card {
-    background: white;
-    border: 1px solid #d9dee7;
-    border-radius: 12px;
-    margin-bottom: 18px;
-    overflow: hidden;
-}
+    .overview-value {
+        margin-top: 5px;
+        color: #0f172a;
+        font-size: 1.35rem;
+        font-weight: 750;
+    }
 
-.module-header {
-    background: #f8fafc;
-    padding: 16px 20px;
-    border-bottom: 1px solid #d9dee7;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
+    .continue-card {
+        background: #fff;
+        border: 1px solid #c7d2fe;
+        border-left: 5px solid #5b4bdb;
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 24px;
+        box-shadow: 0 5px 18px rgba(79, 70, 229, 0.08);
+    }
 
-.module-header h4 {
-    margin: 0;
-    font-weight: 600;
-}
+    .continue-kicker {
+        color: #5b4bdb;
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 5px;
+    }
 
-.lesson-item {
-    padding: 16px 20px;
-    border-bottom: 1px solid #edf0f4;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 15px;
-}
+    .continue-card h2 {
+        margin: 0 0 6px;
+        font-size: 1.25rem;
+        font-weight: 750;
+    }
 
-.lesson-item:last-child {
-    border-bottom: none;
-}
+    .continue-meta {
+        color: #64748b;
+        margin-bottom: 14px;
+    }
 
-.module-assignment-section {
-    padding: 16px 20px;
-    background: #fafbff;
-    border-top: 1px solid #edf0f4;
-}
+    .section-heading {
+        margin: 26px 0 12px;
+    }
 
-.module-assignment-item {
-    padding: 14px 16px;
-    margin-top: 10px;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-}
+    .section-heading h2 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 750;
+        color: #0f172a;
+    }
 
-.module-assignment-title {
-    font-weight: 600;
-    font-size: 15px;
-}
+    .section-heading p {
+        margin: 4px 0 0;
+        color: #64748b;
+        font-size: 14px;
+    }
 
-.module-assignment-meta {
-    color: #64748b;
-    font-size: 13px;
-    margin-top: 4px;
-}
+    .curriculum-card {
+        background: #fff;
+        border: 1px solid #dbe2ea;
+        border-radius: 16px;
+        margin-bottom: 14px;
+        overflow: hidden;
+        box-shadow: 0 3px 14px rgba(15, 23, 42, 0.04);
+    }
 
-.module-assignment-description {
-    color: #64748b;
-    font-size: 13px;
-    margin-top: 5px;
-}
+    .module-summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 17px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        background: #f8fafc;
+    }
 
-.lesson-info {
-    flex: 1;
-}
+    .module-summary::-webkit-details-marker {
+        display: none;
+    }
 
-.lesson-title {
-    font-weight: 600;
-    font-size: 16px;
-}
+    .module-summary:hover {
+        background: #f1f5f9;
+    }
 
-.lesson-meta {
-    color: #64748b;
-    font-size: 13px;
-    margin-top: 4px;
-}
+    .module-summary-main {
+        min-width: 0;
+    }
 
-.lesson-completed {
-    color: #198754;
-}
+    .module-summary-title {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: #0f172a;
+        font-size: 1.02rem;
+        font-weight: 750;
+    }
 
-.lesson-current {
-    color: #5b4bdb;
-}
+    .module-summary-meta {
+        margin-top: 4px;
+        color: #64748b;
+        font-size: 13px;
+    }
 
-.lesson-actions {
-    white-space: nowrap;
-}
+    .module-summary-counts {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 6px;
+    }
 
-.course-complete {
-    background: #ecfdf5;
-    border: 1px solid #a7f3d0;
-    border-radius: 12px;
-    padding: 25px;
-    text-align: center;
-    margin-top: 24px;
-}
+    .count-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #fff;
+        border: 1px solid #dbe2ea;
+        color: #475569;
+        font-size: 12px;
+        font-weight: 650;
+        white-space: nowrap;
+    }
 
-.course-complete h3 {
-    color: #047857;
-    margin-bottom: 8px;
-}
+    .module-body {
+        background: #fff;
+    }
 
-.section-title {
-    margin-bottom: 16px;
-    font-weight: 700;
-}
+    .curriculum-subsection {
+        padding: 15px 18px;
+        border-top: 1px solid #eef2f7;
+    }
 
+    .curriculum-subsection-title {
+        margin-bottom: 9px;
+        color: #475569;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
 
-.quiz-performance-progress {
-    width: 100%;
-    height: 8px;
-    display: block;
-    border: none;
-    border-radius: 10px;
-    overflow: hidden;
-    background: #e5e7eb;
-}
+    .lesson-list {
+        display: flex;
+        flex-direction: column;
+    }
 
-.quiz-performance-progress::-webkit-progress-bar {
-    background: #e5e7eb;
-    border-radius: 10px;
-}
+    .lesson-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 13px 0;
+        border-top: 1px solid #eef2f7;
+    }
 
-.quiz-performance-progress::-webkit-progress-value {
-    background: #5b4bdb;
-    border-radius: 10px;
-}
+    .lesson-row:first-child {
+        border-top: none;
+    }
 
-.quiz-performance-progress::-moz-progress-bar {
-    background: #5b4bdb;
-    border-radius: 10px;
-}
+    .lesson-main {
+        display: flex;
+        align-items: flex-start;
+        gap: 11px;
+        min-width: 0;
+    }
 
+    .lesson-status {
+        flex: 0 0 auto;
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: #eef2ff;
+        color: #5b4bdb;
+        font-size: 13px;
+        font-weight: 800;
+    }
+
+    .lesson-status.completed {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .lesson-status.next {
+        background: #ede9fe;
+        color: #6d28d9;
+    }
+
+    .lesson-content {
+        min-width: 0;
+    }
+
+    .lesson-title {
+        color: #0f172a;
+        font-weight: 700;
+        line-height: 1.35;
+    }
+
+    .lesson-meta {
+        margin-top: 3px;
+        color: #64748b;
+        font-size: 13px;
+    }
+
+    .lesson-next-label {
+        display: inline-block;
+        margin-left: 6px;
+        padding: 2px 6px;
+        border-radius: 999px;
+        background: #ede9fe;
+        color: #6d28d9;
+        font-size: 11px;
+        font-weight: 750;
+    }
+
+    .lesson-actions {
+        flex: 0 0 auto;
+    }
+
+    .resource-list,
+    .assignment-list {
+        display: grid;
+        gap: 8px;
+    }
+
+    .resource-row,
+    .assignment-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 11px 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        background: #fafbff;
+    }
+
+    .resource-title,
+    .assignment-title {
+        color: #334155;
+        font-weight: 650;
+    }
+
+    .resource-meta,
+    .assignment-meta {
+        color: #64748b;
+        font-size: 12px;
+        margin-top: 2px;
+    }
+
+    .course-quiz-card {
+        background: #fff;
+        border: 1px solid #dbe2ea;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 3px 14px rgba(15, 23, 42, 0.04);
+    }
+
+    .quiz-row {
+        padding: 16px 18px;
+        border-bottom: 1px solid #eef2f7;
+    }
+
+    .quiz-row:last-child {
+        border-bottom: none;
+    }
+
+    .quiz-title {
+        color: #0f172a;
+        font-weight: 750;
+    }
+
+    .quiz-meta {
+        color: #64748b;
+        font-size: 13px;
+        margin-top: 3px;
+    }
+
+    .quiz-performance-progress {
+        width: 100%;
+        height: 8px;
+        display: block;
+        border: none;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #e5e7eb;
+    }
+
+    .quiz-performance-progress::-webkit-progress-bar {
+        background: #e5e7eb;
+        border-radius: 10px;
+    }
+
+    .quiz-performance-progress::-webkit-progress-value {
+        background: #5b4bdb;
+        border-radius: 10px;
+    }
+
+    .quiz-performance-progress::-moz-progress-bar {
+        background: #5b4bdb;
+        border-radius: 10px;
+    }
+
+    .course-complete {
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        border-radius: 16px;
+        padding: 24px;
+        text-align: center;
+        margin-top: 24px;
+    }
+
+    .course-complete h2 {
+        margin: 0 0 8px;
+        color: #047857;
+        font-weight: 800;
+    }
+
+    .empty-curriculum {
+        background: #fff;
+        border: 1px dashed #cbd5e1;
+        border-radius: 14px;
+        padding: 26px;
+        color: #64748b;
+        text-align: center;
+    }
+
+    .dark-mode .overview-card,
+    .dark-mode .continue-card,
+    .dark-mode .curriculum-card,
+    .dark-mode .course-quiz-card {
+        background: #0f172a;
+        border-color: #1e293b;
+        color: #e2e8f0;
+    }
+
+    .dark-mode .overview-label,
+    .dark-mode .module-summary-meta,
+    .dark-mode .lesson-meta,
+    .dark-mode .resource-meta,
+    .dark-mode .assignment-meta,
+    .dark-mode .quiz-meta,
+    .dark-mode .section-heading p,
+    .dark-mode .continue-meta {
+        color: #94a3b8;
+    }
+
+    .dark-mode .overview-value,
+    .dark-mode .section-heading h2,
+    .dark-mode .module-summary-title,
+    .dark-mode .lesson-title,
+    .dark-mode .quiz-title {
+        color: #e2e8f0;
+    }
+
+    .dark-mode .module-summary {
+        background: #111827;
+        border-color: #1e293b;
+    }
+
+    .dark-mode .module-summary:hover {
+        background: #172033;
+    }
+
+    .dark-mode .count-pill,
+    .dark-mode .resource-row,
+    .dark-mode .assignment-row {
+        background: #111827;
+        border-color: #1e293b;
+        color: #cbd5e1;
+    }
+
+    .dark-mode .curriculum-subsection,
+    .dark-mode .lesson-row,
+    .dark-mode .quiz-row {
+        border-color: #1e293b;
+    }
+
+    @media (max-width: 900px) {
+        .course-overview-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 640px) {
+        .course-hero {
+            padding: 20px;
+        }
+
+        .course-overview-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .overview-card {
+            padding: 12px;
+        }
+
+        .module-summary {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .module-summary-counts {
+            justify-content: flex-start;
+        }
+
+        .lesson-row,
+        .resource-row,
+        .assignment-row {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .lesson-actions,
+        .resource-row .btn,
+        .assignment-row .btn {
+            width: 100%;
+        }
+
+        .lesson-actions .btn,
+        .resource-row .btn,
+        .assignment-row .btn {
+            width: 100%;
+        }
+    }
 </style>
 
+<div class="container py-4 student-course-page">
 
-<div class="container py-4">
+    <!-- =====================================================
+         BACK TO MY COURSES
+         ===================================================== -->
 
-    <!-- BACK -->
     <div class="mb-3">
-
         <a href="{% url 'dashboard' %}"
            class="btn btn-outline-secondary btn-sm">
-
-            ← Back to Dashboard
-
+            ← My Courses
         </a>
-
     </div>
 
 
@@ -234,79 +531,64 @@
          COURSE HEADER
          ===================================================== -->
 
-    <div class="course-header">
+    <section class="course-hero">
 
         <h1>
             📚 {{ course.title }}
         </h1>
 
-        <div class="course-subtitle">
-
-            Continue your learning journey with ScoreSkill.
-
+        <div class="course-hero-subtitle">
+            Follow the curriculum module by module and continue from where you stopped.
         </div>
 
 
-                <!-- =================================================
-                    CHAT WITH TEACHER
-                    ================================================= -->
+        {% if request.user.user_type == "student" %}
 
-                {% if request.user.user_type == "student" %}
+            <div class="course-hero-actions">
 
-                <div style="margin-top: 15px; margin-bottom: 18px;">
+                <a
+                    href="{% url 'chat' course.teacher.id course.id %}"
+                    class="btn btn-light btn-sm"
+                >
+                    💬 Chat with Teacher
+                </a>
 
-                    <a
-                        href="{% url 'chat' course.teacher.id course.id %}"
-                        class="btn"
-                        style="
-                            background: #ffffff;
-                            color: #4f46e5;
-                            border: 2px solid #ffffff;
-                            font-weight: 600;
-                            margin-top: 4px;
-                        ">
+                <a
+                    href="{% url 'doubts' %}"
+                    class="btn btn-light btn-sm"
+                >
+                    ❓ Ask a Doubt
+                </a>
 
-                        💬 Chat with Teacher
+            </div>
 
-                    </a>
-
-                    <a
-                        href="{% url 'doubts' %}"
-                        class="btn"
-                        style="
-                            background: #ffffff;
-                            color: #047857;
-                            border: 2px solid #ffffff;
-                            font-weight: 600;
-                            margin-top: 4px;
-                            margin-left: 8px;
-                        ">
-
-                        ❓ Ask a Doubt
-
-                    </a>
-
-                </div>
-
-                {% endif %}
+        {% endif %}
 
 
-        <!-- PROGRESS -->
-
-        <div class="progress-container">
-
-            <progress
-                class="course-progress"
-                value="{{ progress }}"
-                max="100">
-                {{ progress }}%
-            </progress>
-
+        <div class="course-progress-track" aria-label="Course progress">
+            <div
+                class="course-progress-fill"
+                data-progress="{{ progress }}"
+            ></div>
         </div>
+        <script>
+        (function () {
+            const fill = document.querySelector(".course-progress-fill");
 
+            if (!fill) {
+                return;
+            }
 
-        <div class="progress-text">
+            const progress = Number(fill.dataset.progress);
 
+            if (Number.isFinite(progress)) {
+                fill.style.width =
+                    Math.max(0, Math.min(100, progress)) + "%";
+            }
+        })();
+        </script>
+
+        <div class="course-progress-meta">
             <span>
                 {{ completed_lessons }} of {{ total_lessons }} lessons completed
             </span>
@@ -314,11 +596,38 @@
             <strong>
                 {{ progress }}%
             </strong>
+        </div>
 
+    </section>
+
+
+    <!-- =====================================================
+         COURSE OVERVIEW
+         ===================================================== -->
+
+    <div class="course-overview-grid">
+
+        <div class="overview-card">
+            <div class="overview-label">Course Progress</div>
+            <div class="overview-value">{{ progress }}%</div>
+        </div>
+
+        <div class="overview-card">
+            <div class="overview-label">Lessons</div>
+            <div class="overview-value">{{ completed_lessons }}/{{ total_lessons }}</div>
+        </div>
+
+        <div class="overview-card">
+            <div class="overview-label">Modules</div>
+            <div class="overview-value">{{ modules|length }}</div>
+        </div>
+
+        <div class="overview-card">
+            <div class="overview-label">Course Quizzes</div>
+            <div class="overview-value">{{ quizzes|length }}</div>
         </div>
 
     </div>
-
 
 
     <!-- =====================================================
@@ -327,598 +636,599 @@
 
     {% if next_lesson %}
 
-    <div class="continue-card">
+        <div class="continue-card">
 
-        <div class="text-muted mb-2">
-            ▶ CONTINUE LEARNING
+            <div class="continue-kicker">
+                ▶ Continue Learning
+            </div>
+
+            <h2>
+                {{ next_lesson.title }}
+            </h2>
+
+            <div class="continue-meta">
+                📘 {{ next_lesson.module.title }}
+            </div>
+
+            <a
+                href="{% url 'lesson_detail' next_lesson.id %}"
+                class="btn btn-primary"
+            >
+                ▶ Continue Learning
+            </a>
+
         </div>
-
-        <h4>
-            {{ next_lesson.title }}
-        </h4>
-
-        <div class="text-muted mb-3">
-
-            {{ next_lesson.module.title }}
-
-        </div>
-
-
-        <a
-            href="{% url 'lesson_detail' next_lesson.id %}"
-            class="btn btn-primary">
-
-            ▶ Continue Learning
-
-        </a>
-
-    </div>
 
     {% elif course_completed %}
 
-    <div class="course-complete">
+        <div class="course-complete">
 
-        <h3>
-            🎓 Course Completed!
-        </h3>
+            <h2>
+                🎓 Course Completed!
+            </h2>
 
-        <p class="mb-0">
-            Congratulations! You have completed all the lessons
-            in {{ course.title }}.
-        </p>
+            <p class="mb-0">
+                Congratulations! You have completed all the lessons in
+                <strong>{{ course.title }}</strong>.
+            </p>
 
-    </div>
+        </div>
 
     {% elif first_lesson %}
 
-    <div class="continue-card">
+        <div class="continue-card">
 
-        <div class="text-muted mb-2">
-            ▶ START LEARNING
+            <div class="continue-kicker">
+                ▶ Start Learning
+            </div>
+
+            <h2>
+                {{ first_lesson.title }}
+            </h2>
+
+            <div class="continue-meta">
+                📘 {{ first_lesson.module.title }}
+            </div>
+
+            <a
+                href="{% url 'lesson_detail' first_lesson.id %}"
+                class="btn btn-primary"
+            >
+                ▶ Start Learning
+            </a>
+
         </div>
-
-        <h4>
-            {{ first_lesson.title }}
-        </h4>
-
-        <div class="text-muted mb-3">
-
-            {{ first_lesson.module.title }}
-
-        </div>
-
-
-        <a
-            href="{% url 'lesson_detail' first_lesson.id %}"
-            class="btn btn-primary">
-
-            ▶ Start Learning
-
-        </a>
-
-    </div>
 
     {% endif %}
 
 
-
     <!-- =====================================================
-         COURSE CONTENT
+         COURSE CURRICULUM
          ===================================================== -->
 
-    <h3 class="section-title">
-
-        📖 Course Content
-
-    </h3>
+    <div class="section-heading">
+        <h2>📚 Course Curriculum</h2>
+        <p>
+            Study in order, review completed lessons, and open any lesson you want to revisit.
+        </p>
+    </div>
 
 
     {% for module in modules %}
 
-    <div class="module-card">
+        {% if forloop.first %}
 
-        <!-- MODULE HEADER -->
+            <details class="curriculum-card" open>
 
-        <div class="module-header">
+        {% else %}
 
-            <h4>
-                📘 {{ module.title }}
-            </h4>
-
-            <div class="text-muted text-end">
-
-                <div>
-                    {{ module.lessons.all|length }}
-                    lesson{{ module.lessons.all|length|pluralize }}
-                </div>
-
-                <div>
-                    {{ module.assignments.all|length }}
-                    module assignment{{ module.assignments.all|pluralize }}
-                </div>
-
-            </div>
-
-        </div>
-
-        <!-- =====================================================
-            MODULE HANDOUTS
-            ===================================================== -->
-
-        {% if module.module_handouts.all %}
-
-        <div class="p-3 border-bottom">
-
-            <div class="fw-semibold mb-2">
-                📄 Module Handouts
-            </div>
-
-
-            {% for handout in module.module_handouts.all %}
-
-                <div
-                    class="d-flex justify-content-between align-items-center gap-3 mb-2"
-                >
-
-                    <div class="text-muted">
-
-                        📄 {{ handout.title }}
-
-                    </div>
-
-
-                    <a
-                        href="{% url 'view_handout' handout.id %}"
-                        class="btn btn-outline-primary btn-sm"
-                    >
-                        View Handout
-                    </a>
-
-                </div>
-
-            {% endfor %}
-
-        </div>
+            <details class="curriculum-card">
 
         {% endif %}
 
+            <summary class="module-summary">
 
-        <!-- =====================================================
-            MODULE RECORDINGS
-            ===================================================== -->
+                <div class="module-summary-main">
 
-        {% if module.module_recordings.all %}
+                    <div class="module-summary-title">
+                        📘 {{ module.title }}
+                    </div>
 
-        <div class="p-3 border-bottom">
+                    <div class="module-summary-meta">
+                        Follow the lessons in this module in sequence.
+                    </div>
 
-            <div class="fw-semibold mb-2">
-                🎥 Module Recordings
-            </div>
+                </div>
+
+                <div class="module-summary-counts">
+
+                    <span class="count-pill">
+                        📖
+                        {{ module.lessons.all|length }}
+                        lesson{{ module.lessons.all|length|pluralize }}
+                    </span>
+
+                    {% if module.module_handouts.all %}
+                        <span class="count-pill">
+                            📄
+                            {{ module.module_handouts.all|length }}
+                            resource{{ module.module_handouts.all|length|pluralize }}
+                        </span>
+                    {% endif %}
+
+                    {% if module.module_recordings.all %}
+                        <span class="count-pill">
+                            🎥
+                            {{ module.module_recordings.all|length }}
+                            recording{{ module.module_recordings.all|length|pluralize }}
+                        </span>
+                    {% endif %}
+
+                    {% if module.assignments.all %}
+                        <span class="count-pill">
+                            📝
+                            {{ module.assignments.all|length }}
+                            assignment{{ module.assignments.all|length|pluralize }}
+                        </span>
+                    {% endif %}
+
+                </div>
+
+            </summary>
 
 
-            {% for recording in module.module_recordings.all %}
+            <div class="module-body">
 
-                <div
-                    class="d-flex justify-content-between align-items-center gap-3 mb-2"
-                >
+                <!-- =================================================
+                     LESSONS
+                     ================================================= -->
 
-                    <div class="text-muted">
+                <div class="curriculum-subsection">
 
-                        🎥 {{ recording.title }}
+                    <div class="curriculum-subsection-title">
+                        Lessons
+                    </div>
 
-                        {% if recording.description %}
+                    <div class="lesson-list">
 
-                            <div class="small text-muted mt-1">
-                                {{ recording.description }}
+                        {% for lesson in module.lessons.all %}
+
+                            <div class="lesson-row">
+
+                                <div class="lesson-main">
+
+                                    {% if lesson.is_completed %}
+
+                                        <span class="lesson-status completed">
+                                            ✓
+                                        </span>
+
+                                    {% elif next_lesson and next_lesson.id == lesson.id %}
+
+                                        <span class="lesson-status next">
+                                            ▶
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="lesson-status">
+                                            ○
+                                        </span>
+
+                                    {% endif %}
+
+
+                                    <div class="lesson-content">
+
+                                        <div class="lesson-title">
+
+                                            {{ forloop.counter }}.
+                                            {{ lesson.title }}
+
+                                            {% if next_lesson and next_lesson.id == lesson.id %}
+
+                                                <span class="lesson-next-label">
+                                                    Next Lesson
+                                                </span>
+
+                                            {% endif %}
+
+                                        </div>
+
+
+                                        <div class="lesson-meta">
+
+                                            {% if lesson.is_completed %}
+
+                                                Completed — you can review this lesson.
+
+                                            {% elif next_lesson and next_lesson.id == lesson.id %}
+
+                                                Your recommended next lesson.
+
+                                            {% else %}
+
+                                                Not started yet.
+
+                                            {% endif %}
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div class="lesson-actions">
+
+                                    {% if lesson.is_completed %}
+
+                                        <a
+                                            href="{% url 'lesson_detail' lesson.id %}"
+                                            class="btn btn-outline-success btn-sm"
+                                        >
+                                            Review
+                                        </a>
+
+                                    {% else %}
+
+                                        <a
+                                            href="{% url 'lesson_detail' lesson.id %}"
+                                            class="btn btn-primary btn-sm"
+                                        >
+                                            Open Lesson
+                                        </a>
+
+                                    {% endif %}
+
+                                    <a
+                                        href="{% url 'generate_ai_notes' lesson.id %}"
+                                        class="btn btn-outline-secondary btn-sm mt-2"
+                                    >
+                                        ✨ AI Notes
+                                    </a>
+
+                                </div>
+
                             </div>
 
-                        {% endif %}
+                        {% empty %}
+
+                            <div class="empty-curriculum">
+                                No lessons are available in this module yet.
+                            </div>
+
+                        {% endfor %}
 
                     </div>
 
-
-                    <a
-                        href="{% url 'view_module_recording' recording.id %}"
-                        class="btn btn-outline-primary btn-sm"
-                    >
-                        ▶ Watch Recording
-                    </a>
-
-                </div>
-
-            {% endfor %}
-
-        </div>
-
-        {% endif %}
-
-
-        <!-- LESSONS -->
-
-        {% for lesson in module.lessons.all %}
-
-        <div class="lesson-item">
-
-
-            <!-- LESSON INFORMATION -->
-
-            <div class="lesson-info">
-
-                <div class="lesson-title">
-
-                    {% if lesson.is_completed %}
-
-                        <span class="lesson-completed">
-                            ✅
-                        </span>
-
-                    {% else %}
-
-                        <span class="lesson-current">
-                            ▶
-                        </span>
-
-                    {% endif %}
-
-
-                    {{ lesson.title }}
-
                 </div>
 
 
-                <div class="lesson-meta">
+                <!-- =================================================
+                     MODULE RESOURCES
+                     ================================================= -->
 
-                    {% if lesson.is_completed %}
+                {% if module.module_handouts.all or module.module_recordings.all %}
 
-                        Completed
+                    <div class="curriculum-subsection">
 
-                    {% else %}
+                        <div class="curriculum-subsection-title">
+                            📚 Module Resources
+                        </div>
 
-                        Ready to learn
+                        <div class="resource-list">
 
-                    {% endif %}
+                            {% for handout in module.module_handouts.all %}
 
-                </div>
+                                <div class="resource-row">
 
-            </div>
+                                    <div>
+                                        <div class="resource-title">
+                                            📄 {{ handout.title }}
+                                        </div>
+
+                                        <div class="resource-meta">
+                                            Module handout
+                                        </div>
+                                    </div>
+
+                                    <a
+                                        href="{% url 'view_handout' handout.id %}"
+                                        class="btn btn-outline-primary btn-sm"
+                                    >
+                                        View Handout
+                                    </a>
+
+                                </div>
+
+                            {% endfor %}
 
 
-            <!-- ACTION -->
+                            {% for recording in module.module_recordings.all %}
 
-            <div class="lesson-actions">
+                                <div class="resource-row">
 
-                {% if lesson.is_completed %}
+                                    <div>
+                                        <div class="resource-title">
+                                            🎥 {{ recording.title }}
+                                        </div>
 
-                    <a
-                        href="{% url 'lesson_detail' lesson.id %}"
-                        class="btn btn-outline-success btn-sm">
+                                        {% if recording.description %}
 
-                        Review
+                                            <div class="resource-meta">
+                                                {{ recording.description }}
+                                            </div>
 
-                    </a>
+                                        {% else %}
 
-                {% else %}
+                                            <div class="resource-meta">
+                                                Module recording
+                                            </div>
 
-                    <a
-                        href="{% url 'lesson_detail' lesson.id %}"
-                        class="btn btn-primary btn-sm">
+                                        {% endif %}
 
-                        Open Lesson
+                                    </div>
 
-                    </a>
+                                    <a
+                                        href="{% url 'view_module_recording' recording.id %}"
+                                        class="btn btn-outline-primary btn-sm"
+                                    >
+                                        ▶ Watch Recording
+                                    </a>
+
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+                    </div>
 
                 {% endif %}
 
-                <a
-                    href="{% url 'generate_ai_notes' lesson.id %}"
-                    class="btn btn-sm"
-                    style="
-                        background: #f3e8ff;
-                        color: #6b21a8;
-                        border: 1px solid #d8b4fe;
-                        margin-left: 6px;
-                    ">
 
-                    🤖 AI Notes
+                <!-- =================================================
+                     MODULE PRACTICE
+                     ================================================= -->
 
-                </a>
+                <div class="curriculum-subsection">
 
-            </div>
+                    <div class="curriculum-subsection-title">
+                        📝 Module Practice
+                    </div>
 
 
-        </div>
+                    <div class="assignment-list">
 
-        {% empty %}
+                        {% for assignment in module.assignments.all %}
 
-        <div class="p-4 text-muted">
+                            <div class="assignment-row">
 
-            No lessons available in this module.
+                                <div>
 
-        </div>
+                                    <div class="assignment-title">
+                                        {{ assignment.title }}
+                                    </div>
 
-        {% endfor %}
+                                    {% if assignment.description %}
 
-        <!-- =====================================================
-            MODULE ASSIGNMENTS
-            ===================================================== -->
+                                        <div class="assignment-meta">
+                                            {{ assignment.description|truncatewords:25 }}
+                                        </div>
 
-        <div class="module-assignment-section">
+                                    {% endif %}
 
-            <div class="fw-semibold">
-                📝 Module Assignments
-            </div>
+                                    <div class="assignment-meta">
 
-            <div class="small text-muted mb-2">
-                Assignments covering the complete module.
-            </div>
+                                        Due:
+                                        {{ assignment.due_date|date:"d M Y" }}
 
+                                        <span class="ms-2">
+                                            Marks: {{ assignment.max_marks }}
+                                        </span>
 
-            {% for assignment in module.assignments.all %}
+                                        {% if assignment.file %}
 
-                <div class="module-assignment-item">
+                                            <span class="ms-2">
+                                                📎 File available
+                                            </span>
 
-                    <div class="d-flex flex-column
-                                flex-md-row
-                                justify-content-between
-                                align-items-md-center
-                                gap-3">
+                                        {% else %}
 
-                        <div class="flex-grow-1">
+                                            <span class="ms-2">
+                                                No file
+                                            </span>
 
-                            <div class="module-assignment-title">
-                                {{ assignment.title }}
-                            </div>
+                                        {% endif %}
 
-                            {% if assignment.description %}
+                                    </div>
 
-                                <div class="module-assignment-description">
-                                    {{ assignment.description|truncatewords:25 }}
                                 </div>
 
-                            {% endif %}
 
-                            <div class="module-assignment-meta">
-
-                                Due:
-                                {{ assignment.due_date|date:"d M Y" }}
-
-                                <span class="ms-2">
-                                    Marks:
-                                    {{ assignment.max_marks }}
-                                </span>
-
-                                {% if assignment.file %}
-
-                                    <span class="ms-2">
-                                        📎 File available
-                                    </span>
-
-                                {% else %}
-
-                                    <span class="ms-2">
-                                        No file
-                                    </span>
-
-                                {% endif %}
+                                <a
+                                    href="{% url 'view_assignment' assignment.id %}"
+                                    class="btn btn-primary btn-sm"
+                                >
+                                    Open Assignment
+                                </a>
 
                             </div>
 
-                        </div>
+                        {% empty %}
 
+                            <div class="text-muted small">
+                                No module assignments available yet.
+                            </div>
 
-                        <div class="lesson-actions">
-
-                            <a
-                                href="{% url 'view_assignment' assignment.id %}"
-                                class="btn btn-primary btn-sm"
-                            >
-                                Open Assignment
-                            </a>
-
-                        </div>
+                        {% endfor %}
 
                     </div>
 
                 </div>
 
-            {% empty %}
+            </div>
 
-                <div class="small text-muted mt-2">
-                    No module assignments available yet.
-                </div>
-
-            {% endfor %}
-
-        </div>
-
-    </div>
+        </details>
 
     {% empty %}
 
-    <div class="card">
-
-        <div class="card-body text-muted">
-
+        <div class="empty-curriculum">
             No course content is available yet.
-
         </div>
-
-    </div>
 
     {% endfor %}
 
 
     <!-- =====================================================
-        COURSE QUIZZES
-        ===================================================== -->
+         COURSE QUIZZES
+         ===================================================== -->
 
-    <div class="card shadow-sm mb-4">
+    <div class="section-heading">
+        <h2>🧠 Course Quizzes</h2>
+        <p>
+            Test your understanding of the complete course.
+        </p>
+    </div>
 
-        <div class="card-header">
-            🧠 Course Quizzes
-        </div>
 
-        <div class="card-body">
+    <div class="course-quiz-card">
 
-            {% for quiz in quizzes %}
+        {% for quiz in quizzes %}
 
-                <div class="border-bottom py-3">
+            <div class="quiz-row">
 
-                    <!-- QUIZ TOP -->
+                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
 
-                    <div class="d-flex justify-content-between
-                                align-items-start gap-3">
+                    <div class="flex-grow-1">
 
-                        <div>
-
-                            <strong>
-                                {{ quiz.title }}
-                            </strong>
-
-                            <div class="text-muted small mt-1">
-                                Test your understanding of this course.
-                            </div>
-
+                        <div class="quiz-title">
+                            {{ quiz.title }}
                         </div>
 
-
-                        <!-- SCORE -->
-
-                        {% if quiz.attempted %}
-
-                            <div class="text-end">
-
-                                <div class="fw-bold">
-                                    {{ quiz.best_result.score }}
-                                    /
-                                    {{ quiz.best_result.total }}
-                                </div>
-
-                                <div class="text-muted small">
-                                    Best Score
-                                </div>
-
-                            </div>
-
-                        {% else %}
-
-                            <span class="badge bg-secondary">
-                                Not Attempted
-                            </span>
-
-                        {% endif %}
+                        <div class="quiz-meta">
+                            Test your understanding of this course.
+                        </div>
 
                     </div>
 
-
-                    <!-- PERFORMANCE -->
 
                     {% if quiz.attempted %}
 
-                        <div class="mt-3">
+                        <div class="text-end">
 
-                            <div class="d-flex justify-content-between
-                                        small mb-1">
-
-                                <span>
-                                    Best Performance
-                                </span>
-
-                                <strong>
-                                    {{ quiz.best_percentage }}%
-                                </strong>
-
+                            <div class="fw-bold">
+                                {{ quiz.best_result.score }}
+                                /
+                                {{ quiz.best_result.total }}
                             </div>
 
-
-                            <div
-                                class="progress"
-                                style="height: 8px;"
-                            >
-
-                                <progress
-                                    class="quiz-performance-progress"
-                                    value="{{ quiz.best_percentage }}"
-                                    max="100">
-                                    {{ quiz.best_percentage }}%
-                                </progress>
-
-                            </div>
-
-
-                            <div class="text-muted small mt-2">
-
-                                {{ quiz.attempt_count }}
-                                attempt{{ quiz.attempt_count|pluralize }}
-
-                                {% if quiz.latest_result %}
-
-                                    · Latest:
-                                    {{ quiz.latest_result.score }}
-                                    /
-                                    {{ quiz.latest_result.total }}
-
-                                {% endif %}
-
+                            <div class="text-muted small">
+                                Best Score
                             </div>
 
                         </div>
 
+                    {% else %}
+
+                        <span class="badge bg-secondary">
+                            Not Attempted
+                        </span>
+
                     {% endif %}
-
-
-                    <!-- ACTIONS -->
-
-                    <div class="mt-3 d-flex gap-2 flex-wrap">
-
-                        {% if quiz.attempted %}
-
-                            <a
-                                href="{% url 'quiz_attempt_review' quiz.latest_result.id %}"
-                                class="btn btn-outline-primary btn-sm">
-
-                                📋 Review Latest
-
-                            </a>
-
-                            <a
-                                href="{% url 'attempt_quiz' quiz.id %}"
-                                class="btn btn-primary btn-sm">
-
-                                🔄 Retake Quiz
-
-                            </a>
-
-                        {% else %}
-
-                            <a
-                                href="{% url 'attempt_quiz' quiz.id %}"
-                                class="btn btn-primary btn-sm">
-
-                                ▶ Start Quiz
-
-                            </a>
-
-                        {% endif %}
-
-                    </div>
 
                 </div>
 
-            {% empty %}
 
-                <p class="text-muted mb-0">
+                {% if quiz.attempted %}
 
-                    No quizzes available for this course yet.
+                    <div class="mt-3">
 
-                </p>
+                        <div class="d-flex justify-content-between small mb-1">
 
-            {% endfor %}
+                            <span>
+                                Best Performance
+                            </span>
 
-        </div>
+                            <strong>
+                                {{ quiz.best_percentage }}%
+                            </strong>
+
+                        </div>
+
+                        <progress
+                            class="quiz-performance-progress"
+                            value="{{ quiz.best_percentage }}"
+                            max="100"
+                        >
+                            {{ quiz.best_percentage }}%
+                        </progress>
+
+
+                        <div class="text-muted small mt-2">
+
+                            {{ quiz.attempt_count }}
+                            attempt{{ quiz.attempt_count|pluralize }}
+
+                            {% if quiz.latest_result %}
+
+                                · Latest:
+                                {{ quiz.latest_result.score }}
+                                /
+                                {{ quiz.latest_result.total }}
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+                {% endif %}
+
+
+                <div class="mt-3 d-flex gap-2 flex-wrap">
+
+                    {% if quiz.attempted %}
+
+                        <a
+                            href="{% url 'quiz_attempt_review' quiz.latest_result.id %}"
+                            class="btn btn-outline-primary btn-sm"
+                        >
+                            📋 Review Latest
+                        </a>
+
+                        <a
+                            href="{% url 'attempt_quiz' quiz.id %}"
+                            class="btn btn-primary btn-sm"
+                        >
+                            🔄 Retake Quiz
+                        </a>
+
+                    {% else %}
+
+                        <a
+                            href="{% url 'attempt_quiz' quiz.id %}"
+                            class="btn btn-primary btn-sm"
+                        >
+                            ▶ Start Quiz
+                        </a>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        {% empty %}
+
+            <div class="p-4 text-muted">
+                No quizzes are available for this course yet.
+            </div>
+
+        {% endfor %}
 
     </div>
-
 
 
     <!-- =====================================================
@@ -927,28 +1237,24 @@
 
     {% if course_completed %}
 
-    <div class="course-complete">
+        <div class="course-complete">
 
-        <h3>
-            🏆 Well Done!
-        </h3>
+            <h2>
+                🏆 Well Done!
+            </h2>
 
-        <p>
-            You have successfully completed
-            <strong>{{ course.title }}</strong>.
-        </p>
+            <p>
+                You have successfully completed
+                <strong>{{ course.title }}</strong>.
+            </p>
 
-        <p class="text-muted mb-0">
+            <p class="text-muted mb-0">
+                Keep practising and continue building your skills with ScoreSkill.
+            </p>
 
-            Keep practising and continue building your skills
-            with ScoreSkill.
-
-        </p>
-
-    </div>
+        </div>
 
     {% endif %}
-
 
 </div>
 
