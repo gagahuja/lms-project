@@ -589,7 +589,7 @@
                     href="{% url 'view_handout' handout.id %}"
                     class="btn btn-info btn-sm mb-2">
 
-                    {{ handout.title }}
+                    {{ handout.title }} — {{ handout.get_category_display }}
 
                 </a>
 

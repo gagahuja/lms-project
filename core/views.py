@@ -1466,6 +1466,39 @@ def delete_teacher_module_assignment(request, assignment_id):
         course_id=course.id,
     )
 
+HANDOUT_ALLOWED_EXTENSIONS = (
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".ppt",
+    ".pptx",
+)
+
+HANDOUT_MAX_FILE_SIZE = 20 * 1024 * 1024
+
+
+def _handout_upload_error(uploaded_file):
+    """
+    Validate a Handout upload before saving it.
+    Returns an error message, or None when valid.
+    """
+
+    if not uploaded_file:
+        return "Please select a handout file."
+
+    filename = (uploaded_file.name or "").lower()
+
+    if not filename.endswith(HANDOUT_ALLOWED_EXTENSIONS):
+        return (
+            "Unsupported file type. Please upload PDF, DOC, "
+            "DOCX, PPT or PPTX."
+        )
+
+    if uploaded_file.size > HANDOUT_MAX_FILE_SIZE:
+        return "The file exceeds the maximum allowed size of 20 MB."
+
+    return None
+
 @require_POST
 @login_required
 def add_teacher_module_handout(request, module_id):
@@ -1508,6 +1541,11 @@ def add_teacher_module_handout(request, module_id):
         "",
     ).strip()
 
+    category = request.POST.get(
+        "category",
+        "study_material",
+    ).strip()
+
     file = request.FILES.get("file")
 
     # ---------------------------------------------------------
@@ -1530,13 +1568,22 @@ def add_teacher_module_handout(request, module_id):
     # FILE VALIDATION
     # ---------------------------------------------------------
 
-    if not file:
+    valid_categories = dict(Handout.CATEGORY_CHOICES)
 
+    if category not in valid_categories:
         messages.error(
             request,
-            "Please select a handout file.",
+            "Please select a valid resource type.",
+        )
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
         )
 
+    file_error = _handout_upload_error(file)
+
+    if file_error:
+        messages.error(request, file_error)
         return redirect(
             "teacher_course_manager",
             course_id=course.id,
@@ -1550,6 +1597,7 @@ def add_teacher_module_handout(request, module_id):
         lesson=None,
         module=module,
         title=title,
+        category=category,
         file=file,
     )
 
@@ -2895,11 +2943,38 @@ def edit_teacher_module_handout(request, handout_id):
         "",
     ).strip()
 
+    category = request.POST.get(
+        "category",
+        "study_material",
+    ).strip()
+
     file = request.FILES.get("file")
 
     # ---------------------------------------------------------
     # TITLE VALIDATION
     # ---------------------------------------------------------
+
+    valid_categories = dict(Handout.CATEGORY_CHOICES)
+
+    if category not in valid_categories:
+        messages.error(
+            request,
+            "Please select a valid resource type.",
+        )
+        return redirect(
+            "teacher_course_manager",
+            course_id=course.id,
+        )
+
+    if file:
+        file_error = _handout_upload_error(file)
+
+        if file_error:
+            messages.error(request, file_error)
+            return redirect(
+                "teacher_course_manager",
+                course_id=course.id,
+            )
 
     if not title:
 
@@ -2918,9 +2993,11 @@ def edit_teacher_module_handout(request, handout_id):
     # ---------------------------------------------------------
 
     handout.title = title
+    handout.category = category
 
     update_fields = [
         "title",
+        "category",
     ]
 
     if file:

@@ -591,6 +591,28 @@
 
                                 </div>
 
+                                <div class="mb-3">
+
+                                    <label
+                                        for="module-handout-category-{{ module.id }}"
+                                        class="form-label fw-semibold"
+                                    >
+                                        Resource Type
+                                    </label>
+
+                                    <select
+                                        id="module-handout-category-{{ module.id }}"
+                                        name="category"
+                                        class="form-select"
+                                        required
+                                    >
+                                        <option value="study_material" selected>Study Material</option>
+                                        <option value="practice_test">Practice Test</option>
+                                        <option value="question_paper">Question Paper</option>
+                                        <option value="worksheet">Worksheet</option>
+                                    </select>
+
+                                </div>
 
                                 <div class="mb-3">
 
@@ -672,6 +694,10 @@
 
                                         </div>
 
+                                        <div class="small text-muted mt-1">
+                                            {{ handout.get_category_display }}
+                                        </div>
+
                                     </div>
 
 
@@ -751,6 +777,43 @@
 
                                             </div>
 
+                                            <div class="mb-3">
+
+                                                <label
+                                                    for="edit-module-handout-category-{{ handout.id }}"
+                                                    class="form-label fw-semibold"
+                                                >
+                                                    Resource Type
+                                                </label>
+
+                                                <select
+                                                    id="edit-module-handout-category-{{ handout.id }}"
+                                                    name="category"
+                                                    class="form-select"
+                                                    required
+                                                >
+                                                    <option
+                                                        value="study_material"
+                                                        {% if handout.category == "study_material" %}selected{% endif %}
+                                                    >Study Material</option>
+
+                                                    <option
+                                                        value="practice_test"
+                                                        {% if handout.category == "practice_test" %}selected{% endif %}
+                                                    >Practice Test</option>
+
+                                                    <option
+                                                        value="question_paper"
+                                                        {% if handout.category == "question_paper" %}selected{% endif %}
+                                                    >Question Paper</option>
+
+                                                    <option
+                                                        value="worksheet"
+                                                        {% if handout.category == "worksheet" %}selected{% endif %}
+                                                    >Worksheet</option>
+                                                </select>
+
+                                            </div>
 
                                             <div class="mb-3">
 

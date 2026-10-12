@@ -559,6 +559,13 @@ class Points(models.Model):
 
 class Handout(models.Model):
 
+    CATEGORY_CHOICES = (
+        ("study_material", "Study Material"),
+        ("practice_test", "Practice Test"),
+        ("question_paper", "Question Paper"),
+        ("worksheet", "Worksheet"),
+    )
+
     lesson = models.ForeignKey(
         Lesson,
         on_delete=models.CASCADE,
@@ -576,6 +583,13 @@ class Handout(models.Model):
 
     title = models.CharField(
         max_length=200,
+    )
+
+    category = models.CharField(
+        max_length=30,
+        choices=CATEGORY_CHOICES,
+        default="study_material",
+        db_index=True,
     )
 
     file = models.FileField(
