@@ -3091,6 +3091,192 @@ def delete_teacher_module_handout(request, handout_id):
         course_id=course.id,
     )
 
+
+@require_POST
+@login_required
+def add_teacher_lesson_handout(request, lesson_id):
+    lesson = get_object_or_404(
+        Lesson.objects.select_related("module__course"),
+        id=lesson_id,
+    )
+    course = lesson.module.course
+
+    if request.user.user_type != "teacher":
+        return HttpResponse(
+            "Only teachers can manage lesson handouts.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+        return HttpResponse(
+            "You are not authorized to manage this lesson.",
+            status=403,
+        )
+
+    title = request.POST.get("title", "").strip()
+    category = request.POST.get(
+        "category", "study_material"
+    ).strip()
+    uploaded_file = request.FILES.get("file")
+
+    if not title:
+        messages.error(request, "Lesson handout title is required.")
+        return redirect(
+            "teacher_course_manager", course_id=course.id
+        )
+
+    if category not in dict(Handout.CATEGORY_CHOICES):
+        messages.error(request, "Please select a valid resource type.")
+        return redirect(
+            "teacher_course_manager", course_id=course.id
+        )
+
+    file_error = _handout_upload_error(uploaded_file)
+    if file_error:
+        messages.error(request, file_error)
+        return redirect(
+            "teacher_course_manager", course_id=course.id
+        )
+
+    Handout.objects.create(
+        lesson=lesson,
+        module=None,
+        title=title,
+        category=category,
+        file=uploaded_file,
+    )
+
+    messages.success(
+        request,
+        f"Lesson handout '{title}' added successfully.",
+    )
+    return redirect(
+        "teacher_course_manager", course_id=course.id
+    )
+
+
+@require_POST
+@login_required
+def edit_teacher_lesson_handout(request, handout_id):
+    handout = get_object_or_404(
+        Handout.objects.select_related(
+            "lesson__module__course"
+        ).filter(lesson__isnull=False),
+        id=handout_id,
+    )
+    lesson = handout.lesson
+    course = lesson.module.course
+
+    if request.user.user_type != "teacher":
+        return HttpResponse(
+            "Only teachers can manage lesson handouts.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+        return HttpResponse(
+            "You are not authorized to manage this lesson handout.",
+            status=403,
+        )
+
+    title = request.POST.get("title", "").strip()
+    category = request.POST.get(
+        "category", "study_material"
+    ).strip()
+    uploaded_file = request.FILES.get("file")
+
+    if not title:
+        messages.error(request, "Lesson handout title is required.")
+        return redirect(
+            "teacher_course_manager", course_id=course.id
+        )
+
+    if category not in dict(Handout.CATEGORY_CHOICES):
+        messages.error(request, "Please select a valid resource type.")
+        return redirect(
+            "teacher_course_manager", course_id=course.id
+        )
+
+    if uploaded_file:
+        file_error = _handout_upload_error(uploaded_file)
+        if file_error:
+            messages.error(request, file_error)
+            return redirect(
+                "teacher_course_manager", course_id=course.id
+            )
+
+    handout.title = title
+    handout.category = category
+    update_fields = ["title", "category"]
+
+    if uploaded_file:
+        handout.file = uploaded_file
+        update_fields.append("file")
+
+    handout.save(update_fields=update_fields)
+
+    messages.success(
+        request,
+        f"Lesson handout '{title}' updated successfully.",
+    )
+    return redirect(
+        "teacher_course_manager", course_id=course.id
+    )
+
+
+@require_POST
+@login_required
+def delete_teacher_lesson_handout(request, handout_id):
+    handout = get_object_or_404(
+        Handout.objects.select_related(
+            "lesson__module__course"
+        ).filter(lesson__isnull=False),
+        id=handout_id,
+    )
+    lesson = handout.lesson
+    course = lesson.module.course
+
+    if request.user.user_type != "teacher":
+        return HttpResponse(
+            "Only teachers can manage lesson handouts.",
+            status=403,
+        )
+
+    if course.teacher_id != request.user.id:
+        return HttpResponse(
+            "You are not authorized to delete this lesson handout.",
+            status=403,
+        )
+
+    title = handout.title
+
+    if handout.file:
+        try:
+            handout.file.delete(save=False)
+        except Exception as exc:
+            logger.error(
+                "Lesson handout file deletion failed "
+                "for handout=%s: %s",
+                handout.id,
+                exc,
+            )
+            messages.error(
+                request,
+                "The handout file could not be deleted.",
+            )
+            return redirect(
+                "teacher_course_manager", course_id=course.id
+            )
+
+    handout.delete()
+    messages.success(
+        request,
+        f"Lesson handout '{title}' deleted successfully.",
+    )
+    return redirect(
+        "teacher_course_manager", course_id=course.id
+    )
+
 @require_POST
 @login_required
 def add_teacher_lesson(request, module_id):

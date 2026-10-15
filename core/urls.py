@@ -61,6 +61,21 @@ urlpatterns = [
         name="delete_teacher_module_handout",
     ),
     path(
+        "teacher-lesson/<int:lesson_id>/add-handout/",
+        views.add_teacher_lesson_handout,
+        name="add_teacher_lesson_handout",
+    ),
+    path(
+        "teacher-lesson-handout/<int:handout_id>/edit/",
+        views.edit_teacher_lesson_handout,
+        name="edit_teacher_lesson_handout",
+    ),
+    path(
+        "teacher-lesson-handout/<int:handout_id>/delete/",
+        views.delete_teacher_lesson_handout,
+        name="delete_teacher_lesson_handout",
+    ),
+    path(
         "teacher-module/<int:module_id>/add-lesson/",
         views.add_teacher_lesson,
         name="add_teacher_lesson",

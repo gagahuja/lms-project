@@ -1321,6 +1321,301 @@
                                     + Add Lesson Recording
                                 </button>
 
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-primary"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#addLessonHandout{{ lesson.id }}"
+                                    aria-expanded="false"
+                                    aria-controls="addLessonHandout{{ lesson.id }}"
+                                >
+                                    + Add Lesson Handout
+                                </button>
+
+                            </div>
+
+                            <div
+                                class="collapse mt-3"
+                                id="addLessonHandout{{ lesson.id }}"
+                            >
+                                <div class="p-3 border-top bg-light">
+                                    <form
+                                        method="POST"
+                                        enctype="multipart/form-data"
+                                        action="{% url 'add_teacher_lesson_handout' lesson.id %}"
+                                        class="border rounded-3 p-3"
+                                    >
+                                        {% csrf_token %}
+
+                                        <div class="mb-3">
+                                            <label
+                                                for="lesson-handout-title-{{ lesson.id }}"
+                                                class="form-label fw-semibold"
+                                            >
+                                                Lesson Handout Title
+                                            </label>
+
+                                            <input
+                                                type="text"
+                                                id="lesson-handout-title-{{ lesson.id }}"
+                                                name="title"
+                                                class="form-control"
+                                                maxlength="200"
+                                                placeholder="e.g. HCF and LCM Practice Questions"
+                                                required
+                                            >
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label
+                                                for="lesson-handout-category-{{ lesson.id }}"
+                                                class="form-label fw-semibold"
+                                            >
+                                                Resource Type
+                                            </label>
+
+                                            <select
+                                                id="lesson-handout-category-{{ lesson.id }}"
+                                                name="category"
+                                                class="form-select"
+                                                required
+                                            >
+                                                <option value="study_material" selected>
+                                                    Study Material
+                                                </option>
+                                                <option value="practice_test">
+                                                    Practice Test
+                                                </option>
+                                                <option value="question_paper">
+                                                    Question Paper
+                                                </option>
+                                                <option value="worksheet">
+                                                    Worksheet
+                                                </option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label
+                                                for="lesson-handout-file-{{ lesson.id }}"
+                                                class="form-label fw-semibold"
+                                            >
+                                                Upload File
+                                            </label>
+
+                                            <input
+                                                type="file"
+                                                id="lesson-handout-file-{{ lesson.id }}"
+                                                name="file"
+                                                class="form-control"
+                                                accept=".pdf,.doc,.docx,.ppt,.pptx"
+                                                required
+                                            >
+
+                                            <div class="form-text">
+                                                Supported formats: PDF, DOC, DOCX, PPT and PPTX.
+                                                Maximum size: 20 MB.
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex gap-2 flex-wrap">
+                                            <button
+                                                type="submit"
+                                                class="btn btn-primary btn-sm"
+                                            >
+                                                Create Lesson Handout
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-secondary btn-sm"
+                                                data-bs-toggle="collapse"
+                                                data-bs-target="#addLessonHandout{{ lesson.id }}"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <div class="small fw-semibold text-muted mb-2">
+                                    Lesson Handouts
+                                </div>
+
+                                {% for handout in lesson.handout_set.all %}
+                                    <div class="assignment-row mt-2">
+                                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+                                            <div class="flex-grow-1">
+                                                <div class="fw-semibold">
+                                                    <a
+                                                        href="{% url 'view_handout' handout.id %}"
+                                                        class="text-decoration-none"
+                                                    >
+                                                        {{ handout.title }}
+                                                    </a>
+                                                </div>
+
+                                                <div class="small text-muted mt-1">
+                                                    {{ handout.get_category_display }}
+                                                    {% if handout.file %}
+                                                        · File attached
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+
+                                            <div class="d-flex gap-2 flex-wrap">
+                                                <a
+                                                    href="{% url 'view_handout' handout.id %}"
+                                                    class="btn btn-sm btn-outline-primary"
+                                                >
+                                                    View
+                                                </a>
+
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-outline-secondary"
+                                                    data-bs-toggle="collapse"
+                                                    data-bs-target="#editLessonHandout{{ handout.id }}"
+                                                    aria-expanded="false"
+                                                    aria-controls="editLessonHandout{{ handout.id }}"
+                                                >
+                                                    Edit
+                                                </button>
+
+                                                <form
+                                                    method="POST"
+                                                    action="{% url 'delete_teacher_lesson_handout' handout.id %}"
+                                                    class="d-inline"
+                                                    onsubmit="return confirm('Delete lesson handout &quot;{{ handout.title|escapejs }}&quot;? This cannot be undone.');"
+                                                >
+                                                    {% csrf_token %}
+
+                                                    <button
+                                                        type="submit"
+                                                        class="btn btn-sm btn-outline-danger"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            class="collapse mt-3"
+                                            id="editLessonHandout{{ handout.id }}"
+                                        >
+                                            <form
+                                                method="POST"
+                                                enctype="multipart/form-data"
+                                                action="{% url 'edit_teacher_lesson_handout' handout.id %}"
+                                                class="border rounded-3 p-3 bg-light"
+                                            >
+                                                {% csrf_token %}
+
+                                                <div class="mb-3">
+                                                    <label
+                                                        for="edit-lesson-handout-title-{{ handout.id }}"
+                                                        class="form-label fw-semibold"
+                                                    >
+                                                        Lesson Handout Title
+                                                    </label>
+
+                                                    <input
+                                                        type="text"
+                                                        id="edit-lesson-handout-title-{{ handout.id }}"
+                                                        name="title"
+                                                        class="form-control"
+                                                        maxlength="200"
+                                                        value="{{ handout.title }}"
+                                                        required
+                                                    >
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label
+                                                        for="edit-lesson-handout-category-{{ handout.id }}"
+                                                        class="form-label fw-semibold"
+                                                    >
+                                                        Resource Type
+                                                    </label>
+
+                                                    <select
+                                                        id="edit-lesson-handout-category-{{ handout.id }}"
+                                                        name="category"
+                                                        class="form-select"
+                                                        required
+                                                    >
+                                                        <option
+                                                            value="study_material"
+                                                            {% if handout.category == "study_material" %}selected{% endif %}
+                                                        >Study Material</option>
+
+                                                        <option
+                                                            value="practice_test"
+                                                            {% if handout.category == "practice_test" %}selected{% endif %}
+                                                        >Practice Test</option>
+
+                                                        <option
+                                                            value="question_paper"
+                                                            {% if handout.category == "question_paper" %}selected{% endif %}
+                                                        >Question Paper</option>
+
+                                                        <option
+                                                            value="worksheet"
+                                                            {% if handout.category == "worksheet" %}selected{% endif %}
+                                                        >Worksheet</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label
+                                                        for="edit-lesson-handout-file-{{ handout.id }}"
+                                                        class="form-label fw-semibold"
+                                                    >
+                                                        Replace File
+                                                    </label>
+
+                                                    <input
+                                                        type="file"
+                                                        id="edit-lesson-handout-file-{{ handout.id }}"
+                                                        name="file"
+                                                        class="form-control"
+                                                        accept=".pdf,.doc,.docx,.ppt,.pptx"
+                                                    >
+
+                                                    <div class="form-text">
+                                                        Leave empty to retain the existing file.
+                                                        PDF, DOC, DOCX, PPT and PPTX; maximum 20 MB.
+                                                    </div>
+                                                </div>
+
+                                                <div class="d-flex gap-2 flex-wrap">
+                                                    <button
+                                                        type="submit"
+                                                        class="btn btn-primary btn-sm"
+                                                    >
+                                                        Save Changes
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-outline-secondary btn-sm"
+                                                        data-bs-toggle="collapse"
+                                                        data-bs-target="#editLessonHandout{{ handout.id }}"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                {% empty %}
+                                    <div class="assignment-row">
+                                        No lesson handouts added yet.
+                                    </div>
+                                {% endfor %}
                             </div>
 
                             <div
