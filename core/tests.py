@@ -1,16 +1,22 @@
+import hashlib
+import hmac
+import json
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import RequestFactory, SimpleTestCase
+from django.test import RequestFactory, SimpleTestCase, override_settings
 
 from core.models import Handout
 from core.views import (
     HANDOUT_MAX_FILE_SIZE,
     _handout_upload_error,
+    _mark_payment_refunded_if_fully_refunded,
     add_teacher_lesson_handout,
     edit_teacher_lesson_handout,
     delete_teacher_lesson_handout,
+    payment_success,
+    razorpay_webhook,
 )
 
 
@@ -320,3 +326,361 @@ class LessonHandoutWorkflowTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, 403)
         handout.delete.assert_not_called()
+
+
+
+class RazorpayWebhookPaymentStateTests(SimpleTestCase):
+    """Guard successful payment states against delayed failure events."""
+
+    def test_delayed_failed_event_does_not_downgrade_captured_or_refunded(self):
+        secret = "test-webhook-secret"
+
+        payload = {
+            "event": "payment.failed",
+            "payload": {
+                "payment": {
+                    "entity": {
+                        "id": "pay_test_delayed_failure",
+                        "order_id": "order_test_delayed_failure",
+                        "amount": 15000,
+                        "currency": "INR",
+                    }
+                }
+            },
+        }
+
+        body = json.dumps(payload).encode("utf-8")
+        signature = hmac.new(
+            secret.encode("utf-8"),
+            body,
+            hashlib.sha256,
+        ).hexdigest()
+
+        for initial_status in ("captured", "refunded"):
+            with self.subTest(initial_status=initial_status):
+                payment_transaction = SimpleNamespace(
+                    pk=123,
+                    status=initial_status,
+                    amount=15000,
+                    currency="INR",
+                    save=Mock(),
+                )
+
+                duplicate_events = Mock()
+                duplicate_events.exists.return_value = False
+
+                order_transactions = Mock()
+                order_transactions.first.return_value = payment_transaction
+
+                def filter_side_effect(**kwargs):
+                    if "razorpay_event_id" in kwargs:
+                        return duplicate_events
+                    if "razorpay_order_id" in kwargs:
+                        return order_transactions
+                    self.fail(f"Unexpected transaction filter: {kwargs}")
+
+                locking_queryset = Mock()
+                locking_queryset.get.return_value = payment_transaction
+
+                request = RequestFactory().generic(
+                    "POST",
+                    "/webhook/",
+                    data=body,
+                    content_type="application/json",
+                    HTTP_X_RAZORPAY_SIGNATURE=signature,
+                    HTTP_X_RAZORPAY_EVENT_ID=(
+                        f"evt_delayed_failure_{initial_status}"
+                    ),
+                )
+
+                with (
+                    override_settings(
+                        RAZORPAY_WEBHOOK_SECRET=secret
+                    ),
+                    patch(
+                        "core.views.PaymentTransaction.objects.filter",
+                        side_effect=filter_side_effect,
+                    ),
+                    patch(
+                        "core.views.PaymentTransaction.objects.select_for_update",
+                        return_value=locking_queryset,
+                    ),
+                    patch("core.views.transaction.atomic"),
+                ):
+                    response = razorpay_webhook(request)
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(
+                    payment_transaction.status,
+                    initial_status,
+                )
+                payment_transaction.save.assert_not_called()
+
+class FullRefundStateTests(SimpleTestCase):
+    """Test when a payment should be marked fully refunded."""
+
+    def make_payment_transaction(
+        self, status, amount, processed_refund_amounts
+    ):
+        processed_total = sum(processed_refund_amounts)
+
+        refunds = Mock()
+        processed_refunds = Mock()
+        processed_refunds.aggregate.return_value = {
+            "total": processed_total
+        }
+        refunds.filter.return_value = processed_refunds
+
+        return SimpleNamespace(
+            status=status,
+            amount=amount,
+            refunds=refunds,
+            save=Mock(),
+        )
+
+    def test_partial_refund_does_not_mark_payment_refunded(self):
+        payment = self.make_payment_transaction(
+            status="captured",
+            amount=10000,
+            processed_refund_amounts=[4000],
+        )
+
+        _mark_payment_refunded_if_fully_refunded(payment)
+
+        self.assertEqual(payment.status, "captured")
+        payment.save.assert_not_called()
+
+    def test_full_refund_marks_payment_refunded(self):
+        payment = self.make_payment_transaction(
+            status="captured",
+            amount=10000,
+            processed_refund_amounts=[10000],
+        )
+
+        _mark_payment_refunded_if_fully_refunded(payment)
+
+        self.assertEqual(payment.status, "refunded")
+        payment.save.assert_called_once_with(
+            update_fields=["status"]
+        )
+
+    def test_multiple_processed_refunds_can_complete_full_refund(self):
+        payment = self.make_payment_transaction(
+            status="captured",
+            amount=10000,
+            processed_refund_amounts=[2500, 3500, 4000],
+        )
+
+        _mark_payment_refunded_if_fully_refunded(payment)
+
+        self.assertEqual(payment.status, "refunded")
+        payment.save.assert_called_once_with(
+            update_fields=["status"]
+        )
+
+    def test_already_refunded_payment_is_not_saved_again(self):
+        payment = self.make_payment_transaction(
+            status="refunded",
+            amount=10000,
+            processed_refund_amounts=[10000],
+        )
+
+        _mark_payment_refunded_if_fully_refunded(payment)
+
+        self.assertEqual(payment.status, "refunded")
+        payment.save.assert_not_called()
+        payment.refunds.filter.assert_not_called()
+
+class RazorpayCapturedWebhookRefundGuardTests(SimpleTestCase):
+    """Ensure a captured webhook cannot undo a full refund."""
+
+    def test_captured_event_does_not_downgrade_refunded_payment(self):
+        secret = "test-webhook-secret"
+        event_id = "evt_captured_after_refund"
+        order_id = "order_test_captured_after_refund"
+
+        payload = {
+            "event": "payment.captured",
+            "payload": {
+                "payment": {
+                    "entity": {
+                        "id": "pay_test_captured_after_refund",
+                        "order_id": order_id,
+                        "amount": 15000,
+                        "currency": "INR",
+                        "notes": {
+                            "course_id": "7",
+                            "user_id": "42",
+                        },
+                    }
+                }
+            },
+        }
+
+        body = json.dumps(payload).encode("utf-8")
+        signature = hmac.new(
+            secret.encode("utf-8"),
+            body,
+            hashlib.sha256,
+        ).hexdigest()
+
+        request = RequestFactory().generic(
+            "POST",
+            "/webhook/",
+            data=body,
+            content_type="application/json",
+            HTTP_X_RAZORPAY_SIGNATURE=signature,
+            HTTP_X_RAZORPAY_EVENT_ID=event_id,
+        )
+
+        payment_transaction = SimpleNamespace(
+            pk=987,
+            status="refunded",
+            student_id=42,
+            course_id=7,
+            amount=15000,
+            currency="INR",
+            student=SimpleNamespace(username="teststudent"),
+            course=SimpleNamespace(id=7),
+            save=Mock(),
+        )
+
+        duplicate_events = Mock()
+        duplicate_events.exists.return_value = False
+
+        def filter_side_effect(**kwargs):
+            if kwargs == {"razorpay_event_id": event_id}:
+                return duplicate_events
+            self.fail(f"Unexpected transaction filter: {kwargs}")
+
+        transaction_lookup = Mock()
+        transaction_lookup.filter.return_value.first.return_value = (
+            payment_transaction
+        )
+
+        locking_queryset = Mock()
+        locking_queryset.get.return_value = payment_transaction
+
+        razorpay_client = Mock()
+        razorpay_client.order.fetch.return_value = {
+            "amount": 15000,
+            "currency": "INR",
+            "notes": {
+                "course_id": "7",
+                "user_id": "42",
+            },
+        }
+
+        with (
+            override_settings(
+                RAZORPAY_WEBHOOK_SECRET=secret,
+                RAZORPAY_KEY="test-key",
+                RAZORPAY_SECRET="test-secret",
+            ),
+            patch(
+                "core.views.PaymentTransaction.objects.filter",
+                side_effect=filter_side_effect,
+            ),
+            patch(
+                "core.views.PaymentTransaction.objects.select_related",
+                return_value=transaction_lookup,
+            ),
+            patch(
+                "core.views.PaymentTransaction.objects.select_for_update",
+                return_value=locking_queryset,
+            ),
+            patch(
+                "core.views.razorpay.Client",
+                return_value=razorpay_client,
+            ),
+            patch("core.views.transaction.atomic"),
+            patch(
+                "core.views.Enrollment.objects.get_or_create"
+            ) as enrollment_get_or_create,
+        ):
+            response = razorpay_webhook(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payment_transaction.status, "refunded")
+        payment_transaction.save.assert_not_called()
+        enrollment_get_or_create.assert_not_called()
+        locking_queryset.get.assert_called_once_with(pk=987)
+
+class PaymentSuccessRefundGuardTests(SimpleTestCase):
+    """Ensure browser confirmation cannot undo a full refund."""
+
+    def test_late_confirmation_does_not_downgrade_refunded_payment(self):
+        course = SimpleNamespace(
+            id=7,
+            price=150,
+        )
+
+        payment_transaction = SimpleNamespace(
+            pk=456,
+            status="refunded",
+            amount=15000,
+            save=Mock(),
+        )
+
+        user = SimpleNamespace(
+            id=42,
+            is_authenticated=True,
+        )
+
+        request = RequestFactory().post(
+            "/payment-success/7/",
+            {
+                "razorpay_payment_id": "pay_test_refunded",
+                "razorpay_order_id": "order_test_refunded",
+                "razorpay_signature": "test-signature",
+            },
+        )
+        request.user = user
+
+        client = Mock()
+        client.order.fetch.return_value = {
+            "amount": 15000,
+            "notes": {
+                "course_id": "7",
+                "user_id": "42",
+            },
+        }
+        client.payment.fetch.return_value = {
+            "order_id": "order_test_refunded",
+            "status": "captured",
+        }
+
+        locking_queryset = Mock()
+        locking_queryset.get.return_value = payment_transaction
+
+        with (
+            override_settings(
+                RAZORPAY_KEY="test-key",
+                RAZORPAY_SECRET="test-secret",
+            ),
+            patch(
+                "core.views.get_object_or_404",
+                side_effect=[course, payment_transaction],
+            ),
+            patch(
+                "core.views.razorpay.Client",
+                return_value=client,
+            ),
+            patch(
+                "core.views.PaymentTransaction.objects.select_for_update",
+                return_value=locking_queryset,
+            ),
+            patch("core.views.transaction.atomic"),
+            patch(
+                "core.views.Enrollment.objects.get_or_create"
+            ) as enrollment_get_or_create,
+            patch("core.views.messages.error") as message_error,
+        ):
+            response = payment_success(request, 7)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(payment_transaction.status, "refunded")
+        payment_transaction.save.assert_not_called()
+        enrollment_get_or_create.assert_not_called()
+        message_error.assert_called_once()
+        locking_queryset.get.assert_called_once_with(pk=456)

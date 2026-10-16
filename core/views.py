@@ -827,31 +827,43 @@ def payment_success(request, course_id):
         return redirect("dashboard")
 
 
-    payment_transaction.razorpay_payment_id = (
-        razorpay_payment_id
-    )
-
-    payment_transaction.status = "captured"
-
-    payment_transaction.captured_at = timezone.now()
-
-    payment_transaction.save(
-        update_fields=[
-            "razorpay_payment_id",
-            "status",
-            "captured_at",
-        ]
-    )
-
-
-    # ---------------------------------------------------------
-    # PAYMENT VERIFIED
+    # UPDATE PAYMENT + ENROLLMENT ATOMICALLY
     # ---------------------------------------------------------
 
-    Enrollment.objects.get_or_create(
-        student=request.user,
-        course=course
-    )
+    with transaction.atomic():
+        payment_transaction = (
+            PaymentTransaction.objects
+            .select_for_update()
+            .get(pk=payment_transaction.pk)
+        )
+
+        # Never downgrade a fully refunded payment.
+        if payment_transaction.status == "refunded":
+            messages.error(
+                request,
+                "This payment has already been refunded. "
+                "Please contact support if you need assistance."
+            )
+            return redirect("dashboard")
+
+        payment_transaction.razorpay_payment_id = (
+            razorpay_payment_id
+        )
+        payment_transaction.status = "captured"
+        payment_transaction.captured_at = timezone.now()
+
+        payment_transaction.save(
+            update_fields=[
+                "razorpay_payment_id",
+                "status",
+                "captured_at",
+            ]
+        )
+
+        Enrollment.objects.get_or_create(
+            student=request.user,
+            course=course,
+        )
 
     messages.success(
         request,
@@ -5029,6 +5041,27 @@ def view_submissions(request, assignment_id):
         }
     )
 
+def _mark_payment_refunded_if_fully_refunded(payment_transaction):
+    """
+    Mark a payment as refunded only when processed refunds
+    total at least the original transaction amount.
+    """
+
+    if payment_transaction.status == "refunded":
+        return
+
+    processed_refund_total = (
+        payment_transaction.refunds
+        .filter(status="processed")
+        .aggregate(total=Sum("amount"))["total"]
+        or 0
+    )
+
+    if processed_refund_total >= payment_transaction.amount:
+        payment_transaction.status = "refunded"
+        payment_transaction.save(
+            update_fields=["status"]
+        )
 
 @csrf_exempt
 def razorpay_webhook(request):
@@ -5306,14 +5339,26 @@ def razorpay_webhook(request):
 
             with transaction.atomic():
 
-                payment_transaction.razorpay_payment_id = (
-                    payment_id
+                payment_transaction = (
+                    PaymentTransaction.objects
+                    .select_for_update()
+                    .get(pk=payment_transaction.pk)
                 )
 
-                payment_transaction.razorpay_event_id = (
-                    webhook_event_id
-                )
+                # A delayed failure event must not downgrade a
+                # payment that has already been captured or refunded.
+                if payment_transaction.status in {"captured", "refunded"}:
+                    logger.info(
+                        "Ignoring delayed failed-payment webhook: "
+                        "order_id=%s status=%s event_id=%s",
+                        order_id,
+                        payment_transaction.status,
+                        webhook_event_id,
+                    )
+                    return HttpResponse("OK", status=200)
 
+                payment_transaction.razorpay_payment_id = payment_id
+                payment_transaction.razorpay_event_id = webhook_event_id
                 payment_transaction.status = "failed"
 
                 payment_transaction.save(
@@ -5635,6 +5680,24 @@ def razorpay_webhook(request):
 
             with transaction.atomic():
 
+                # Lock and refresh the payment transaction.
+                payment_transaction = (
+                    PaymentTransaction.objects
+                    .select_for_update()
+                    .get(pk=payment_transaction.pk)
+                )
+
+                # Do not overwrite a fully refunded payment.
+                if payment_transaction.status == "refunded":
+                    logger.info(
+                        "Ignoring captured-payment webhook for "
+                        "fully refunded payment: order_id=%s "
+                        "event_id=%s",
+                        order_id,
+                        webhook_event_id,
+                    )
+                    return HttpResponse("OK", status=200)
+
                 payment_transaction.razorpay_payment_id = (
                     payment_id
                 )
@@ -5909,6 +5972,21 @@ def razorpay_webhook(request):
 
             with transaction.atomic():
 
+                # Serialize refund updates for this payment.
+                payment_transaction = (
+                    PaymentTransaction.objects
+                    .select_for_update()
+                    .get(pk=payment_transaction.pk)
+                )
+
+                # Refresh the refund record after acquiring the lock.
+                existing_refund = (
+                    Refund.objects
+                    .select_for_update()
+                    .filter(razorpay_refund_id=refund_id)
+                    .first()
+                )
+
                 if existing_refund is None:
 
                     refund_record = Refund.objects.create(
@@ -6013,6 +6091,10 @@ def razorpay_webhook(request):
                         refund_record.save(
                             update_fields=fields_to_update
                         )
+
+                _mark_payment_refunded_if_fully_refunded(
+                    payment_transaction
+                )
 
         except Exception:
 
