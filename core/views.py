@@ -591,6 +591,25 @@ def create_live_class(request):
         }
     )
 
+
+@login_required
+def teacher_live_classes(request):
+    if request.user.user_type != "teacher":
+        return redirect("dashboard")
+
+    live_classes = (
+        LiveClass.objects
+        .filter(course__teacher=request.user)
+        .select_related("course")
+        .order_by("-date")
+    )
+
+    return render(
+        request,
+        "teacher_live_classes.html",
+        {"live_classes": live_classes},
+    )
+
 import razorpay
 from django.conf import settings
 from .models import (Course,Enrollment,PaymentTransaction,Refund,)
@@ -8733,7 +8752,7 @@ def start_class(request, class_id):
         cls.id,
     )
 
-    return redirect("dashboard")
+    return redirect("join_live_class", class_id=cls.id)
 
 
 @login_required

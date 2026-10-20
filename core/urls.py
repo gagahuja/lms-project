@@ -17,6 +17,11 @@ urlpatterns = [
     path('signup/', views.signup_view, name='signup'),
     path('create-course/', views.create_course, name='create_course'),
     path('create-live-class/', views.create_live_class, name='create_live_class'),
+    path(
+        "teacher/live-classes/",
+        views.teacher_live_classes,
+        name="teacher_live_classes",
+    ),
     path('buy/<int:course_id>/', views.buy_course, name='buy_course'),
     path('payment-success/<int:course_id>/', views.payment_success),
     path('course/<int:course_id>/', views.course_detail, name='course_detail'),
