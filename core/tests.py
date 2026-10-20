@@ -10,6 +10,7 @@ from django.test import RequestFactory, SimpleTestCase, override_settings
 from core.models import Handout
 from core.views import (
     HANDOUT_MAX_FILE_SIZE,
+    _check_refund_total_and_alert,
     _handout_upload_error,
     _mark_payment_refunded_if_fully_refunded,
     add_teacher_lesson_handout,
@@ -684,3 +685,132 @@ class PaymentSuccessRefundGuardTests(SimpleTestCase):
         enrollment_get_or_create.assert_not_called()
         message_error.assert_called_once()
         locking_queryset.get.assert_called_once_with(pk=456)
+
+
+class RefundOverageAlertTests(SimpleTestCase):
+    """Test the refund total alert without database access."""
+
+    def make_test_objects(self, current_amount, current_status,
+                          other_refund_total, original_amount=10000):
+        current_refund = SimpleNamespace(
+            pk=2,
+            amount=current_amount,
+            status=current_status,
+        )
+
+        refunds = Mock()
+        refunds.exclude.return_value.filter.return_value.aggregate.return_value = {
+            "total": other_refund_total
+        }
+
+        payment = SimpleNamespace(
+            amount=original_amount,
+            refunds=refunds,
+            razorpay_payment_id="pay_test_123",
+            currency="INR",
+        )
+
+        return payment, current_refund
+
+    def test_alerts_when_refunds_exceed_original_payment(self):
+        payment, refund = self.make_test_objects(
+            current_amount=6000,
+            current_status="processed",
+            other_refund_total=5000,
+        )
+
+        with patch("core.views.logger.critical") as critical:
+            total = _check_refund_total_and_alert(payment, refund)
+
+        self.assertEqual(total, 11000)
+        critical.assert_called_once()
+
+    def test_no_alert_when_refunds_are_within_payment_amount(self):
+        payment, refund = self.make_test_objects(
+            current_amount=4000,
+            current_status="processed",
+            other_refund_total=5000,
+        )
+
+        with patch("core.views.logger.critical") as critical:
+            total = _check_refund_total_and_alert(payment, refund)
+
+        self.assertEqual(total, 9000)
+        critical.assert_not_called()
+
+    def test_failed_refund_is_not_counted(self):
+        payment, refund = self.make_test_objects(
+            current_amount=7000,
+            current_status="failed",
+            other_refund_total=5000,
+        )
+
+        with patch("core.views.logger.critical") as critical:
+            total = _check_refund_total_and_alert(payment, refund)
+
+        self.assertEqual(total, 5000)
+        critical.assert_not_called()
+
+
+class RazorpayInvalidRefundAmountTests(SimpleTestCase):
+    """Reject invalid refund amounts before recording a refund."""
+
+    def test_invalid_refund_amounts_are_rejected(self):
+        secret = "test-webhook-secret"
+        invalid_amounts = [0, -100, 12.5, "100", True, False]
+
+        for amount in invalid_amounts:
+            with self.subTest(amount=amount):
+                payload = {
+                    "event": "refund.processed",
+                    "payload": {
+                        "refund": {
+                            "entity": {
+                                "id": "rfnd_test_invalid_amount",
+                                "payment_id": "pay_test_invalid_amount",
+                                "amount": amount,
+                                "currency": "INR",
+                            }
+                        }
+                    },
+                }
+
+                body = json.dumps(payload).encode("utf-8")
+                signature = hmac.new(
+                    secret.encode("utf-8"),
+                    body,
+                    hashlib.sha256,
+                ).hexdigest()
+
+                request = RequestFactory().generic(
+                    "POST",
+                    "/webhook/",
+                    data=body,
+                    content_type="application/json",
+                    HTTP_X_RAZORPAY_SIGNATURE=signature,
+                    HTTP_X_RAZORPAY_EVENT_ID=(
+                        f"evt_invalid_amount_{type(amount).__name__}_{invalid_amounts.index(amount)}"
+                    ),
+                )
+
+                with (
+                    override_settings(
+                        RAZORPAY_WEBHOOK_SECRET=secret
+                    ),
+                    patch(
+                        "core.views.PaymentTransaction.objects.filter"
+                    ) as transaction_filter,
+                    patch(
+                        "core.views.Refund.objects.filter"
+                    ) as refund_filter,
+                    patch(
+                        "core.views.Refund.objects.create"
+                    ) as refund_create,
+                ):
+                    refund_filter.return_value.exists.return_value = False
+
+                    response = razorpay_webhook(request)
+
+                self.assertEqual(response.status_code, 400)
+                transaction_filter.assert_not_called()
+                refund_create.assert_not_called()

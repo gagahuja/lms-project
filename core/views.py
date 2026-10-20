@@ -5063,6 +5063,41 @@ def _mark_payment_refunded_if_fully_refunded(payment_transaction):
             update_fields=["status"]
         )
 
+
+def _check_refund_total_and_alert(payment_transaction, current_refund):
+    """
+    Alert if active and processed refunds exceed the original payment.
+    Keep the refund record; this function only checks and reports.
+    """
+    other_refunds_total = (
+        payment_transaction.refunds
+        .exclude(pk=current_refund.pk)
+        .filter(status__in=["created", "processed"])
+        .aggregate(total=Sum("amount"))["total"]
+        or 0
+    )
+
+    current_refund_amount = (
+        current_refund.amount
+        if current_refund.status in ["created", "processed"]
+        else 0
+    )
+
+    total_refunds = other_refunds_total + current_refund_amount
+
+    if total_refunds > payment_transaction.amount:
+        logger.critical(
+            "REFUND OVERAGE ALERT: payment_id=%s, "
+            "original_amount=%s, total_active_refunds=%s, "
+            "currency=%s",
+            payment_transaction.razorpay_payment_id,
+            payment_transaction.amount,
+            total_refunds,
+            payment_transaction.currency,
+        )
+
+    return total_refunds
+
 @csrf_exempt
 def razorpay_webhook(request):
 
@@ -5798,6 +5833,15 @@ def razorpay_webhook(request):
                     "Missing refund amount."
                 )
 
+            if (
+                isinstance(refund_amount, bool)
+                or not isinstance(refund_amount, int)
+                or refund_amount <= 0
+            ):
+                raise ValueError(
+                    "Refund amount must be a positive integer."
+                )
+
             if not refund_currency:
                 raise ValueError(
                     "Missing refund currency."
@@ -6087,13 +6131,17 @@ def razorpay_webhook(request):
                         )
 
                     if fields_to_update:
-
                         refund_record.save(
                             update_fields=fields_to_update
                         )
 
                 _mark_payment_refunded_if_fully_refunded(
                     payment_transaction
+                )
+
+                _check_refund_total_and_alert(
+                    payment_transaction,
+                    refund_record,
                 )
 
         except Exception:
