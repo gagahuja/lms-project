@@ -12,7 +12,7 @@
     </div>
 
     {% for cls in live_classes %}
-        <div class="card mb-3">
+        <div class="card mb-3" data-live-class-id="{{ cls.id }}">
             <div class="card-body">
                 <h5>{{ cls.title }}</h5>
                 <p class="mb-1">Course: {{ cls.course.title }}</p>
@@ -31,8 +31,9 @@
                 <div class="mt-3">
                     {% if not cls.is_live and not cls.is_completed %}
                         <form method="post"
-                              action="{% url 'start_class' cls.id %}"
-                              class="d-inline">
+                            action="{% url 'start_class' cls.id %}"
+                            class="d-inline"
+                            target="_blank">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-success">
                                 Start Class
@@ -42,8 +43,10 @@
 
                     {% if not cls.is_completed %}
                         <a href="{% url 'join_live_class' cls.id %}"
-                           class="btn btn-outline-primary">
-                            Join Google Meet
+                        class="btn btn-outline-primary"
+                        target="_blank"
+                        rel="noopener noreferrer">
+                            Join Meeting
                         </a>
                     {% endif %}
 

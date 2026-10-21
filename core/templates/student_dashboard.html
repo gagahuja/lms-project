@@ -1383,7 +1383,7 @@
 
         <!-- NEXT CLASS -->
 
-        <div class="info-card">
+        <div class="info-card" {% if next_class %}data-live-class-id="{{ next_class.id }}"{% endif %}>
 
             <h3>
                 🔴 Next Live Class
@@ -1409,7 +1409,9 @@
 
                     <a
                         href="{% url 'join_live_class' next_class.id %}"
-                        class="course-btn course-btn-primary">
+                        class="course-btn course-btn-primary"
+                        target="_blank"
+                        rel="noopener noreferrer">
 
                         🎥 Join Class
 

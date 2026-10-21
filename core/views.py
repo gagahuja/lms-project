@@ -1,5 +1,9 @@
 from django.shortcuts import render, redirect
-from django.http import (HttpResponse, FileResponse,)
+from django.http import (
+    HttpResponse,
+    FileResponse,
+    JsonResponse,
+)
 from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.http import require_POST
 from .models import User
@@ -44,6 +48,7 @@ from django.db.models import Avg, Max, Min, Count, Sum, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.db.models.functions import TruncMonth
 from collections import defaultdict
+from urllib.parse import urlparse
 from .services.leaderboard_service import get_student_leaderboard
 from core.services.xp_service import add_xp
 from core.services.streak_service import update_streak
@@ -478,8 +483,8 @@ def create_live_class(request):
         )
 
         meeting_link = request.POST.get(
-            "meeting_link"
-        )
+            "meeting_link", ""
+        ).strip()
 
         whiteboard = request.POST.get(
             "whiteboard"
@@ -495,15 +500,36 @@ def create_live_class(request):
             date,
             meeting_link,
         ]):
-
             messages.error(
                 request,
                 "Please fill all required fields."
             )
+            return redirect("create_live_class")
 
-            return redirect(
-                "create_live_class"
+        # Validate supported meeting providers
+        parsed_link = urlparse(meeting_link)
+        host = (parsed_link.hostname or "").lower()
+
+        is_google_meet = host == "meet.google.com"
+
+        is_zoom = (
+            host == "zoom.us"
+            or host.endswith(".zoom.us")
+            or host == "zoom.com"
+            or host.endswith(".zoom.com")
+        )
+
+        if (
+            parsed_link.scheme != "https"
+            or not (is_google_meet or is_zoom)
+            or parsed_link.username
+            or parsed_link.password
+        ):
+            messages.error(
+                request,
+                "Please enter a valid HTTPS Google Meet or Zoom meeting link."
             )
+            return redirect("create_live_class")
 
         # -----------------------------------------------------
         # COURSE OWNERSHIP VALIDATION
@@ -597,9 +623,18 @@ def teacher_live_classes(request):
     if request.user.user_type != "teacher":
         return redirect("dashboard")
 
+    thirty_minutes_ago = timezone.now() - timedelta(minutes=30)
+
     live_classes = (
         LiveClass.objects
         .filter(course__teacher=request.user)
+        .filter(
+            Q(is_completed=False)
+            | Q(
+                is_completed=True,
+                completed_at__gte=thirty_minutes_ago,
+            )
+        )
         .select_related("course")
         .order_by("-date")
     )
@@ -609,6 +644,44 @@ def teacher_live_classes(request):
         "teacher_live_classes.html",
         {"live_classes": live_classes},
     )
+
+
+@login_required
+def live_class_visibility(request):
+    cutoff = timezone.now() - timedelta(minutes=30)
+
+    if request.user.user_type == "teacher":
+        visible_classes = LiveClass.objects.filter(
+            course__teacher=request.user
+        )
+
+    elif request.user.user_type == "student":
+        enrolled_course_ids = Enrollment.objects.filter(
+            student=request.user
+        ).values_list("course_id", flat=True)
+
+        visible_classes = LiveClass.objects.filter(
+            course_id__in=enrolled_course_ids
+        )
+
+    else:
+        visible_classes = LiveClass.objects.none()
+
+    visible_classes = visible_classes.filter(
+        Q(is_completed=False)
+        | Q(
+            is_completed=True,
+            completed_at__gte=cutoff,
+        )
+    )
+
+    response = JsonResponse({
+        "visible_class_ids": list(
+            visible_classes.values_list("id", flat=True)
+        )
+    })
+    response["Cache-Control"] = "private, no-store"
+    return response
 
 import razorpay
 from django.conf import settings
@@ -8730,6 +8803,17 @@ def start_class(request, class_id):
         return HttpResponse(
             "You are not authorized to start this class.",
             status=403
+        )
+
+    # ---------------------------------------------------------
+    # VERIFY MEETING LINK BEFORE STARTING
+    # ---------------------------------------------------------
+
+    if not cls.meeting_link:
+        return HttpResponse(
+            "This class has no Google Meet or Zoom link. "
+            "Please add a meeting link before starting the class.",
+            status=400,
         )
 
     # ---------------------------------------------------------

@@ -833,5 +833,71 @@ document.addEventListener("click", function enableSound() {
 <!-- Bootstrap JavaScript -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
+
+<script>
+(function () {
+    const selector = "[data-live-class-id]";
+
+    // Do nothing on pages without live-class entries.
+    if (!document.querySelector(selector)) {
+        return;
+    }
+
+    const visibilityUrl = "{% url 'live_class_visibility' %}";
+    let checkInProgress = false;
+
+    async function checkLiveClassVisibility() {
+        if (checkInProgress) {
+            return;
+        }
+
+        checkInProgress = true;
+
+        try {
+            const response = await fetch(visibilityUrl, {
+                method: "GET",
+                credentials: "same-origin",
+                cache: "no-store",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            });
+
+            if (!response.ok) {
+                return;
+            }
+
+            const data = await response.json();
+
+            if (!Array.isArray(data.visible_class_ids)) {
+                return;
+            }
+
+            const visibleIds = new Set(
+                data.visible_class_ids.map(String)
+            );
+
+            document.querySelectorAll(selector).forEach(function (element) {
+                const classId = element.getAttribute("data-live-class-id");
+
+                if (classId && !visibleIds.has(classId)) {
+                    element.remove();
+                }
+            });
+        } catch (error) {
+            // Keep existing entries visible if the request fails.
+            // The next check will retry.
+        } finally {
+            checkInProgress = false;
+        }
+    }
+
+    // Check immediately, then every 15 seconds.
+    checkLiveClassVisibility();
+    window.setInterval(checkLiveClassVisibility, 15000);
+})();
+</script>
+
+
 </body>
 </html>

@@ -113,18 +113,23 @@ def build_teacher_dashboard(user):
         )
     )
 
+    now = timezone.now()
+    thirty_minutes_ago = now - timedelta(minutes=30)
+
     live_classes = (
-        LiveClass.objects.filter(
-            course__in=courses,
-            is_completed=False,
-        )
+        LiveClass.objects
+        .filter(course__in=courses)
         .filter(
-            Q(
-                date__gte=timezone.now()
+            (
+                Q(is_completed=False)
+                & (
+                    Q(date__gte=now)
+                    | Q(is_live=True)
+                )
             )
-            |
-            Q(
-                is_live=True
+            | Q(
+                is_completed=True,
+                completed_at__gte=thirty_minutes_ago,
             )
         )
         .annotate(
@@ -781,19 +786,20 @@ def build_student_dashboard(user):
         LiveClass.objects
         .filter(
             course__in=enrolled_courses,
-            is_live=True
+            is_live=True,
+            is_completed=False,
         )
         .order_by("date")
         .first()
     )
 
     if not next_class:
-
         next_class = (
             LiveClass.objects
             .filter(
                 course__in=enrolled_courses,
-                date__gte=now
+                date__gte=now,
+                is_completed=False,
             )
             .order_by("date")
             .first()
@@ -804,18 +810,18 @@ def build_student_dashboard(user):
     # LIVE CLASSES
     # =========================================================
 
-    thirty_minutes_ago = (
-        now - timedelta(minutes=30)
-    )
+    now = timezone.now()
+    thirty_minutes_ago = now - timedelta(minutes=30)
 
     live_classes = (
         LiveClass.objects
+        .filter(course__in=enrolled_courses)
         .filter(
-            course__in=enrolled_courses
-        )
-        .exclude(
-            is_completed=True,
-            completed_at__lt=thirty_minutes_ago
+            Q(is_completed=False)
+            | Q(
+                is_completed=True,
+                completed_at__gte=thirty_minutes_ago,
+            )
         )
         .order_by("date")
     )
