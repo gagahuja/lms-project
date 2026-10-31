@@ -50,4 +50,5 @@ EXPOSE 10000
 # START SCORE SKILL
 # ---------------------------------------------------------
 
-CMD ["sh", "-c", "uvicorn config.asgi:application --host 0.0.0.0 --port ${PORT:-10000}"]
+
+CMD ["sh", "-c", "python manage.py migrate --noinput && exec uvicorn config.asgi:application --host 0.0.0.0 --port ${PORT:-10000}"]
