@@ -58,6 +58,79 @@ class Enrollment(models.Model):
         return f"{self.student.username} - {self.course.title}"
 
 
+
+class CourseGroup(models.Model):
+    """
+    A teacher-created group or batch within a course.
+    """
+
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="groups",
+    )
+
+    name = models.CharField(max_length=120)
+
+    description = models.TextField(
+        blank=True,
+        default="",
+    )
+
+    is_active = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["course", "name"],
+                name="unique_course_group_name",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.course.title} - {self.name}"
+
+
+class CourseGroupMembership(models.Model):
+    """
+    Connects students to course groups.
+    A student can belong to multiple groups.
+    """
+
+    group = models.ForeignKey(
+        CourseGroup,
+        on_delete=models.CASCADE,
+        related_name="memberships",
+    )
+
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="course_group_memberships",
+    )
+
+    is_active = models.BooleanField(default=True)
+
+    joined_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-joined_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["group", "student"],
+                name="unique_group_student_membership",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.student.username} - {self.group.name}"
+
+
 class PaymentTransaction(models.Model):
     STATUS_CHOICES = (
         ("created", "Created"),
@@ -189,6 +262,13 @@ class Refund(models.Model):
 class LiveClass(models.Model):
     title = models.CharField(max_length=200)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    group = models.ForeignKey(
+        CourseGroup,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="live_classes",
+    )
     date = models.DateTimeField()
 
     meeting_link = models.URLField(null=True, blank=True)

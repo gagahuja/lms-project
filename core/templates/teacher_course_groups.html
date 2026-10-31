@@ -1,0 +1,266 @@
+
+{% extends "base.html" %}
+{% block global_welcome %}{% endblock %}
+
+{% block content %}
+
+<div class="container py-4" style="max-width: 1150px;">
+
+    <div class="mb-3">
+        <a href="{% url 'teacher_course_manager' course.id %}"
+           class="btn btn-sm btn-outline-secondary">
+            ← Back to Course
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <div class="d-flex flex-wrap justify-content-between gap-3">
+                <div>
+                    <div class="small text-muted fw-semibold">
+                        GROUP MANAGEMENT
+                    </div>
+                    <h2 class="fw-bold mb-1">{{ course.title }}</h2>
+                    <p class="text-muted mb-0">
+                        Organise enrolled students into teaching batches.
+                    </p>
+                </div>
+                <span class="badge bg-primary align-self-start">
+                    {{ groups|length }} Groups
+                </span>
+            </div>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show">
+                {{ message }}
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- CREATE GROUP -->
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0">Create New Group</h5>
+        </div>
+
+        <div class="card-body">
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_group">
+
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label fw-semibold">
+                            Group Name
+                        </label>
+                        <input type="text"
+                               name="name"
+                               class="form-control"
+                               maxlength="120"
+                               placeholder="e.g. Morning Batch"
+                               required>
+                    </div>
+
+                    <div class="col-md-7">
+                        <label class="form-label fw-semibold">
+                            Description (Optional)
+                        </label>
+                        <input type="text"
+                               name="description"
+                               class="form-control"
+                               placeholder="e.g. Monday, Wednesday and Friday">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary mt-3">
+                    + Create Group
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- EXISTING GROUPS -->
+
+    <h4 class="fw-bold mb-3">Your Groups</h4>
+
+    {% for group in groups %}
+
+        <div class="card border-0 shadow-sm mb-4">
+
+            <div class="card-header bg-white p-3">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+
+                    <div>
+                        <h5 class="mb-1">{{ group.name }}</h5>
+
+                        {% if group.description %}
+                            <div class="small text-muted">
+                                {{ group.description }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    {% if group.is_active %}
+                        <span class="badge bg-success">Active</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Archived</span>
+                    {% endif %}
+
+                </div>
+            </div>
+
+            <div class="card-body">
+
+                <!-- GROUP MEMBERS -->
+
+                <h6 class="fw-semibold mb-3">Group Students</h6>
+
+                {% for membership in group.memberships.all %}
+
+                    <div class="d-flex flex-wrap justify-content-between align-items-center border rounded p-2 mb-2 gap-2">
+
+                        <div>
+                            <strong>
+                                {{ membership.student.get_full_name|default:membership.student.username }}
+                            </strong>
+
+                            <div class="small text-muted">
+                                {{ membership.student.email }}
+                            </div>
+                        </div>
+
+                        {% if membership.is_active %}
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-success">Active</span>
+
+                                {% if group.is_active %}
+                                    <form method="POST">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action"
+                                               value="remove_student">
+                                        <input type="hidden" name="membership_id"
+                                               value="{{ membership.id }}">
+
+                                        <button type="submit"
+                                                class="btn btn-sm btn-outline-danger"
+                                                onclick="return confirm('Remove this student from the group?');">
+                                            Remove
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+
+                    </div>
+
+                {% empty %}
+
+                    <div class="alert alert-light border">
+                        No students have been added to this group yet.
+                    </div>
+
+                {% endfor %}
+
+                <!-- ADD STUDENT -->
+
+                {% if group.is_active %}
+
+                    <div class="border rounded p-3 mt-3 bg-light">
+                        <h6 class="fw-semibold">Add Enrolled Student</h6>
+
+                        {% if enrolled_students %}
+
+                            <form method="POST">
+                                {% csrf_token %}
+
+                                <input type="hidden"
+                                       name="action"
+                                       value="add_student">
+
+                                <input type="hidden"
+                                       name="group_id"
+                                       value="{{ group.id }}">
+
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-md-9">
+                                        <label class="form-label">
+                                            Select Student
+                                        </label>
+
+                                        <select name="student_id"
+                                                class="form-select"
+                                                required>
+                                            <option value="">
+                                                Choose a student
+                                            </option>
+
+                                            {% for enrollment in enrolled_students %}
+                                                <option value="{{ enrollment.student.id }}">
+                                                    {{ enrollment.student.get_full_name|default:enrollment.student.username }}
+                                                    ({{ enrollment.student.email }})
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <button type="submit"
+                                                class="btn btn-primary w-100">
+                                            Add Student
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+
+                        {% else %}
+                            <p class="text-muted mb-0">
+                                No students are enrolled in this course yet.
+                            </p>
+                        {% endif %}
+                    </div>
+
+                    <!-- ARCHIVE GROUP -->
+
+                    <div class="text-end mt-3">
+                        <form method="POST">
+                            {% csrf_token %}
+                            <input type="hidden"
+                                   name="action"
+                                   value="archive_group">
+                            <input type="hidden"
+                                   name="group_id"
+                                   value="{{ group.id }}">
+
+                            <button type="submit"
+                                    class="btn btn-sm btn-outline-secondary"
+                                    onclick="return confirm('Archive this group? Its live-class history will be preserved.');">
+                                Archive Group
+                            </button>
+                        </form>
+                    </div>
+
+                {% endif %}
+
+            </div>
+        </div>
+
+    {% empty %}
+
+        <div class="alert alert-info">
+            No groups created yet. Create your first teaching batch above.
+        </div>
+
+    {% endfor %}
+
+</div>
+
+{% endblock %}

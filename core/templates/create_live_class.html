@@ -56,6 +56,36 @@
                 </select>
             </div>
 
+            <!-- Group / Batch Dropdown -->
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    Select Group / Batch (Optional)
+                </label>
+
+                <select
+                    name="group"
+                    id="liveClassGroup"
+                    class="form-control"
+                >
+                    <option value="">
+                        Course-wide Class (All Enrolled Students)
+                    </option>
+
+                    {% for group in groups %}
+                        <option
+                            value="{{ group.id }}"
+                            data-course-id="{{ group.course_id }}"
+                        >
+                            {{ group.course.title }} — {{ group.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <small class="text-muted">
+                    Leave this blank for a class available to all enrolled students.
+                </small>
+            </div>
+
             <!-- Date & Time -->
             <div class="mb-3">
                 <label class="form-label fw-semibold">
@@ -107,5 +137,52 @@
         </form>
     </div>
 </div>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const courseSelect = document.querySelector(
+        'select[name="course"]'
+    );
+
+    const groupSelect = document.getElementById(
+        "liveClassGroup"
+    );
+
+    if (!courseSelect || !groupSelect) return;
+
+    function filterGroups() {
+        const selectedCourseId = courseSelect.value;
+
+        Array.from(groupSelect.options).forEach(option => {
+            if (!option.dataset.courseId) {
+                option.hidden = false;
+                option.disabled = false;
+                return;
+            }
+
+            const matchesCourse =
+                selectedCourseId &&
+                option.dataset.courseId === selectedCourseId;
+
+            option.hidden = !matchesCourse;
+            option.disabled = !matchesCourse;
+        });
+
+        const selectedOption = groupSelect.selectedOptions[0];
+
+        if (
+            selectedOption &&
+            selectedOption.dataset.courseId &&
+            selectedOption.dataset.courseId !== selectedCourseId
+        ) {
+            groupSelect.value = "";
+        }
+    }
+
+    courseSelect.addEventListener("change", filterGroups);
+    filterGroups();
+});
+</script>
 
 {% endblock %}

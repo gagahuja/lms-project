@@ -8,6 +8,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.http import require_POST
 from .models import User
 from .models import Course
+from .models import CourseGroup, CourseGroupMembership
 from .models import Enrollment
 import io
 import hashlib
@@ -467,6 +468,11 @@ def create_live_class(request):
         teacher=request.user
     )
 
+    groups = CourseGroup.objects.filter(
+        course__teacher=request.user,
+        is_active=True
+    ).select_related("course")
+
     if request.method == "POST":
 
         title = request.POST.get(
@@ -477,6 +483,8 @@ def create_live_class(request):
         course_id = request.POST.get(
             "course"
         )
+
+        group_id = request.POST.get("group", "").strip()
 
         date = request.POST.get(
             "date"
@@ -540,6 +548,29 @@ def create_live_class(request):
             id=course_id,
         )
 
+        selected_group = None
+
+        if group_id:
+            if not group_id.isdecimal():
+                messages.error(
+                    request,
+                    "Invalid group selection."
+                )
+                return redirect("create_live_class")
+
+            selected_group = CourseGroup.objects.filter(
+                id=int(group_id),
+                course=course,
+                is_active=True,
+            ).first()
+
+            if selected_group is None:
+                messages.error(
+                    request,
+                    "Please select an active group belonging to this course."
+                )
+                return redirect("create_live_class")
+
         # -----------------------------------------------------
         # DATE VALIDATION
         # -----------------------------------------------------
@@ -580,6 +611,7 @@ def create_live_class(request):
             LiveClass.objects.create(
                 title=title,
                 course=course,
+                group=selected_group,
                 date=parsed_date,
                 meeting_link=meeting_link,
                 whiteboard_link=whiteboard,
@@ -613,7 +645,8 @@ def create_live_class(request):
         request,
         "create_live_class.html",
         {
-            "courses": courses
+            "courses": courses,
+            "groups": groups,
         }
     )
 
@@ -662,7 +695,14 @@ def live_class_visibility(request):
 
         visible_classes = LiveClass.objects.filter(
             course_id__in=enrolled_course_ids
-        )
+        ).filter(
+            Q(group__isnull=True)
+            | Q(
+                group__is_active=True,
+                group__memberships__student=request.user,
+                group__memberships__is_active=True,
+            )
+        ).distinct()
 
     else:
         visible_classes = LiveClass.objects.none()
@@ -4349,6 +4389,201 @@ def teacher_course_manager(request, course_id):
         request,
         "teacher_course_manager.html",
         context,
+    )
+
+
+
+@login_required
+def teacher_course_groups(request, course_id):
+    """
+    Manage groups and student memberships for a teacher-owned course.
+    Existing course enrollment is required before group membership.
+    """
+
+    if request.user.user_type != "teacher":
+        return HttpResponse("Only teachers can manage groups.", status=403)
+
+    course = get_object_or_404(
+        Course,
+        id=course_id,
+        teacher=request.user,
+    )
+
+    if request.method == "POST":
+        action = request.POST.get("action", "").strip()
+
+        # -------------------------------------------------
+        # CREATE GROUP
+        # -------------------------------------------------
+        if action == "create_group":
+            name = request.POST.get("name", "").strip()
+            description = request.POST.get("description", "").strip()
+
+            if not name:
+                messages.error(request, "Please enter a group name.")
+
+            elif CourseGroup.objects.filter(
+                course=course,
+                name__iexact=name,
+            ).exists():
+                messages.error(
+                    request,
+                    "A group with this name already exists in this course.",
+                )
+
+            else:
+                CourseGroup.objects.create(
+                    course=course,
+                    name=name,
+                    description=description,
+                )
+                messages.success(
+                    request,
+                    f"Group '{name}' created successfully.",
+                )
+
+        # -------------------------------------------------
+        # ADD STUDENT TO GROUP
+        # -------------------------------------------------
+        elif action == "add_student":
+            group_id = request.POST.get("group_id")
+            student_id = request.POST.get("student_id")
+
+            group = get_object_or_404(
+                CourseGroup,
+                id=group_id,
+                course=course,
+                is_active=True,
+            )
+
+            student = get_object_or_404(
+                User,
+                id=student_id,
+                user_type="student",
+            )
+
+            is_enrolled = Enrollment.objects.filter(
+                course=course,
+                student=student,
+            ).exists()
+
+            if not is_enrolled:
+                messages.error(
+                    request,
+                    "Only students enrolled in this course can join its groups.",
+                )
+            else:
+                membership, created = (
+                    CourseGroupMembership.objects.get_or_create(
+                        group=group,
+                        student=student,
+                        defaults={"is_active": True},
+                    )
+                )
+
+                if created:
+                    messages.success(
+                        request,
+                        f"{student.username} added to {group.name}.",
+                    )
+
+                elif not membership.is_active:
+                    membership.is_active = True
+                    membership.save(
+                        update_fields=["is_active", "updated_at"]
+                    )
+                    messages.success(
+                        request,
+                        f"{student.username} reactivated in {group.name}.",
+                    )
+
+                else:
+                    messages.info(
+                        request,
+                        "This student is already in the selected group.",
+                    )
+
+        # -------------------------------------------------
+        # REMOVE STUDENT FROM GROUP
+        # -------------------------------------------------
+        elif action == "remove_student":
+            membership = get_object_or_404(
+                CourseGroupMembership.objects.select_related("group"),
+                id=request.POST.get("membership_id"),
+                group__course=course,
+            )
+
+            if membership.is_active:
+                membership.is_active = False
+                membership.save(
+                    update_fields=["is_active", "updated_at"]
+                )
+                messages.success(
+                    request,
+                    "Student removed from the group.",
+                )
+            else:
+                messages.info(
+                    request,
+                    "This student is already inactive in this group.",
+                )
+
+        # -------------------------------------------------
+        # ARCHIVE GROUP
+        # -------------------------------------------------
+        elif action == "archive_group":
+            group = get_object_or_404(
+                CourseGroup,
+                id=request.POST.get("group_id"),
+                course=course,
+            )
+
+            if group.is_active:
+                group.is_active = False
+                group.save(update_fields=["is_active", "updated_at"])
+
+                messages.success(
+                    request,
+                    f"{group.name} has been archived.",
+                )
+
+        else:
+            messages.error(request, "Invalid group-management action.")
+
+        return redirect(
+            "teacher_course_groups",
+            course_id=course.id,
+        )
+
+    # -----------------------------------------------------
+    # PAGE DATA
+    # -----------------------------------------------------
+
+    groups = (
+        CourseGroup.objects
+        .filter(course=course)
+        .prefetch_related("memberships__student")
+        .order_by("name")
+    )
+
+    enrolled_students = (
+        Enrollment.objects
+        .filter(
+            course=course,
+            student__user_type="student",
+        )
+        .select_related("student")
+        .order_by("student__username")
+    )
+
+    return render(
+        request,
+        "teacher_course_groups.html",
+        {
+            "course": course,
+            "groups": groups,
+            "enrolled_students": enrolled_students,
+        },
     )
 
 
@@ -8913,6 +9148,22 @@ def join_live_class(request, class_id):
                 "You are not enrolled in this course.",
                 status=403
             )
+
+        # Group membership access control
+        if cls.group_id:
+
+            has_active_membership = CourseGroupMembership.objects.filter(
+                group_id=cls.group_id,
+                student=request.user,
+                is_active=True,
+                group__is_active=True,
+            ).exists()
+
+            if not has_active_membership:
+                return HttpResponse(
+                    "You are not an active member of this class group.",
+                    status=403
+                )
 
     # ---------------------------------------------------------
     # TEACHER ACCESS CONTROL

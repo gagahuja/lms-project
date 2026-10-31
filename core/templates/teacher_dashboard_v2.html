@@ -711,6 +711,21 @@
                                         </div>
                                     {% endif %}
 
+                                    {% if cls.group %}
+                                        <div class="small mt-1">
+                                            <span class="badge bg-primary">
+                                                Group: {{ cls.group.name }}
+                                            </span>
+                                        </div>
+                                    {% else %}
+                                        <div class="small text-muted mt-1">
+                                            <span class="badge bg-secondary">
+                                                Course-wide Class
+                                            </span>
+                                        </div>
+                                    {% endif %}
+
+
                                     <div class="small text-muted mt-1">
                                         {{ cls.date|date:"d M Y, h:i A" }}
                                     </div>

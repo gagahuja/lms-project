@@ -19,7 +19,21 @@ from core.views import (
     payment_success,
     razorpay_webhook,
 )
+from datetime import timedelta
 
+from django.contrib.auth import get_user_model
+from django.test import Client, TestCase
+from django.urls import reverse
+from django.utils import timezone
+
+from core.models import (
+    Attendance,
+    Course,
+    CourseGroup,
+    CourseGroupMembership,
+    Enrollment,
+    LiveClass,
+)
 
 class HandoutUploadValidationTests(SimpleTestCase):
     """Test resource upload validation without modifying the database."""
@@ -814,3 +828,298 @@ class RazorpayInvalidRefundAmountTests(SimpleTestCase):
                 self.assertEqual(response.status_code, 400)
                 transaction_filter.assert_not_called()
                 refund_create.assert_not_called()
+
+
+class CourseGroupLiveClassTests(TestCase):
+    """Database-backed tests for course groups and group-specific live classes."""
+
+    def setUp(self):
+        User = get_user_model()
+
+        self.teacher = User.objects.create_user(
+            username="group_teacher",
+            password="TestPassword123!",
+            user_type="teacher",
+        )
+        self.student = User.objects.create_user(
+            username="group_student",
+            password="TestPassword123!",
+            user_type="student",
+        )
+        self.non_member = User.objects.create_user(
+            username="group_non_member",
+            password="TestPassword123!",
+            user_type="student",
+        )
+
+        self.course = Course.objects.create(
+            title="Groups Test Mathematics",
+            description="Course for automated Groups tests.",
+            teacher=self.teacher,
+        )
+
+        Enrollment.objects.create(
+            course=self.course,
+            student=self.student,
+        )
+        Enrollment.objects.create(
+            course=self.course,
+            student=self.non_member,
+        )
+
+        self.group = CourseGroup.objects.create(
+            course=self.course,
+            name="Morning Batch",
+            description="Automated testing batch",
+            is_active=True,
+        )
+
+        self.membership = CourseGroupMembership.objects.create(
+            group=self.group,
+            student=self.student,
+            is_active=True,
+        )
+
+        self.group_class = LiveClass.objects.create(
+            title="Group Mathematics Session",
+            course=self.course,
+            group=self.group,
+            date=timezone.now() + timedelta(days=1),
+            meeting_link="https://meet.google.com/abc-defg-hij",
+        )
+
+        self.coursewide_class = LiveClass.objects.create(
+            title="Course Wide Mathematics Session",
+            course=self.course,
+            group=None,
+            date=timezone.now() + timedelta(days=2),
+            meeting_link="https://meet.google.com/abc-defg-hij",
+        )
+
+    def test_active_member_can_see_group_class(self):
+        self.client.force_login(self.student)
+
+        response = self.client.get(
+            reverse("live_class_visibility")
+        )
+
+        self.assertEqual(response.status_code, 200)
+        visible_ids = response.json()["visible_class_ids"]
+
+        self.assertIn(self.group_class.id, visible_ids)
+        self.assertIn(self.coursewide_class.id, visible_ids)
+
+    def test_non_member_cannot_see_group_class(self):
+        self.client.force_login(self.non_member)
+
+        response = self.client.get(
+            reverse("live_class_visibility")
+        )
+
+        self.assertEqual(response.status_code, 200)
+        visible_ids = response.json()["visible_class_ids"]
+
+        self.assertNotIn(self.group_class.id, visible_ids)
+        self.assertIn(self.coursewide_class.id, visible_ids)
+
+    def test_inactive_membership_removes_group_visibility(self):
+        self.membership.is_active = False
+        self.membership.save(update_fields=["is_active", "updated_at"])
+
+        self.client.force_login(self.student)
+
+        response = self.client.get(
+            reverse("live_class_visibility")
+        )
+
+        visible_ids = response.json()["visible_class_ids"]
+
+        self.assertNotIn(self.group_class.id, visible_ids)
+        self.assertIn(self.coursewide_class.id, visible_ids)
+
+    def test_archived_group_is_not_visible_to_member(self):
+        self.group.is_active = False
+        self.group.save(update_fields=["is_active", "updated_at"])
+
+        self.client.force_login(self.student)
+
+        response = self.client.get(
+            reverse("live_class_visibility")
+        )
+
+        visible_ids = response.json()["visible_class_ids"]
+
+        self.assertNotIn(self.group_class.id, visible_ids)
+        self.assertIn(self.coursewide_class.id, visible_ids)
+
+    def test_active_member_can_join_group_class(self):
+        self.group_class.teacher_started = True
+        self.group_class.save(update_fields=["teacher_started"])
+
+        self.client.force_login(self.student)
+
+        response = self.client.get(
+            reverse(
+                "join_live_class",
+                kwargs={"class_id": self.group_class.id},
+            )
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response["Location"],
+            self.group_class.meeting_link,
+        )
+        self.assertTrue(
+            Attendance.objects.filter(
+                student=self.student,
+                live_class=self.group_class,
+            ).exists()
+        )
+
+    def test_inactive_member_cannot_join_group_class(self):
+        self.membership.is_active = False
+        self.membership.save(update_fields=["is_active", "updated_at"])
+
+        self.group_class.teacher_started = True
+        self.group_class.save(update_fields=["teacher_started"])
+
+        self.client.force_login(self.student)
+
+        response = self.client.get(
+            reverse(
+                "join_live_class",
+                kwargs={"class_id": self.group_class.id},
+            )
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(
+            Attendance.objects.filter(
+                student=self.student,
+                live_class=self.group_class,
+            ).exists()
+        )
+
+    def test_enrolled_student_can_join_coursewide_class(self):
+        self.coursewide_class.teacher_started = True
+        self.coursewide_class.save(update_fields=["teacher_started"])
+
+        self.client.force_login(self.student)
+
+        response = self.client.get(
+            reverse(
+                "join_live_class",
+                kwargs={"class_id": self.coursewide_class.id},
+            )
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response["Location"],
+            self.coursewide_class.meeting_link,
+        )
+
+    def test_teacher_can_create_group_specific_class(self):
+        self.client.force_login(self.teacher)
+
+        class_date = (
+            timezone.localtime(timezone.now() + timedelta(days=1))
+            .strftime("%Y-%m-%dT%H:%M")
+        )
+
+        response = self.client.post(
+            reverse("create_live_class"),
+            {
+                "title": "Automated Group Session",
+                "course": str(self.course.id),
+                "group": str(self.group.id),
+                "date": class_date,
+                "meeting_link": "https://meet.google.com/abc-defg-hij",
+                "whiteboard": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        created_class = LiveClass.objects.filter(
+            title="Automated Group Session",
+            course=self.course,
+        ).first()
+
+        self.assertIsNotNone(created_class)
+        self.assertEqual(created_class.group_id, self.group.id)
+
+    def test_teacher_cannot_assign_group_from_another_course(self):
+        other_course = Course.objects.create(
+            title="Another Groups Test Course",
+            description="A different course.",
+            teacher=self.teacher,
+        )
+
+        foreign_group = CourseGroup.objects.create(
+            course=other_course,
+            name="Foreign Batch",
+        )
+
+        self.client.force_login(self.teacher)
+
+        class_date = (
+            timezone.localtime(timezone.now() + timedelta(days=1))
+            .strftime("%Y-%m-%dT%H:%M")
+        )
+
+        response = self.client.post(
+            reverse("create_live_class"),
+            {
+                "title": "Invalid Group Session",
+                "course": str(self.course.id),
+                "group": str(foreign_group.id),
+                "date": class_date,
+                "meeting_link": "https://meet.google.com/abc-defg-hij",
+                "whiteboard": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(
+            LiveClass.objects.filter(
+                title="Invalid Group Session"
+            ).exists()
+        )
+
+    def test_student_dashboard_hides_group_class_after_removal(self):
+        self.client.force_login(self.student)
+
+        response = self.client.get(
+            reverse("dashboard"),
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.group_class.title)
+        self.assertContains(response, self.group.name)
+
+        self.membership.is_active = False
+        self.membership.save(update_fields=["is_active", "updated_at"])
+
+        response = self.client.get(
+            reverse("dashboard"),
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, self.group_class.title)
+        self.assertContains(response, self.coursewide_class.title)
+
+    def test_teacher_dashboard_displays_group_name(self):
+        self.client.force_login(self.teacher)
+
+        response = self.client.get(
+            reverse("dashboard"),
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.group_class.title)
+        self.assertContains(response, self.group.name)

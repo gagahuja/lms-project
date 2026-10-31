@@ -1396,6 +1396,20 @@
                     {{ next_class.title }}
                 </strong>
 
+                {% if next_class.group %}
+                    <p class="section-subtitle mt-2">
+                        <span class="badge bg-primary">
+                            Group: {{ next_class.group.name }}
+                        </span>
+                    </p>
+                {% else %}
+                    <p class="section-subtitle mt-2">
+                        <span class="badge bg-secondary">
+                            Course-wide Class
+                        </span>
+                    </p>
+                {% endif %}
+
                 <p>
                     📅 {{ next_class.date|date:"d M Y" }}
                 </p>

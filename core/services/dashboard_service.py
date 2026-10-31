@@ -775,17 +775,33 @@ def build_student_dashboard(user):
         for enrollment in enrollments
     ]
 
+    # =========================================================
+    # GROUP-AWARE LIVE CLASS VISIBILITY
+    # =========================================================
+
+    now = timezone.now()
+
+    visible_live_classes = (
+        LiveClass.objects
+        .filter(course__in=enrolled_courses)
+        .filter(
+            Q(group__isnull=True)
+            | Q(
+                group__is_active=True,
+                group__memberships__student=user,
+                group__memberships__is_active=True,
+            )
+        )
+        .distinct()
+    )
 
     # =========================================================
     # NEXT LIVE CLASS
     # =========================================================
 
-    now = timezone.now()
-
     next_class = (
-        LiveClass.objects
+        visible_live_classes
         .filter(
-            course__in=enrolled_courses,
             is_live=True,
             is_completed=False,
         )
@@ -795,9 +811,8 @@ def build_student_dashboard(user):
 
     if not next_class:
         next_class = (
-            LiveClass.objects
+            visible_live_classes
             .filter(
-                course__in=enrolled_courses,
                 date__gte=now,
                 is_completed=False,
             )
@@ -810,12 +825,10 @@ def build_student_dashboard(user):
     # LIVE CLASSES
     # =========================================================
 
-    now = timezone.now()
     thirty_minutes_ago = now - timedelta(minutes=30)
 
     live_classes = (
-        LiveClass.objects
-        .filter(course__in=enrolled_courses)
+        visible_live_classes
         .filter(
             Q(is_completed=False)
             | Q(

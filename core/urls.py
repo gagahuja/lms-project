@@ -31,6 +31,11 @@ urlpatterns = [
         name='teacher_course_manager',
     ),
     path(
+        "teacher-course/<int:course_id>/groups/",
+        views.teacher_course_groups,
+        name="teacher_course_groups",
+    ),
+    path(
         'teacher-course/<int:course_id>/add-module/',
         views.add_teacher_module,
         name='add_teacher_module',
