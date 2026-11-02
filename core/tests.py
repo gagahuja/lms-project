@@ -1123,3 +1123,124 @@ class CourseGroupLiveClassTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.group_class.title)
         self.assertContains(response, self.group.name)
+
+
+class ArchivedGroupStartProtectionTests(TestCase):
+    """Verify teacher start permissions for group and course-wide classes."""
+
+    def setUp(self):
+        User = get_user_model()
+
+        self.teacher = User.objects.create_user(
+            username="archive_test_teacher",
+            password="TestPassword123!",
+            user_type="teacher",
+        )
+
+        self.course = Course.objects.create(
+            title="Archived Group Test Course",
+            description="Testing archived group protection.",
+            teacher=self.teacher,
+        )
+
+        self.group = CourseGroup.objects.create(
+            course=self.course,
+            name="Test Morning Batch",
+            is_active=True,
+        )
+
+        self.group_class = LiveClass.objects.create(
+            title="Group Test Live Class",
+            course=self.course,
+            group=self.group,
+            date=timezone.now() + timedelta(days=1),
+            meeting_link="https://meet.google.com/abc-defg-hij",
+        )
+
+        self.client.force_login(self.teacher)
+
+    def test_teacher_can_start_class_for_active_group(self):
+        response = self.client.post(
+            reverse("start_class", kwargs={
+                "class_id": self.group_class.id,
+            })
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response["Location"],
+            reverse("join_live_class", kwargs={
+                "class_id": self.group_class.id,
+            }),
+        )
+
+        self.group_class.refresh_from_db()
+
+        self.assertTrue(self.group_class.is_live)
+        self.assertTrue(self.group_class.teacher_started)
+
+    def test_teacher_cannot_start_class_for_archived_group(self):
+        self.group.is_active = False
+        self.group.save(update_fields=["is_active", "updated_at"])
+
+        response = self.client.post(
+            reverse("start_class", kwargs={
+                "class_id": self.group_class.id,
+            })
+        )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertContains(
+            response,
+            "archived group",
+            status_code=409,
+        )
+
+        self.group_class.refresh_from_db()
+
+        self.assertFalse(self.group_class.is_live)
+        self.assertFalse(self.group_class.teacher_started)
+
+    def test_teacher_cannot_restart_completed_class(self):
+        self.group_class.is_completed = True
+        self.group_class.save(update_fields=["is_completed"])
+
+        response = self.client.post(
+            reverse("start_class", kwargs={
+                "class_id": self.group_class.id,
+            })
+        )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertContains(
+            response,
+            "already been completed",
+            status_code=409,
+        )
+
+        self.group_class.refresh_from_db()
+
+        self.assertFalse(self.group_class.is_live)
+        self.assertFalse(self.group_class.teacher_started)
+
+    def test_teacher_can_still_start_coursewide_class(self):
+        coursewide_class = LiveClass.objects.create(
+            title="Course Wide Test Live Class",
+            course=self.course,
+            group=None,
+            date=timezone.now() + timedelta(days=1),
+            meeting_link="https://meet.google.com/abc-defg-hij",
+        )
+
+        response = self.client.post(
+            reverse("start_class", kwargs={
+                "class_id": coursewide_class.id,
+            })
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        coursewide_class.refresh_from_db()
+
+        self.assertTrue(coursewide_class.is_live)
+        self.assertTrue(coursewide_class.teacher_started)

@@ -9020,7 +9020,7 @@ def serve_handout(request, handout_id):
 def start_class(request, class_id):
 
     cls = get_object_or_404(
-        LiveClass.objects.select_related("course"),
+        LiveClass.objects.select_related("course", "group"),
         id=class_id
     )
 
@@ -9038,6 +9038,27 @@ def start_class(request, class_id):
         return HttpResponse(
             "You are not authorized to start this class.",
             status=403
+        )
+
+    # ---------------------------------------------------------
+    # PREVENT RESTARTING COMPLETED CLASSES
+    # ---------------------------------------------------------
+
+    if cls.is_completed:
+        return HttpResponse(
+            "This class has already been completed and cannot be restarted.",
+            status=409
+        )
+
+
+    # ---------------------------------------------------------
+    # PREVENT STARTING CLASSES OF ARCHIVED GROUPS
+    # ---------------------------------------------------------
+
+    if cls.group_id and not cls.group.is_active:
+        return HttpResponse(
+            "This class belongs to an archived group and cannot be started.",
+            status=409
         )
 
     # ---------------------------------------------------------
