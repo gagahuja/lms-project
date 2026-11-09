@@ -100,106 +100,36 @@
         );
 
 
+
     const videoUrl =
         "{% url 'serve_module_recording' recording.id %}";
 
-
-    fetch(
-        videoUrl,
-        {
-            method: "GET",
-
-            headers: {
-                "X-ScoreSkill-Viewer": "1"
-            },
-
-            credentials: "same-origin"
-        }
-    )
-    .then(function (response) {
-
-        if (!response.ok) {
-
-            throw new Error(
-                "Video request failed: " +
-                response.status
-            );
-
-        }
-
-        return response.blob();
-
-    })
-    .then(function (blob) {
-
-        const objectUrl =
-            URL.createObjectURL(
-                blob
-            );
-
-        video.src =
-            objectUrl;
-
-        container.style.display =
-            "block";
-
-        status.className =
-            "alert alert-success";
-
-        status.textContent =
-            "Video loaded. View only.";
-
-        video.addEventListener(
-            "loadeddata",
-            function () {
-
-                status.style.display =
-                    "none";
-
-            },
-            {
-                once: true
-            }
-        );
-
-    })
-    .catch(function (error) {
-
-        console.error(
-            "Module recording load failed:",
-            error
-        );
-
-        status.className =
-            "alert alert-danger";
-
-        status.textContent =
-            "Unable to load the recording.";
-
-    });
-
-
-    // ---------------------------------------------------------
-    // CLEAN UP OBJECT URL
-    // ---------------------------------------------------------
-
-    window.addEventListener(
-        "beforeunload",
+    // Native video requests automatically include the same-origin
+    // session cookie and can send HTTP Range headers for seeking.
+    video.addEventListener(
+        "loadeddata",
         function () {
+            status.style.display = "none";
+        },
+        { once: true }
+    );
 
-            if (video.src) {
-
-                URL.revokeObjectURL(
-                    video.src
-                );
-
-            }
-
+    video.addEventListener(
+        "error",
+        function () {
+            status.className = "alert alert-danger";
+            status.textContent = "Unable to load the recording.";
         }
     );
 
+    status.className = "alert alert-info";
+    status.textContent = "Loading recording...";
 
-    // ---------------------------------------------------------
+    container.style.display = "block";
+
+    video.src = videoUrl;
+    video.load();
+
     // RIGHT-CLICK
     // ---------------------------------------------------------
 

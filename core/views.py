@@ -4767,147 +4767,71 @@ def view_module_recording(request, recording_id):
 
 
 @login_required
-def serve_module_recording(request, recording_id):
-
-    # ---------------------------------------------------------
-    # GET MODULE RECORDING + MODULE + COURSE
-    # ---------------------------------------------------------
-
-    recording = get_object_or_404(
-        LearningRecording.objects.select_related(
-            "module__course",
-        ).filter(
-            module__isnull=False,
-            lesson__isnull=True,
-        ),
-        id=recording_id,
-    )
-
-    module = recording.module
-    course = module.course
-
-    # ---------------------------------------------------------
-    # STUDENT ACCESS
-    # ---------------------------------------------------------
-
-    if request.user.user_type == "student":
-
-        is_enrolled = Enrollment.objects.filter(
-            student=request.user,
-            course=course,
-        ).exists()
-
-        if not is_enrolled:
-
-            return HttpResponse(
-                "You are not enrolled in this course.",
-                status=403,
+async def serve_module_recording(request, recording_id):
+    # Fetch the recording and course in one query.
+    try:
+        recording = await (
+            LearningRecording.objects
+            .select_related("module__course")
+            .filter(
+                module__isnull=False,
+                lesson__isnull=True,
             )
-
-    # ---------------------------------------------------------
-    # TEACHER ACCESS
-    # ---------------------------------------------------------
-
-    elif request.user.user_type == "teacher":
-
-        if course.teacher_id != request.user.id:
-
-            return HttpResponse(
-                "You are not authorized to view this module recording.",
-                status=403,
-            )
-
-    # ---------------------------------------------------------
-    # OTHER USERS
-    # ---------------------------------------------------------
-
-    else:
-
-        return HttpResponse(
-            "You are not authorized to view this module recording.",
-            status=403,
+            .aget(id=recording_id)
         )
-
-    # ---------------------------------------------------------
-    # FILE CHECK
-    # ---------------------------------------------------------
-
-    if not recording.video:
-
+    except LearningRecording.DoesNotExist:
         return HttpResponse(
             "Module recording video not found.",
             status=404,
         )
 
-    # ---------------------------------------------------------
-    # SECURE VIEWER CHECK
-    # ---------------------------------------------------------
+    module = recording.module
+    course = module.course
+    user = await request.auser()
 
-    if request.headers.get(
-        "X-ScoreSkill-Viewer"
-    ) != "1":
+    # Preserve student enrollment authorization.
+    if user.user_type == "student":
+        is_enrolled = await Enrollment.objects.filter(
+            student_id=user.id,
+            course_id=course.id,
+        ).aexists()
 
+        if not is_enrolled:
+            return HttpResponse(
+                "You are not enrolled in this course.",
+                status=403,
+            )
+
+    # Preserve teacher ownership authorization.
+    elif user.user_type == "teacher":
+        if course.teacher_id != user.id:
+            return HttpResponse(
+                "You are not authorized to view this module recording.",
+                status=403,
+            )
+
+    else:
         return HttpResponse(
-            "Direct module recording access is not allowed.",
+            "You are not authorized to view this module recording.",
             status=403,
         )
 
-    # ---------------------------------------------------------
-    # OPEN VIDEO
-    # ---------------------------------------------------------
-
-    try:
-
-        file_handle = recording.video.open(
-            "rb",
-        )
-
-    except Exception as exc:
-
-        logger.exception(
-            "Module recording video open failed "
-            "for recording=%s: %s",
-            recording.id,
-            exc,
-        )
-
+    if not recording.video:
         return HttpResponse(
-            "Unable to open module recording video.",
+            "Module recording video not found.",
             status=404,
         )
 
-    # ---------------------------------------------------------
-    # CONTENT TYPE
-    # ---------------------------------------------------------
-
-    import mimetypes
-
-    content_type, _ = mimetypes.guess_type(
-        recording.video.name,
+    from core.services.secure_media_service import (
+        secure_video_stream_response,
     )
 
-    if not content_type:
-
-        content_type = "video/mp4"
-
-    # ---------------------------------------------------------
-    # RESPONSE
-    # ---------------------------------------------------------
-
-    response = FileResponse(
-        file_handle,
-        content_type=content_type,
+    return await secure_video_stream_response(
+        request,
+        recording.video,
+        error_label="Module recording",
     )
 
-    response["Content-Disposition"] = "inline"
-    response["Cache-Control"] = (
-        "private, no-store, max-age=0"
-    )
-    response["Pragma"] = "no-cache"
-    response["X-Content-Type-Options"] = "nosniff"
-    response["Referrer-Policy"] = "same-origin"
-
-    return response
 
 
 @login_required
@@ -4995,147 +4919,71 @@ def view_lesson_recording(request, recording_id):
 
 
 @login_required
-def serve_lesson_recording(request, recording_id):
-
-    # ---------------------------------------------------------
-    # GET LESSON RECORDING + LESSON + MODULE + COURSE
-    # ---------------------------------------------------------
-
-    recording = get_object_or_404(
-        LearningRecording.objects.select_related(
-            "lesson__module__course",
-        ).filter(
-            lesson__isnull=False,
-            module__isnull=True,
-        ),
-        id=recording_id,
-    )
-
-    lesson = recording.lesson
-    course = lesson.module.course
-
-    # ---------------------------------------------------------
-    # STUDENT ACCESS
-    # ---------------------------------------------------------
-
-    if request.user.user_type == "student":
-
-        is_enrolled = Enrollment.objects.filter(
-            student=request.user,
-            course=course,
-        ).exists()
-
-        if not is_enrolled:
-
-            return HttpResponse(
-                "You are not enrolled in this course.",
-                status=403,
+async def serve_lesson_recording(request, recording_id):
+    # Fetch the recording, lesson, module and course in one query.
+    try:
+        recording = await (
+            LearningRecording.objects
+            .select_related("lesson__module__course")
+            .filter(
+                lesson__isnull=False,
+                module__isnull=True,
             )
-
-    # ---------------------------------------------------------
-    # TEACHER ACCESS
-    # ---------------------------------------------------------
-
-    elif request.user.user_type == "teacher":
-
-        if course.teacher_id != request.user.id:
-
-            return HttpResponse(
-                "You are not authorized to view this lesson recording.",
-                status=403,
-            )
-
-    # ---------------------------------------------------------
-    # OTHER USER TYPES
-    # ---------------------------------------------------------
-
-    else:
-
-        return HttpResponse(
-            "You are not authorized to view this lesson recording.",
-            status=403,
+            .aget(id=recording_id)
         )
-
-    # ---------------------------------------------------------
-    # FILE CHECK
-    # ---------------------------------------------------------
-
-    if not recording.video:
-
+    except LearningRecording.DoesNotExist:
         return HttpResponse(
             "Lesson recording video not found.",
             status=404,
         )
 
-    # ---------------------------------------------------------
-    # SECURE VIEWER CHECK
-    # ---------------------------------------------------------
+    lesson = recording.lesson
+    course = lesson.module.course
+    user = await request.auser()
 
-    if request.headers.get(
-        "X-ScoreSkill-Viewer"
-    ) != "1":
+    # Preserve student enrollment authorization.
+    if user.user_type == "student":
+        is_enrolled = await Enrollment.objects.filter(
+            student_id=user.id,
+            course_id=course.id,
+        ).aexists()
 
+        if not is_enrolled:
+            return HttpResponse(
+                "You are not enrolled in this course.",
+                status=403,
+            )
+
+    # Preserve teacher ownership authorization.
+    elif user.user_type == "teacher":
+        if course.teacher_id != user.id:
+            return HttpResponse(
+                "You are not authorized to view this lesson recording.",
+                status=403,
+            )
+
+    else:
         return HttpResponse(
-            "Direct lesson recording access is not allowed.",
+            "You are not authorized to view this lesson recording.",
             status=403,
         )
 
-    # ---------------------------------------------------------
-    # OPEN VIDEO
-    # ---------------------------------------------------------
-
-    try:
-
-        file_handle = recording.video.open(
-            "rb",
-        )
-
-    except Exception as exc:
-
-        logger.exception(
-            "Lesson recording video open failed "
-            "for recording=%s: %s",
-            recording.id,
-            exc,
-        )
-
+    if not recording.video:
         return HttpResponse(
-            "Unable to open lesson recording video.",
+            "Lesson recording video not found.",
             status=404,
         )
 
-    # ---------------------------------------------------------
-    # CONTENT TYPE
-    # ---------------------------------------------------------
-
-    import mimetypes
-
-    content_type, _ = mimetypes.guess_type(
-        recording.video.name,
+    from core.services.secure_media_service import (
+        secure_video_stream_response,
     )
 
-    if not content_type:
-
-        content_type = "video/mp4"
-
-    # ---------------------------------------------------------
-    # RESPONSE
-    # ---------------------------------------------------------
-
-    response = FileResponse(
-        file_handle,
-        content_type=content_type,
+    return await secure_video_stream_response(
+        request,
+        recording.video,
+        error_label="Lesson recording",
     )
 
-    response["Content-Disposition"] = "inline"
-    response["Cache-Control"] = (
-        "private, no-store, max-age=0"
-    )
-    response["Pragma"] = "no-cache"
-    response["X-Content-Type-Options"] = "nosniff"
-    response["Referrer-Policy"] = "same-origin"
-
-    return response
 
 
 from django.shortcuts import get_object_or_404
