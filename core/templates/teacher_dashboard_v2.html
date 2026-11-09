@@ -1323,7 +1323,7 @@
                             {% if recording.video %}
 
                                 <a
-                                    href="{{ recording.video.url }}"
+                                    href="{% url 'serve_live_class_recording' recording.id %}"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     class="btn btn-sm btn-outline-primary"

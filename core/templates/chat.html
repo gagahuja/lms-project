@@ -26,7 +26,7 @@
 
             {% if msg.file %}
                 <br>
-                <a href="{{ msg.file.url }}" target="_blank" class="btn btn-sm btn-outline-info">
+                <a href="{% url 'serve_chat_message_file' course.id msg.id %}" target="_blank" class="btn btn-sm btn-outline-info">
                     📎 Download File
                 </a>
             {% endif %}
@@ -47,12 +47,12 @@
             </button>
 
             {% if msg.file %}
-                {% if ".webm" in msg.file.url %}
+                {% if msg.file.name|lower|slice:"-5:" == ".webm" %}
                     <audio controls>
-                        <source src="{{ msg.file.url }}">
+                        <source src="{% url 'serve_chat_message_file' course.id msg.id %}">
                     </audio>
                 {% else %}
-                    <a href="{{ msg.file.url }}" target="_blank">📎 File</a>
+                    <a href="{% url 'serve_chat_message_file' course.id msg.id %}" target="_blank">📎 File</a>
                 {% endif %}
             {% endif %}
             {% if msg.sender == request.user %}

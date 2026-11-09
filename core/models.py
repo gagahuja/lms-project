@@ -1,6 +1,6 @@
-from cloudinary_storage.storage import (
-    RawMediaCloudinaryStorage,
-    VideoMediaCloudinaryStorage,
+from core.storage_backends import (
+    AuthenticatedRawMediaCloudinaryStorage,
+    AuthenticatedVideoMediaCloudinaryStorage,
 )
 from django.contrib.auth.models import AbstractUser
 from django.db import models
@@ -388,7 +388,7 @@ class LearningRecording(models.Model):
 
     video = models.FileField(
         upload_to="learning_recordings/",
-        storage=VideoMediaCloudinaryStorage(),
+        storage=AuthenticatedVideoMediaCloudinaryStorage(),
     )
 
     display_order = models.PositiveIntegerField(
@@ -452,7 +452,7 @@ class Assignment(models.Model):
 
     file = models.FileField(
         upload_to='assignments/',
-        storage=RawMediaCloudinaryStorage()
+        storage=AuthenticatedRawMediaCloudinaryStorage()
     )
 
     due_date = models.DateField()

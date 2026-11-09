@@ -57,7 +57,7 @@
                 {% else %}
 
                     <a
-                        href="{{ s.file.url }}"
+                        href="{% url 'serve_submission_file' s.id %}"
                         target="_blank"
                         class="btn btn-sm btn-primary"
                     >

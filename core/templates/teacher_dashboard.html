@@ -662,7 +662,7 @@ No recent activity.
 
     <br><br>
 
-    <a href="{{ rec.video.url }}"
+    <a href="{% url 'serve_live_class_recording' rec.id %}"
         target="_blank"
         class="btn btn-success btn-sm">
         ▶ View

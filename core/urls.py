@@ -269,6 +269,10 @@ urlpatterns = [
         ),
         name='password_reset_complete',
     ),
+
+    path("doubt/<int:doubt_id>/image/<str:image_kind>/", views.serve_doubt_image, name="serve_doubt_image"),
+    path("chat/<int:course_id>/message/<int:message_id>/file/", views.serve_chat_message_file, name="serve_chat_message_file"),
+    path("live-class-recording/<int:recording_id>/file/", views.serve_live_class_recording, name="serve_live_class_recording"),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

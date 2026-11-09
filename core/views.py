@@ -8134,9 +8134,11 @@ def serve_assignment_file(request, assignment_id):
     # ---------------------------------------------------------
 
     if not is_pdf and not is_office:
-
-        return redirect(
-            assignment.file.url
+        from core.services.secure_media_service import secure_file_response
+        return secure_file_response(
+            assignment.file,
+            inline=False,
+            error_label="Assignment file",
         )
 
     # ---------------------------------------------------------
@@ -8158,33 +8160,13 @@ def serve_assignment_file(request, assignment_id):
 
     if is_pdf:
 
-        try:
-
-            file_handle = assignment.file.open(
-                "rb"
-            )
-
-        except Exception:
-
-            return HttpResponse(
-                "Unable to open assignment PDF.",
-                status=404,
-            )
-
-        response = FileResponse(
-            file_handle,
+        from core.services.secure_media_service import secure_file_response
+        return secure_file_response(
+            assignment.file,
+            inline=True,
             content_type="application/pdf",
+            error_label="Assignment PDF",
         )
-
-        response["Content-Disposition"] = "inline"
-        response["Cache-Control"] = (
-            "private, no-store, max-age=0"
-        )
-        response["Pragma"] = "no-cache"
-        response["X-Content-Type-Options"] = "nosniff"
-        response["Referrer-Policy"] = "same-origin"
-
-        return response
 
     # =========================================================
     # OFFICE DOCUMENT
@@ -8322,9 +8304,11 @@ def serve_submission_file(request, submission_id):
     # ---------------------------------------------------------
 
     if not is_pdf:
-
-        return redirect(
-            submission.file.url
+        from core.services.secure_media_service import secure_file_response
+        return secure_file_response(
+            submission.file,
+            inline=False,
+            error_label="Submission file",
         )
 
 
@@ -8344,34 +8328,13 @@ def serve_submission_file(request, submission_id):
     # OPEN SUBMITTED PDF
     # ---------------------------------------------------------
 
-    try:
-
-        file_handle = submission.file.open("rb")
-
-    except Exception:
-
-        return HttpResponse(
-            "Unable to open submitted PDF.",
-            status=404,
-        )
-
-
-    # ---------------------------------------------------------
-    # SERVE PDF THROUGH DJANGO
-    # ---------------------------------------------------------
-
-    response = FileResponse(
-        file_handle,
+    from core.services.secure_media_service import secure_file_response
+    return secure_file_response(
+        submission.file,
+        inline=True,
         content_type="application/pdf",
+        error_label="Submission PDF",
     )
-
-    response["Content-Disposition"] = "inline"
-    response["Cache-Control"] = "private, no-store, max-age=0"
-    response["Pragma"] = "no-cache"
-    response["X-Content-Type-Options"] = "nosniff"
-    response["Referrer-Policy"] = "same-origin"
-
-    return response
 
 
 @login_required
@@ -8458,9 +8421,11 @@ def serve_checked_submission_file(request, submission_id):
     # ---------------------------------------------------------
 
     if not is_pdf:
-
-        return redirect(
-            submission.checked_file.url
+        from core.services.secure_media_service import secure_file_response
+        return secure_file_response(
+            submission.checked_file,
+            inline=False,
+            error_label="Checked submission file",
         )
 
 
@@ -8480,34 +8445,13 @@ def serve_checked_submission_file(request, submission_id):
     # OPEN CHECKED PDF
     # ---------------------------------------------------------
 
-    try:
-
-        file_handle = submission.checked_file.open("rb")
-
-    except Exception:
-
-        return HttpResponse(
-            "Unable to open checked PDF.",
-            status=404,
-        )
-
-
-    # ---------------------------------------------------------
-    # SERVE PDF THROUGH DJANGO
-    # ---------------------------------------------------------
-
-    response = FileResponse(
-        file_handle,
+    from core.services.secure_media_service import secure_file_response
+    return secure_file_response(
+        submission.checked_file,
+        inline=True,
         content_type="application/pdf",
+        error_label="Checked submission PDF",
     )
-
-    response["Content-Disposition"] = "inline"
-    response["Cache-Control"] = "private, no-store, max-age=0"
-    response["Pragma"] = "no-cache"
-    response["X-Content-Type-Options"] = "nosniff"
-    response["Referrer-Policy"] = "same-origin"
-
-    return response
 
 
 from django.contrib.auth.decorators import login_required
@@ -8932,33 +8876,13 @@ def serve_handout(request, handout_id):
 
     if is_pdf:
 
-        try:
-
-            file_handle = handout.file.open(
-                "rb"
-            )
-
-        except Exception:
-
-            return HttpResponse(
-                "Unable to open handout PDF.",
-                status=404,
-            )
-
-        response = FileResponse(
-            file_handle,
+        from core.services.secure_media_service import secure_file_response
+        return secure_file_response(
+            handout.file,
+            inline=True,
             content_type="application/pdf",
+            error_label="Handout PDF",
         )
-
-        response["Content-Disposition"] = "inline"
-        response["Cache-Control"] = (
-            "private, no-store, max-age=0"
-        )
-        response["Pragma"] = "no-cache"
-        response["X-Content-Type-Options"] = "nosniff"
-        response["Referrer-Policy"] = "same-origin"
-
-        return response
 
 
     # =========================================================
@@ -10988,6 +10912,145 @@ def delete_recording(request, recording_id):
 
 
 from django.contrib.auth.decorators import login_required
+
+
+
+@login_required
+def serve_doubt_image(request, doubt_id, image_kind):
+    """Serve a doubt image only to its student or owning teacher."""
+
+    doubt = get_object_or_404(
+        Doubt.objects.select_related("course", "student"),
+        id=doubt_id,
+    )
+
+    if request.user.user_type == "student":
+        if doubt.student_id != request.user.id:
+            return HttpResponse("You are not authorized to view this image.", status=403)
+
+    elif request.user.user_type == "teacher":
+        if doubt.course.teacher_id != request.user.id:
+            return HttpResponse("You are not authorized to view this image.", status=403)
+
+    else:
+        return HttpResponse("You are not authorized to view this image.", status=403)
+
+    if image_kind == "question":
+        file_field = doubt.image
+        label = "Doubt question image"
+    elif image_kind == "answer":
+        file_field = doubt.answer_image
+        label = "Doubt answer image"
+    else:
+        return HttpResponse("Invalid image type.", status=404)
+
+    if not file_field:
+        return HttpResponse("Doubt image not found.", status=404)
+
+    from core.services.secure_media_service import secure_file_response
+
+    return secure_file_response(
+        file_field,
+        inline=True,
+        error_label=label,
+    )
+
+
+@login_required
+def serve_chat_message_file(request, course_id, message_id):
+    """Serve an attachment only to an authorized conversation participant."""
+
+    message = get_object_or_404(
+        Message.objects.select_related("course", "sender", "receiver"),
+        id=message_id,
+        course_id=course_id,
+    )
+
+    if message.sender_id == request.user.id:
+        other_user = message.receiver
+    elif message.receiver_id == request.user.id:
+        other_user = message.sender
+    else:
+        return HttpResponse("You are not a participant in this conversation.", status=403)
+
+    course = message.course
+
+    if request.user.user_type == "student":
+        if not Enrollment.objects.filter(
+            student=request.user,
+            course=course,
+        ).exists():
+            return HttpResponse("You are not enrolled in this course.", status=403)
+
+        if other_user.id != course.teacher_id:
+            return HttpResponse("You are not authorized to access this attachment.", status=403)
+
+    elif request.user.user_type == "teacher":
+        if course.teacher_id != request.user.id:
+            return HttpResponse("You are not authorized to access this course chat.", status=403)
+
+        if other_user.user_type != "student" or not Enrollment.objects.filter(
+            student=other_user,
+            course=course,
+        ).exists():
+            return HttpResponse("This student is not enrolled in this course.", status=403)
+
+    else:
+        return HttpResponse("You are not authorized to use chat.", status=403)
+
+    if not message.file:
+        return HttpResponse("Chat attachment not found.", status=404)
+
+    from pathlib import Path
+    from core.services.secure_media_service import secure_file_response
+
+    is_webm = Path(message.file.name).suffix.lower() == ".webm"
+
+    return secure_file_response(
+        message.file,
+        inline=is_webm,
+        content_type="audio/webm" if is_webm else None,
+        error_label="Chat attachment",
+    )
+
+
+@login_required
+def serve_live_class_recording(request, recording_id):
+    """Serve a live-class recording to an enrolled student or course teacher."""
+
+    recording = get_object_or_404(
+        Recording.objects.select_related("live_class__course"),
+        id=recording_id,
+    )
+
+    course = recording.live_class.course
+
+    if request.user.user_type == "student":
+        if not Enrollment.objects.filter(
+            student=request.user,
+            course=course,
+        ).exists():
+            return HttpResponse("You are not enrolled in this course.", status=403)
+
+    elif request.user.user_type == "teacher":
+        if course.teacher_id != request.user.id:
+            return HttpResponse("You are not authorized to view this recording.", status=403)
+
+    else:
+        return HttpResponse("You are not authorized to view this recording.", status=403)
+
+    if not recording.video:
+        return HttpResponse("Recording not found.", status=404)
+
+    from core.services.secure_media_service import secure_file_response
+
+    return secure_file_response(
+        recording.video,
+        inline=True,
+        error_label="Live-class recording",
+    )
+
+
 
 @login_required
 def gradebook(request):

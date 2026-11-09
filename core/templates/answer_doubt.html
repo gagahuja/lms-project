@@ -89,7 +89,7 @@
                 <div class="mt-3">
 
                     <img
-                        src="{{ doubt.image.url }}"
+                        src="{% url 'serve_doubt_image' doubt.id 'question' %}"
                         alt="Student question"
                         style="
                             max-width: 100%;
