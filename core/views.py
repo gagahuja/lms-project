@@ -8982,6 +8982,16 @@ def join_live_class(request, class_id):
         )
 
     # ---------------------------------------------------------
+    # COMPLETED CLASS PROTECTION
+    # ---------------------------------------------------------
+
+    if cls.is_completed:
+        return HttpResponse(
+            "This class has already been completed.",
+            status=410
+        )
+
+    # ---------------------------------------------------------
     # CHECK WHETHER CLASS IS UNLOCKED
     # ---------------------------------------------------------
 
@@ -9000,6 +9010,16 @@ def join_live_class(request, class_id):
         )
 
     # ---------------------------------------------------------
+    # MEETING LINK VALIDATION
+    # ---------------------------------------------------------
+
+    if not cls.meeting_link:
+        return HttpResponse(
+            "Meeting link is not available.",
+            status=404
+        )
+
+    # ---------------------------------------------------------
     # ATTENDANCE
     # ---------------------------------------------------------
 
@@ -9013,12 +9033,6 @@ def join_live_class(request, class_id):
     # ---------------------------------------------------------
     # JOIN MEETING
     # ---------------------------------------------------------
-
-    if not cls.meeting_link:
-        return HttpResponse(
-            "Meeting link is not available.",
-            status=404
-        )
 
     return redirect(cls.meeting_link)
 

@@ -977,6 +977,55 @@ class CourseGroupLiveClassTests(TestCase):
             ).exists()
         )
 
+    def test_student_cannot_join_completed_class(self):
+        self.group_class.teacher_started = True
+        self.group_class.is_live = False
+        self.group_class.is_completed = True
+        self.group_class.save(
+            update_fields=["teacher_started", "is_live", "is_completed"]
+        )
+
+        self.client.force_login(self.student)
+
+        response = self.client.get(
+            reverse(
+                "join_live_class",
+                kwargs={"class_id": self.group_class.id},
+            )
+        )
+
+        self.assertEqual(response.status_code, 410)
+        self.assertFalse(
+            Attendance.objects.filter(
+                student=self.student,
+                live_class=self.group_class,
+            ).exists()
+        )
+
+    def test_missing_meeting_link_does_not_create_attendance(self):
+        self.group_class.teacher_started = True
+        self.group_class.meeting_link = ""
+        self.group_class.save(
+            update_fields=["teacher_started", "meeting_link"]
+        )
+
+        self.client.force_login(self.student)
+
+        response = self.client.get(
+            reverse(
+                "join_live_class",
+                kwargs={"class_id": self.group_class.id},
+            )
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(
+            Attendance.objects.filter(
+                student=self.student,
+                live_class=self.group_class,
+            ).exists()
+        )
+
     def test_inactive_member_cannot_join_group_class(self):
         self.membership.is_active = False
         self.membership.save(update_fields=["is_active", "updated_at"])
