@@ -14,6 +14,7 @@ from core.views import (
     _handout_upload_error,
     _mark_payment_refunded_if_fully_refunded,
     add_teacher_lesson_handout,
+    add_teacher_module_handout,
     edit_teacher_lesson_handout,
     delete_teacher_lesson_handout,
     payment_success,
@@ -343,6 +344,142 @@ class LessonHandoutWorkflowTests(SimpleTestCase):
         handout.delete.assert_not_called()
 
 
+
+class ModuleHandoutWorkflowTests(SimpleTestCase):
+    """Test module Handout views without modifying the database."""
+
+    def setUp(self):
+        self.factory = RequestFactory()
+
+        self.teacher = SimpleNamespace(
+            is_authenticated=True,
+            user_type="teacher",
+            id=7,
+        )
+        self.other_teacher = SimpleNamespace(
+            is_authenticated=True,
+            user_type="teacher",
+            id=8,
+        )
+
+        self.course = SimpleNamespace(
+            id=42,
+            teacher_id=self.teacher.id,
+        )
+        self.module = SimpleNamespace(
+            id=5,
+            course=self.course,
+        )
+
+    def make_request(self, user, data):
+        request = self.factory.post("/test/", data=data)
+        request.user = user
+        return request
+
+    def test_teacher_can_create_module_handout(self):
+        uploaded_file = SimpleUploadedFile(
+            "worksheet.pdf",
+            b"test PDF content",
+        )
+
+        request = self.make_request(
+            self.teacher,
+            {
+                "title": "Module Worksheet",
+                "category": "worksheet",
+                "file": uploaded_file,
+            },
+        )
+
+        with (
+            patch(
+                "core.views.get_object_or_404",
+                return_value=self.module,
+            ),
+            patch("core.views.Handout.objects.create") as create_handout,
+            patch("core.views.messages.success"),
+            patch("core.views.messages.error"),
+        ):
+            response = add_teacher_module_handout(
+                request,
+                module_id=self.module.id,
+            )
+
+        self.assertEqual(response.status_code, 302)
+        create_handout.assert_called_once()
+
+        saved = create_handout.call_args.kwargs
+        self.assertIsNone(saved["lesson"])
+        self.assertIs(saved["module"], self.module)
+        self.assertEqual(saved["title"], "Module Worksheet")
+        self.assertEqual(saved["category"], "worksheet")
+        self.assertEqual(saved["file"].name, uploaded_file.name)
+
+    def test_other_teacher_cannot_create_module_handout(self):
+        uploaded_file = SimpleUploadedFile(
+            "worksheet.pdf",
+            b"test PDF content",
+        )
+
+        request = self.make_request(
+            self.other_teacher,
+            {
+                "title": "Unauthorized Worksheet",
+                "category": "worksheet",
+                "file": uploaded_file,
+            },
+        )
+
+        with (
+            patch(
+                "core.views.get_object_or_404",
+                return_value=self.module,
+            ),
+            patch("core.views.Handout.objects.create") as create_handout,
+        ):
+            response = add_teacher_module_handout(
+                request,
+                module_id=self.module.id,
+            )
+
+        self.assertEqual(response.status_code, 403)
+        create_handout.assert_not_called()
+
+    def test_invalid_category_does_not_create_module_handout(self):
+        uploaded_file = SimpleUploadedFile(
+            "worksheet.pdf",
+            b"test PDF content",
+        )
+
+        request = self.make_request(
+            self.teacher,
+            {
+                "title": "Invalid Worksheet",
+                "category": "invalid_category",
+                "file": uploaded_file,
+            },
+        )
+
+        with (
+            patch(
+                "core.views.get_object_or_404",
+                return_value=self.module,
+            ),
+            patch("core.views.Handout.objects.create") as create_handout,
+            patch("core.views.messages.error"),
+        ):
+            response = add_teacher_module_handout(
+                request,
+                module_id=self.module.id,
+            )
+
+        self.assertEqual(response.status_code, 302)
+        create_handout.assert_not_called()
+
+    def test_handout_file_field_allows_500_character_paths(self):
+        file_field = Handout._meta.get_field("file")
+
+        self.assertEqual(file_field.max_length, 500)
 
 class RazorpayWebhookPaymentStateTests(SimpleTestCase):
     """Guard successful payment states against delayed failure events."""

@@ -674,6 +674,7 @@ class Handout(models.Model):
 
     file = models.FileField(
         upload_to="handouts/",
+        max_length=500,
     )
 
     created_at = models.DateTimeField(
